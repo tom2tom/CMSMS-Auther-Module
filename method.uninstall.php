@@ -29,9 +29,18 @@ $tblname = $pref.'module_auth_users';
 $sql = $dict->DropTableSQL($tblname);
 $dict->ExecuteSQLArray($sql);
 
+$db->DropSequence($pref.'module_auth_contexts_seq');
+$db->DropSequence($pref.'module_auth_users_seq');
+
 $this->RemovePreference();
 
+$this->RemoveEvent('AuthRegister');
+$this->RemoveEvent('AuthDeregister');
+$this->RemoveEvent('AuthLogin');
+$this->RemoveEvent('AuthLoginFail');
+$this->RemoveEvent('AuthLogout');
+
+$this->RemovePermission('ReviewAuthStatus');
+$this->RemovePermission('SendAuthEvents');
 //$this->RemovePermission('SeeAuthProperties');
 //$this->RemovePermission('ModifyAuthProperties');
-$this->RemovePermission ('ReviewAuthStatus');
-$this->RemovePermission ('SendAuthEvents');

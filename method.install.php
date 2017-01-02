@@ -14,7 +14,7 @@ $pref = \cms_db_prefix();
 //cookie_path','/');
 //mail_charset C(16) DEFAULT 'UTF-8',
 $flds = "
-id I AUTO KEY,
+id I KEY,
 name C(48) NOTNULL,
 alias C(16) NOTNULL,
 attack_mitigation_time C(16) DEFAULT '+30 minutes',
@@ -39,6 +39,8 @@ suppress_reset_message I(1) DEFAULT 0
 $tblname = $pref.'module_auth_contexts';
 $sql = $dict->CreateTableSQL($tblname,$flds,$taboptarray);
 $dict->ExecuteSQLArray($sql);
+
+$db->CreateSequence($pref.'module_auth_contexts_seq');
 
 $flds = "
 id I AUTO KEY,
@@ -74,7 +76,7 @@ $sql = $dict->CreateTableSQL($tblname,$flds,$taboptarray);
 $dict->ExecuteSQLArray($sql);
 
 $flds = "
-id I AUTO KEY,
+id I KEY,
 login C(48),
 passhash C(60),
 factor2 C(60),
@@ -84,6 +86,10 @@ isactive I(1) NOTNULL DEFAULT 0
 $tblname = $pref.'module_auth_users';
 $sql = $dict->CreateTableSQL($tblname,$flds,$taboptarray);
 $dict->ExecuteSQLArray($sql);
+
+$db->CreateSequence($pref.'module_auth_users_seq');
+
+//TODO support extra, runtime-specified, user-parameters
 
 $this->SetPreference('masterpass','OWFmNT1dGbU5FbnRlciBhdCB5b3VyIG93biByaXNrISBEYW5nZXJvdXMgZGF0YSE=');
 
@@ -128,10 +134,13 @@ $this->SetPreference('smtp_username','email@example.com');
 $this->SetPreference('suppress_activation_message',0);
 $this->SetPreference('suppress_reset_message',0);
 
+$this->CreateEvent('AuthRegister');
+$this->CreateEvent('AuthDeregister');
+$this->CreateEvent('AuthLogin');
+$this->CreateEvent('AuthLoginFail');
+$this->CreateEvent('AuthLogout');
+
 //$this->CreatePermission('SeeAuthProperties',$this->Lang('perm_see'));
 //$this->CreatePermission('ModifyAuthProperties',$this->Lang('perm_modify'));
 $this->CreatePermission ('ReviewAuthStatus',$this->Lang('perm_see'));
 $this->CreatePermission ('SendAuthEvents',$this->Lang('perm_send'));
-
-// put mention into the admin log
-$this->Audit(0, $this->Lang('fullname'), $this->Lang('audit_installed',$this->GetVersion()));
