@@ -21,11 +21,17 @@
 class Auther extends CMSModule
 {
 	public $before20;
-	function __construct()
+
+	public function __construct()
 	{
 		parent::__construct();
 		global $CMS_VERSION;
 		$this->before20 = (version_compare($CMS_VERSION,'2.0') < 0);
+
+		if (!function_exists('cmsms_spacedload')) {
+			require __DIR__.DIRECTORY_SEPARATOR.'lib'.DIRECTORY_SEPARATOR.'CMSMSSpacedClassLoader.php';
+			spl_autoload_register('cmsms_spacedload');
+		}
 	}
 
 	public function GetAdminDescription()	{ return $this->Lang ('admindescription'); }
@@ -87,8 +93,7 @@ class Auther extends CMSModule
 		//this is needed to block construct-time circularity
 	}
 
-/*
-	public function InitializeFrontend()
+/*public function InitializeFrontend()
 	{
 		//pretty-url support is deprecated - better to not involve frontend
 		//all of this can go, when support is removed
@@ -101,22 +106,22 @@ class Auther extends CMSModule
 				'returnid' => $rid
 			));
 	}
-
+*/
 	public function GetEventDescription($eventname)
 	{
-		if(strncmp ($eventname,'Auth',4) === 0)
-		{
+		if(strncmp ($eventname,'Auth',4) === 0) {
 			$key = 'event_'.substr ($eventname,4).'_desc';
-			return $this->Lang ($key);
+			return $this->Lang($key);
 		}
 		return '';
 	}
 
 	public function GetEventHelp($eventname)
 	{
-		if(strncmp ($eventname,'Auth',4) === 0)
-			return $this->Lang ('timeparameter');
+		if(strncmp ($eventname,'Auth',4) === 0) {
+			$key = 'event_'.substr ($eventname,4).'_help';
+			return $this->Lang($key);
+		}
 		return '';
 	}
-*/
 }
