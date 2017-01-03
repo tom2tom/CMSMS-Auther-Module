@@ -20,6 +20,11 @@
 
 class Auther extends CMSModule
 {
+	//factor-types (per Firehed)
+	const KNOWLEDGE = 1;
+	const POSSESSION = 2;
+	const INHERENCE = 3;
+
 	public $before20;
 
 	public function __construct()
@@ -78,7 +83,8 @@ class Auther extends CMSModule
 	public function VisibleToAdminUser()
 	{
 		return
-		 $this->CheckPermission ('ReviewAuthStatus') ||
+		 $this->CheckPermission ('ModifyAuthProperties') ||
+		 $this->CheckPermission ('ReviewAuthProperties') ||
 		 $this->CheckPermission ('SendAuthEvents');
 	}
 
@@ -123,5 +129,10 @@ class Auther extends CMSModule
 			return $this->Lang($key);
 		}
 		return '';
+	}
+
+	public function _CheckAccess($mode)
+	{
+		return FALSE;
 	}
 }

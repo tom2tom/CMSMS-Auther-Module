@@ -30,6 +30,7 @@ $sql = $dict->DropTableSQL($tblname);
 $dict->ExecuteSQLArray($sql);
 
 $db->DropSequence($pref.'module_auth_contexts_seq');
+$db->DropSequence($pref.'module_auth_requests_seq');
 $db->DropSequence($pref.'module_auth_users_seq');
 
 $this->RemovePreference();
@@ -40,7 +41,7 @@ $this->RemoveEvent('AuthLogin');
 $this->RemoveEvent('AuthLoginFail');
 $this->RemoveEvent('AuthLogout');
 
-$this->RemovePermission('ReviewAuthStatus');
-$this->RemovePermission('SendAuthEvents');
 //$this->RemovePermission('SeeAuthProperties');
-//$this->RemovePermission('ModifyAuthProperties');
+$this->RemovePermission('ModifyAuthProperties');
+$this->RemovePermission('ReviewAuthProperties');
+$this->RemovePermission('SendAuthEvents');
