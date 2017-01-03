@@ -14,10 +14,8 @@ namespace Auther;
  captcha?
 
 CMSMailer module support
-timezone support
 addUser() race fix
 autoloading
-passwords hash not MD5
 send events	$this->mod->SendEvent('OnX',$parms);
 */
 
@@ -32,20 +30,16 @@ class Auth
 	protected $context;
 	protected $mailer = NULL;
 
-	public function __construct(&$mod, $context)
+	public function __construct(&$mod, $context=NULL)
 	{
 		$this->mod = $mod;
 		$this->db = \cmsms()->GetDb();
 		$tnis->pref = \cms_db_prefix();
 		$this->context = $context;
 
-		if (\version_compare(\phpversion(),'5.5.0','<')) {
+		if (version_compare(phpversion(),'5.5.0','<')) {
 			require(__DIR__.DIRECTORY_SEPARATOR.'password.php');
 		}
-
-//		$config = \cmsms()->GetConfig();
-//		$val = $this->getConfig($this->context,'site_timezone'];
-//		date_default_timezone_set($val); TODO
 	}
 
 	/**
@@ -120,7 +114,7 @@ class Auth
 	* @password plaintext string
 	* @repeatpassword plaintext string
 	* @email email address for notices to the user default = ''
-	* @params array parameters for self::addUser() default = empty
+	* @params array extra user-parameters for self::addUser() default = empty
 	* @sendmail bool whether to send email-messages if possible default = NULL
 	* Returns: array 0=>T/F for success, 1=>message
 	*/
@@ -164,7 +158,7 @@ class Auth
 			}
 		}
 
-		$status = $this->addUser($login,$password,$email,$params,$sendmail);
+		$status = $this->addUser($login,$password,$email,$sendmail,$params);
 		if (!$status[0]) {
 			return $status;
 		}
@@ -210,7 +204,7 @@ class Auth
 		}
 
 		$sql = 'UPDATE '.$this->pref.'module_auth_users SET isactive=1 WHERE id=?';
-		$this->db->execute($sql,array($data['uid']));
+		$this->db->Execute($sql,array($data['uid']));
 
 		$this->deleteRequest($data['id']);
 
@@ -332,7 +326,7 @@ class Auth
 	public function getHash($password)
 	{
 		$val = $this->getConfig($this->context,'bcrypt_cost');
-		return password_hash($password, PASSWORD_BCRYPT, array('cost'=>$val));
+		return password_hash($password,PASSWORD_BCRYPT,array('cost'=>$val));
 	}
 
 	/**
@@ -350,7 +344,7 @@ class Auth
 	* Creates a session for user @uid
 	* @uid int user enumerator
 	* @remember boolean whether to setup an expiry time for the session
-	* Returns: array with members 'hash','expire','expiretime','cookie_crc' or else FALSE
+	* Returns: array with members 'hash','expire','expiretime','cookie_hash', or else FALSE
 	*/
 	protected function addSession($uid, $remember)
 	{
@@ -359,32 +353,34 @@ class Auth
 			return FALSE;
 		}
 
-		$ip = $this->getIp();
-		$val = $this->getConfig($this->context,'site_key');
-
-		$data = array('hash' => sha1($val.microtime()));
-		$data['cookie_crc'] = sha1($data['hash'].$val);
-		$agent = $_SERVER['HTTP_USER_AGENT'];
-
 		$this->deleteExistingSessions($uid);
 
+		$val = $this->getConfig($this->context,'session_key');
+		$hash = sha1(uniqid($val,TRUE));
+
+		$data = array('hash'=>$hash,'cookie_hash'=>sha1($hash.$val);
+
+		$dt = new \DateTime('@'.time(),NULL);
 		if ($remember) {
 			$val = $this->getConfig($this->context,'cookie_remember');
-			$data['expire'] = date('Y-m-d H:i:s', strtotime($val));
-			$data['expiretime'] = strtotime($data['expire']);
+			$dt->modify('+'.$val);
+			$data['expire'] = $dt->getTimestamp();
+			$data['expiretime'] = $data['expire'];
 		} else {
 			$val = $this->getConfig($this->context,'cookie_forget');
-			$data['expire'] = date('Y-m-d H:i:s', strtotime($val));
+			$dt->modify('+'.$val);
+			$data['expire'] = $dt->getTimestamp();
 			$data['expiretime'] = 0;
 		}
 
-		$sql = 'INSERT INTO '.$this->pref.'module_auth_sessions (uid,hash,expire,ip,agent,cookie_crc) VALUES (?,?,?,?,?,?)';
+		$ip = $this->getIp();
+		$agent = $_SERVER['HTTP_USER_AGENT'];
 
-		if (!$this->db->execute($sql,array($uid,$data['hash'],$data['expire'],$ip,$agent,$data['cookie_crc']))) {
+		$sql = 'INSERT INTO '.$this->pref.'module_auth_sessions (uid,hash,expire,ip,agent,cookie_hash) VALUES (?,?,?,?,?,?)';
+
+		if (!$this->db->Execute($sql,array($uid,$hash,$data['expire'],$ip,$agent,$data['cookie_hash']))) {
 			return FALSE;
 		}
-
-		$data['expire'] = strtotime($data['expire']);
 
 		return $data;
 	}
@@ -397,7 +393,7 @@ class Auth
 	protected function deleteExistingSessions($uid)
 	{
 		$sql = 'DELETE FROM '.$this->pref.'module_auth_sessions WHERE uid=?';
-		$res = $this->db->execute($sql,array($uid));
+		$res = $this->db->Execute($sql,array($uid));
 		return ($res != FALSE);
 	}
 
@@ -409,13 +405,13 @@ class Auth
 	protected function deleteSession($hash)
 	{
 		$sql = 'DELETE FROM '.$this->pref.'module_auth_sessions WHERE hash=?';
-		$res = $this->db->execute($sql, array($hash));
+		$res = $this->db->Execute($sql,array($hash));
 		return ($res != FALSE);
 	}
 
 	/**
 	* Checks if a session is valid
-	* @hash string session identifier
+	* @hash string sha1-generated session identifier
 	* Returns: boolean
 	*/
 	public function checkSession($hash)
@@ -426,37 +422,29 @@ class Auth
 			return FALSE;
 		}
 
-		if (strlen($hash) != 40) { //TODO useful validation
+		if (strlen($hash) != 40) { //sha1 hash length
 			return FALSE;
 		}
 
-		$sql = 'SELECT id,uid,expire,ip,agent,cookie_crc FROM '.$this->pref.'module_auth_sessions WHERE hash=?';
+		$sql = 'SELECT id,uid,expire,ip,agent,cookie_hash FROM '.$this->pref.'module_auth_sessions WHERE hash=?';
 		$row = $this->db->GetRow($sql,array($hash));
 
 		if (!$row) {
 			return FALSE;
 		}
 
-		$sid = $row['id'];
-		$uid = $row['uid'];
-		$expiretime = strtotime($row['expire']);
-		$nowtime = strtotime(date('Y-m-d H:i:s'));
-		$db_ip = $row['ip'];
-		$db_agent = $row['agent'];
-		$db_cookie = $row['cookie_crc'];
-
-		if ($nowtime > $expiretime) {
-			$this->deleteExistingSessions($uid);
+		if ($row['expire'] < time()) {
+			$this->deleteExistingSessions($row['uid']);
 			return FALSE;
 		}
 
 		$ip = $this->getIp();
-		if ($ip != $db_ip) {
+		if ($ip != $row['ip']) {
 			return FALSE;
 		}
 
-		$val = $this->getConfig($this->context,'site_key');
-		return ($db_cookie == sha1($hash.$val));
+		$val = $this->getConfig($this->context,'session_key');
+		return ($row['cookie_hash'] == sha1($hash.$val));
 	}
 
 	/**
@@ -477,8 +465,8 @@ class Auth
 	*/
 	public function isLoginTaken($login)
 	{
-		$sql = 'SELECT count(*) FROM '.$this->pref.'module_auth_users WHERE login=?';
-		$num = $this->db->GetOne($sql,array($login));
+		$sql = 'SELECT id FROM '.$this->pref.'module_auth_users WHERE login=? AND context=?';
+		$num = $this->db->GetOne($sql,array($login,$this->context));
 		return ($num > 0);
 	}
 
@@ -488,10 +476,10 @@ class Auth
 	* @password plaintext string
 	* @email email address for messages, possibly empty
 	* @sendmail  reference to boolean whether to send confirmation email messages
-	* @params array of additional params default = empty TODO
+	* @params array of additional params default = empty
 	* Returns: array 0=>T/F for success, 1=>message
 	*/
-	protected function addUser($login, $password, $email, &$sendmail) //, $params=array())
+	protected function addUser($login, $password, $email, &$sendmail, $params=array())
 	{
 		$uid = $this->db->GenID($this->pref.'module_auth_users_seq');
 		$login = htmlentities($login); //TODO encoding management
@@ -515,33 +503,14 @@ class Auth
 
 		$sql = 'INSERT INTO '.$this->pref.'module_auth_users (id,login,passhash,email,isactive) VALUES (?,?,?,?,?)';
 
-		if (!$this->db->execute($sql,array($uid,$login,$password,$email,$isactive))) {
+		if (!$this->db->Execute($sql,array($uid,$login,$password,$email,$isactive))) {
 			$this->deleteRequest($status[$TODO]);
 			return array(FALSE,$this->mod->Lang('system_error').' #03');
 		}
 
-/*	if (is_array($params) && count($params) > 0) { //TODO
-			$customParamsQueryarray = array();
-
-			foreach($params as $paramKey => $paramValue) {
-				$customParamsQueryarray[] = array('value' => $paramKey . '=?');
-			}
-
-			$setParams = ', ' . implode(', ', array_map(function ($entry) {
-				return $entry['value'];
-			}, $customParamsQueryarray));
-		} else { $setParams = ''; }
-
-		$sql = 'UPDATE '.$this->pref.'module_auth_users SET login=?,passhash=?,email=?,isactive=? '.$setParams.' WHERE id=?';
-
-		$bindParams = array_values(array_merge(array($login, $password, $isactive), $params, array($uid)));
-
-		if (!$this->db->execute($sql,$bindParams)) {
-			$sql = 'DELETE FROM '.$this->pref.'module_auth_users WHERE id=?';
-			$this->db->execute($sql,array($uid));
-			return array(FALSE,$this->mod->Lang('system_error').' #04');
+		if (is_array($params) && count($params) > 0) { //TODO
 		}
-*/
+
 		return array (TRUE,'');
 	}
 
@@ -575,7 +544,6 @@ class Auth
 		if ($data) {
 			unset($data['id']);
 			unset($data['password']);
-			unset($data['factor2']);
 			$data['uid'] = $uid; //=data['id']
 			return $data;
 		}
@@ -583,7 +551,7 @@ class Auth
 	}
 
 	/**
-	* Allows a user to delete their account
+	* Deletes a user's data (aka account)
 	* @uid int user enumerator
 	* @password string plaintext
 	* Returns: array 0=>T/F for success, 1=>message
@@ -621,19 +589,19 @@ class Auth
 
 		$sql = 'DELETE FROM '.$this->pref.'module_auth_users WHERE id=?';
 
-		if (!$this->db->execute($sql,array($uid))) {
+		if (!$this->db->Execute($sql,array($uid))) {
 			return array(FALSE,$this->mod->Lang('system_error').' #05');
 		}
 
 		$sql = 'DELETE FROM '.$this->pref.'module_auth_sessions WHERE uid=?';
 
-		if (!$this->db->execute($sql,array($uid))) {
+		if (!$this->db->Execute($sql,array($uid))) {
 			return array(FALSE,$this->mod->Lang('system_error').' #06');
 		}
 
 		$sql = 'DELETE FROM '.$this->pref.'module_auth_requests WHERE uid=?';
 
-		if (!$this->db->execute($sql,array($uid))) {
+		if (!$this->db->Execute($sql,array($uid))) {
 			return array(FALSE,$this->mod->Lang('system_error').' #07');
 		}
 
@@ -785,13 +753,10 @@ class Auth
 		}
 
 		$sql = 'SELECT id,expire FROM '.$this->pref.'module_auth_requests WHERE uid=? AND type=?';
-		$row = $this->db->GetRow($sql, array($uid, $type));
+		$row = $this->db->GetRow($sql,array($uid,$type));
 
 		if ($row) {
-			$expiretime = strtotime($row['expire']);
-			$nowtime = strtotime(date('Y-m-d H:i:s'));
-
-			if ($nowtime < $expiretime) {
+			if ($row['expire'] > time()) {
 				return array(FALSE,$this->mod->Lang('reset_exists'));
 			}
 			$this->deleteRequest($row['id']);
@@ -804,19 +769,21 @@ class Auth
 			}
 		}
 
+		$dt = new \DateTime('@'.time(),NULL);
+		$val = $this->getConfig($this->context,'request_key_expiration');
+		$dt->modify('+'.$val);
+		$expiretime = $dt->getTimestamp();
+
 		$val = $this->getRandomKey(self::KEYSALT);
 		$key = uniqid($val,FALSE);
 
-		$val = $this->getConfig($this->context,'request_key_expiration');
-		$expiretime = date('Y-m-d H:i:s', strtotime($val));
+		$request_id = $this->db->GenID($this->pref.'module_auth_requests_seq');
 
-		$sql = 'INSERT INTO '.$this->pref.'module_auth_requests (uid,expire,rkey,type) VALUES (?,?,?,?)';
+		$sql = 'INSERT INTO '.$this->pref.'module_auth_requests (id,uid,expire,rkey,type) VALUES (?,?,?,?,?)';
 
-		if (!$this->db->execute($sql,array($uid,$expiretime,$key,$type))) {
+		if (!$this->db->Execute($sql,array($request_id,$uid,$expiretime,$key,$type))) {
 			return array(FALSE,$this->mod->Lang('system_error').' #09');
 		}
-
-		$request_id = $this->db->lastInsertId(); //TODO
 
 		if ($sendmail === TRUE) {
 			//TODO CMSMailer module
@@ -863,7 +830,7 @@ class Auth
 	}
 
 	/**
-	* Returns request data if key is valid
+	* Returns request data if @key is valid
 	* @key 32-byte string from uniqid() with 19-random-bytes prefix
 	* @type string 'reset' or 'activate'
 	* Returns: array 0=>T/F for success, 1=>message, if success then also 'id','uid'
@@ -875,16 +842,13 @@ class Auth
 
 		if (!$row) {
 			$this->addAttempt();
-			return array(FALSE,$this->mod->Lang($type.'key_incorrect')); //TODO
+			return array(FALSE,$this->mod->Lang($type.'key_incorrect'));
 		}
 
-		$expire = strtotime($row['expire']); //TODO timezone
-		$nowtime = strtotime(date('Y-m-d H:i:s'));
-
-		if ($nowtime > $expire) {
+		if ($row['expire'] < time()) {
 			$this->addAttempt();
 			$this->deleteRequest($row['id']);
-			return array(FALSE,$this->mod->Lang($type.'key_expired')); //TODO
+			return array(FALSE,$this->mod->Lang($type.'key_expired'));
 		}
 
 		return array(0=>TRUE,1=>'','id'=>$row['id'],'uid'=>$row['uid']);
@@ -898,7 +862,7 @@ class Auth
 	protected function deleteRequest($id)
 	{
 		$sql = 'DELETE FROM '.$this->pref.'module_auth_requests WHERE id=?';
-		$res = $this->db->execute($sql,array($id));
+		$res = $this->db->Execute($sql,array($id));
 		return ($res != FALSE);
 	}
 
@@ -1051,7 +1015,7 @@ class Auth
 
 		$password = $this->getHash($password);
 		$sql = 'UPDATE '.$this->pref.'module_auth_users SET passhash=? WHERE id=?';
-		$res = $this->db->execute($sql,array($password,$data['uid']));
+		$res = $this->db->Execute($sql,array($password,$data['uid']));
 
 		if ($res) {
 			$this->deleteRequest($data['id']);
@@ -1110,7 +1074,7 @@ class Auth
 		$newpass = $this->getHash($newpass);
 
 		$sql = 'UPDATE '.$this->pref.'module_auth_users SET passhash=? WHERE id=?';
-		$this->db->execute($sql,array($newpass,$uid));
+		$this->db->Execute($sql,array($newpass,$uid));
 		return array(TRUE,$this->mod->Lang('password_changed'));
 	}
 
@@ -1170,7 +1134,7 @@ class Auth
 			return array(FALSE,$this->mod->Lang('system_error').' #14');
 		}
 
-		if (!password_verify($password, $userdata['password'])) {
+		if (!password_verify($password,$userdata['password'])) {
 			$this->addAttempt();
 			return array(FALSE,$this->mod->Lang('password_incorrect'));
 		}
@@ -1181,7 +1145,7 @@ class Auth
 		}
 
 		$sql = 'UPDATE '.$this->pref.'module_auth_users SET login=? WHERE id=?';
-		$res = $this->db->execute($sql,array($login,$uid));
+		$res = $this->db->Execute($sql,array($login,$uid));
 
 		if ($res == FALSE) {
 			return array(FALSE,$this->mod->Lang('system_error').' #15');
@@ -1270,16 +1234,19 @@ class Auth
 	protected function addAttempt()
 	{
 		$ip = $this->getIp();
+		$dt = new \DateTime('@'.time(),NULL);
 		$val = $this->getConfig($this->context,'attack_mitigation_time');
-		$attempt_expire = date('Y-m-d H:i:s', strtotime($val)); //TODO zone
+		$dt->modify('+'.$val);
+		$expiretime = $dt->getTimestamp();
+
 		$sql = 'INSERT INTO '.$this->pref.'module_auth_attempts (ip,expire) VALUES (?,?)';
-		$res = $this->db->execute($sql,array($ip,$attempt_expire));
+		$res = $this->db->Execute($sql,array($ip,$expiretime));
 		return ($res != FALSE);
 	}
 
 	/**
 	* Deletes some/all attempts for a given IP from database
-	* @ip string $
+	* @ip string
 	* @all boolean default = FALSE
 	* Returns: boolean indicating success
 	*/
@@ -1287,22 +1254,13 @@ class Auth
 	{
 		if ($all) {
 			$sql = 'DELETE FROM '.$this->pref.'module_auth_attempts WHERE ip=?';
-			$res = $this->db->execute($sql,array($ip));
-			return ($res != FALSE);
+			$res = $this->db->Execute($sql,array($ip));
+		} else {
+			$sql = 'DELETE FROM '.$this->pref.'module_auth_attempts WHERE ip=? AND expire<?';
+			$nowtime = time();
+			$res = $this->db->Execute($sql,array($ip,$nowtime));
 		}
-
-		$sql = 'SELECT id,expire FROM '.$this->pref.'module_auth_attempts WHERE ip=?';
-		$data = $this->db->GatArray($sql,array($ip));
-		$sql = 'DELETE FROM '.$this->pref.'module_auth_attempts WHERE id=?';
-		$res = TRUE;
-		foreach ($data as $row) {
-			$expire = strtotime($row['expire']); //TODO
-			$nowtime = strtotime(date('Y-m-d H:i:s')); //TODO zone independence
-			if ($nowtime > $expire) {
-				$res = $this->db->execute($sql,array($row['id'])) && $res;
-			}
-		}
-		return $res;
+		return ($res != FALSE);
 	}
 
 	/**
