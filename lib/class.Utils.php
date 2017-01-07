@@ -9,6 +9,66 @@ namespace Auther;
 
 class Utils
 {
+	public function fusc($str)
+	{
+		if ($str) {
+			$s = substr(base64_encode(md5(microtime())),0,5);
+			return $s.base64_encode($s.$str);
+		}
+		return '';
+	}
+
+	public function unfusc($str)
+	{
+		if ($str) {
+			$s = base64_decode(substr($str,5));
+			return substr($s,5);
+		}
+		return '';
+	}
+
+	/**
+	@mod: reference to current Auther module object
+	*/
+	public function encrypt_value(&$mod, $value, $passwd=FALSE)
+	{
+		if ($value) {
+			if ($mod->havemcrypt) {
+				if (!$passwd) {
+					$passwd = $mod->GetPreference('pref_masterpass');
+					if ($passwd)
+						$passwd = self::unfusc($passwd);
+				}
+				if ($passwd) {
+					$e = new Auther\Encryption(\MCRYPT_BLOWFISH,\MCRYPT_MODE_CBC,10);
+					$value = $e->encrypt($value,$passwd);
+				}
+			}
+		}
+		return $value;
+	}
+
+	/**
+	@mod: reference to current Auther module object
+	*/
+	public function decrypt_value(&$mod, $value, $passwd=FALSE)
+	{
+		if ($value) {
+			if ($mod->havemcrypt) {
+				if (!$passwd) {
+					$passwd = $mod->GetPreference('pref_masterpass');
+					if ($passwd)
+						$passwd = self::unfusc($passwd);
+				}
+				if ($passwd) {
+					$e = new Auther\Encryption(\MCRYPT_BLOWFISH,\MCRYPT_MODE_CBC,10);
+					$value = $e->decrypt($value,$passwd);
+				}
+			}
+		}
+		return $value;
+	}
+	
 	/**
 	ProcessTemplate:
 	@mod: reference to current Auther module object
