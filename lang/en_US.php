@@ -113,14 +113,38 @@ EOS;
 
 $lang['help_module'] = <<<'EOS'
 <h3>What does this module do?</h3>
+It provides several authentication "services" for use by other parts of the website,
+other modules or (after patching relevant core files) admininstrator access.
+Specifically
+<ul>
+<li>Any number of authorisation "contexts" with individual properties</li>
+<li>Several security levels</li>
+<li>[De]registration of users by self and/or administrator</li>
+<li>Bulk [de]registration of users by administrator</li>
+<li>Login/out of users</li>
+<li>User data change by self or adminstrator</li>
+<li>Lost/forgotten data recovery by users</li>
+<li>Optional email notices/confirmations</li>
+<li>Optional 2-factor authorisation</li>
+<li>Enhanced data security</li>
+<li>UI objects for inclusion in page/form</li>
+</ul>
 <h3>How is it used?</h3>
+The module includes several PHP classes which together provide a robust API for
+accessing the various services as described above.
+<pre></pre>
 <h3>Styling</h3>
 <h3>Permissions</h3>
+<h4>Modify Authentication Data</h4>
+<h4>Review Authentication Data</h4>
+<h4>Send Authentication Events</h4>
 <ul>
-</ul>
 <h3>Events</h3>
-<ul>
-</ul>
+<h4>AuthRegister</h4>
+<h4>AuthDeregister</h4>
+<h4>AuthLogin</h4>
+<h4>AuthLoginFail</h4>
+<h4>AuthLogout</h4>
 <h3>Requirements</h3>
 <ul>
 <li>PHP 5.3+</li>
