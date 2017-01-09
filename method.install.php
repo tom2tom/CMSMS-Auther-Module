@@ -13,58 +13,58 @@ $pref = \cms_db_prefix();
 
 //cookie_path','/');
 //mail_charset C(16) DEFAULT 'UTF-8',
-$flds = "
+$flds = '
 id I KEY,
 name C(48) NOTNULL,
 alias C(16) NOTNULL,
-attack_mitigation_time C(16) DEFAULT '30 minutes',
+attack_mitigation_time C(16) DEFAULT \'30 minutes\',
 attempts_before_ban I(1) DEFAULT 10,
 attempts_before_verify I(1) DEFAULT 5,
 bcrypt_cost I(2) DEFAULT 10,
 cookie_domain C(32),
-cookie_forget C(16) DEFAULT '30 minutes',
-cookie_http I(1) DEFAILT 0,
-cookie_name C(32) DEFAULT 'CMSMSauthID',
-cookie_remember C(16) DEFAULT '1 month',
+cookie_forget C(16) DEFAULT \'30 minutes\',
+cookie_http I(1) DEFAULT 0,
+cookie_name C(32) DEFAULT \'CMSMSauthID\',
+cookie_remember C(16) DEFAULT \'1 month\',
 cookie_secure I(1) DEFAULT 0,
 login_max_length I(1) DEFAULT 48,
 login_min_length I(1) DEFAULT 5,
 login_use_banlist I(1) DEFAULT 1,
 password_min_length I(1) DEFAULT 8,
 password_min_score I(1) DEFAULT 3,
-request_key_expiration C(16) DEFAULT '10 minutes',
+request_key_expiration C(16) DEFAULT \'10 minutes\',
 suppress_activation_message I(1) DEFAULT 0,
 suppress_reset_message I(1) DEFAULT 0
-";
+';
 $tblname = $pref.'module_auth_contexts';
 $sql = $dict->CreateTableSQL($tblname, $flds, $taboptarray);
 $dict->ExecuteSQLArray($sql);
 
 $db->CreateSequence($pref.'module_auth_contexts_seq');
 
-$flds = "
+$flds = '
 id I AUTO KEY,
 ip C(39) NOTNULL,
 expire I
-";
+';
 $tblname = $pref.'module_auth_attempts';
 $sql = $dict->CreateTableSQL($tblname, $flds, $taboptarray);
 $dict->ExecuteSQLArray($sql);
 
-$flds = "
+$flds = '
 id I KEY,
 uid I NOTNULL,
 expire I,
 rkey C(32) NOTNULL,
 type C(16) NOTNULL
-";
+';
 $tblname = $pref.'module_auth_requests';
 $sql = $dict->CreateTableSQL($tblname, $flds, $taboptarray);
 $dict->ExecuteSQLArray($sql);
 
 $db->CreateSequence($pref.'module_auth_requests_seq');
 
-$flds = "
+$flds = '
 id I AUTO KEY,
 uid I NOTNULL,
 hash C(40) NOTNULL,
@@ -73,12 +73,12 @@ expire I,
 ip C(39) NOTNULL,
 agent C(200) NOTNULL,
 cookie_hash C(40) NOTNULL
-";
+';
 $tblname = $pref.'module_auth_sessions';
 $sql = $dict->CreateTableSQL($tblname, $flds, $taboptarray);
 $dict->ExecuteSQLArray($sql);
 
-$flds = "
+$flds = '
 id I KEY,
 login C(48),
 passhash C(60),
@@ -86,14 +86,28 @@ email C(96),
 context I,
 lastuse I,
 isactive I(1) DEFAULT 0
-";
+';
 $tblname = $pref.'module_auth_users';
 $sql = $dict->CreateTableSQL($tblname, $flds, $taboptarray);
 $dict->ExecuteSQLArray($sql);
 
 $db->CreateSequence($pref.'module_auth_users_seq');
 
-//TODO support extra, runtime-specified, user-parameters
+/* support extra, runtime-specified, user-parameters
+$flds = '
+id I KEY,
+uid I,
+name C(256),
+value C('.Auther::LENSHORTVAL.'),
+longvalue B
+';
+$tblname = $pref.'module_auth_userprops';
+$sql = $dict->CreateTableSQL($tblname, $flds, $taboptarray);
+$dict->ExecuteSQLArray($sql);
+
+$db->Execute('CREATE INDEX '.$tblname.'_idx ON '.$tblname.' (uid)');
+$db->CreateSequence($pref.'module_auth_userprops_seq');
+*/
 
 $this->SetPreference('masterpass', 'OWFmNT1dGbU5FbnRlciBhdCB5b3VyIG93biByaXNrISBEYW5nZXJvdXMgZGF0YSE=');
 
