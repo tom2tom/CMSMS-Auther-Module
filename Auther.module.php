@@ -31,37 +31,146 @@ class Auther extends CMSModule
 	{
 		parent::__construct();
 		global $CMS_VERSION;
-		$this->before20 = (version_compare($CMS_VERSION,'2.0') < 0);
+		$this->before20 = (version_compare($CMS_VERSION, '2.0') < 0);
 
-		if (!function_exists('cmsms_spacedload')) {
-			require __DIR__.DIRECTORY_SEPARATOR.'lib'.DIRECTORY_SEPARATOR.'CMSMSSpacedClassLoader.php';
-			spl_autoload_register('cmsms_spacedload');
+		spl_autoload_register(array($this, 'auther_spacedload'));
+	}
+
+	public function __destruct()
+	{
+		spl_autoload_unregister(array($this, 'auther_spacedload'));
+		if (function_exists('parent::__destruct')) {
+			parent::__destruct();
 		}
 	}
 
-	public function GetAdminDescription()	{ return $this->Lang ('admindescription'); }
-	public function GetAdminSection()		{ return 'extensions'; }
-	public function GetAuthor()			{ return 'Tom Phane'; }
-	public function GetAuthorEmail()		{ return 'tpgww@onepost.net'; }
-	public function GetDependencies()		{ return array (); }
-	public function GetFriendlyName()		{ return $this->Lang ('friendlyname'); }
-	public function GetName()				{ return 'Auther'; }
-	public function GetVersion()			{ return '0.2'; }
-	public function HasAdmin()				{ return TRUE; }
-	public function InstallPostMessage()	{ return $this->Lang ('postinstall'); }
-	public function IsPluginModule()		{ return TRUE; }
+	private function auther_spacedload($class)
+	{
+		$prefix = get_class().'\\'; //our namespace prefix
+		$p = strpos($class, $prefix);
+		if (!($p === 0 || ($p === 1 && $class[0] == '\\') || $p === FALSE)) {
+			return;
+		}
+		// get the relative class name
+		if ($p !== FALSE) {
+			$len = strlen($prefix);
+			if ($p == 1) {
+				$len++;
+			}
+			$relative_class = trim(substr($class, $len), '\\');
+		} else {
+			$relative_class = trim($class, '\\');
+		}
+		if (($p = strrpos($relative_class, '\\', -1)) !== FALSE) {
+			$relative_dir = str_replace('\\', DIRECTORY_SEPARATOR, $relative_class);
+			$base = substr($relative_dir, $p+1);
+			$relative_dir = substr($relative_dir, 0, $p).DIRECTORY_SEPARATOR;
+		} else {
+			$base = $relative_class;
+			$relative_dir = '';
+		}
+		// directory for the namespace
+		$bp = __DIR__.DIRECTORY_SEPARATOR.'lib'.DIRECTORY_SEPARATOR.$relative_dir;
+		$fp = $bp.'class.'.$base.'.php';
+		if (file_exists($fp)) {
+			include $fp;
+			return;
+		}
+		$fp = $bp.$base.'.php';
+		if (file_exists($fp)) {
+			include $fp;
+		}
+	}
+
+	public function GetAdminDescription()
+	{
+		return $this->Lang('admindescription');
+	}
+
+	public function GetAdminSection()
+	{
+		return 'extensions';
+	}
+
+	public function GetAuthor()
+	{
+		return 'Tom Phane';
+	}
+
+	public function GetAuthorEmail()
+	{
+		return 'tpgww@onepost.net';
+	}
+
+	public function GetFriendlyName()
+	{
+		return $this->Lang('friendlyname');
+	}
+
+	public function GetName()
+	{
+		return 'Auther';
+	}
+
+	public function GetVersion()
+	{
+		return '0.2';
+	}
+
+	public function HasAdmin()
+	{
+		return TRUE;
+	}
+
+	public function InstallPostMessage()
+	{
+		return $this->Lang('postinstall');
+	}
+//	public function IsPluginModule()		{ return FALSE; }
 //	public function MaximumCMSVersion()	{ return 'X' }
-	public function MinimumCMSVersion()	{ return '1.10'; }
-	public function UninstallPostMessage()	{ return $this->Lang ('postuninstall'); }
-	public function UninstallPreMessage()	{ return $this->Lang ('really_uninstall'); }
+
+	public function MinimumCMSVersion()
+	{
+		return '1.10';
+	}
+
+	public function UninstallPostMessage()
+	{
+		return $this->Lang('postuninstall');
+	}
+
+	public function UninstallPreMessage()
+	{
+		return $this->Lang('really_uninstall');
+	}
 	//for 1.11+
-	public function AllowSmartyCaching()	{ return FALSE; }
-	public function LazyLoadAdmin()		{ return TRUE; }
-	public function LazyLoadFrontend() 	{ return TRUE; }
+	public function AllowSmartyCaching()
+	{
+		return FALSE;
+	}
+
+	public function LazyLoadAdmin()
+	{
+		return TRUE;
+	}
+
+	public function LazyLoadFrontend()
+	{
+		return TRUE;
+	}
 
 	public function GetChangeLog()
 	{
 		return ''.@file_get_contents(__DIR__.DIRECTORY_SEPARATOR.'include'.DIRECTORY_SEPARATOR.'changelog.inc');
+	}
+
+	public function GetDependencies()
+	{
+		if ($this->before20) {
+			return array('CMSMailer'=>'1.0');
+		} else {
+			return array();
+		}
 	}
 
 	public function GetHelp()
@@ -83,14 +192,14 @@ class Auther extends CMSModule
 	public function VisibleToAdminUser()
 	{
 		return
-		 $this->CheckPermission ('ModifyAuthProperties') ||
-		 $this->CheckPermission ('ReviewAuthProperties') ||
-		 $this->CheckPermission ('SendAuthEvents');
+		 $this->CheckPermission('ModifyAuthProperties') ||
+		 $this->CheckPermission('ReviewAuthProperties') ||
+		 $this->CheckPermission('SendAuthEvents');
 	}
 
 	public function SetParameters()
 	{
-		$this->InitializeAdmin ();
+		$this->InitializeAdmin();
 //		$this->InitializeFrontend ();
 	}
 
@@ -115,8 +224,8 @@ class Auther extends CMSModule
 */
 	public function GetEventDescription($eventname)
 	{
-		if(strncmp ($eventname,'Auth',4) === 0) {
-			$key = 'event_'.substr ($eventname,4).'_desc';
+		if (strncmp($eventname, 'Auth', 4) === 0) {
+			$key = 'event_'.substr($eventname, 4).'_desc';
 			return $this->Lang($key);
 		}
 		return '';
@@ -124,8 +233,8 @@ class Auther extends CMSModule
 
 	public function GetEventHelp($eventname)
 	{
-		if(strncmp ($eventname,'Auth',4) === 0) {
-			$key = 'event_'.substr ($eventname,4).'_help';
+		if (strncmp($eventname, 'Auth', 4) === 0) {
+			$key = 'event_'.substr($eventname, 4).'_help';
 			return $this->Lang($key);
 		}
 		return '';
