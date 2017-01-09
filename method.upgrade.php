@@ -6,6 +6,5 @@
 # More info at http://dev.cmsmadesimple.org/projects/auther
 #----------------------------------------------------------------------
 
-switch($oldversion)
-{
+switch ($oldversion) {
 }

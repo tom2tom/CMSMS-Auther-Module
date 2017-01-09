@@ -12,7 +12,7 @@ class Utils
 	public function fusc($str)
 	{
 		if ($str) {
-			$s = substr(base64_encode(md5(microtime())),0,5);
+			$s = substr(base64_encode(md5(microtime())), 0, 5);
 			return $s.base64_encode($s.$str);
 		}
 		return '';
@@ -21,8 +21,8 @@ class Utils
 	public function unfusc($str)
 	{
 		if ($str) {
-			$s = base64_decode(substr($str,5));
-			return substr($s,5);
+			$s = base64_decode(substr($str, 5));
+			return substr($s, 5);
 		}
 		return '';
 	}
@@ -36,12 +36,13 @@ class Utils
 			if ($mod->havemcrypt) {
 				if (!$passwd) {
 					$passwd = $mod->GetPreference('pref_masterpass');
-					if ($passwd)
+					if ($passwd) {
 						$passwd = self::unfusc($passwd);
+					}
 				}
 				if ($passwd) {
-					$e = new Auther\Encryption(\MCRYPT_BLOWFISH,\MCRYPT_MODE_CBC,10);
-					$value = $e->encrypt($value,$passwd);
+					$e = new Auther\Encryption(\MCRYPT_BLOWFISH, \MCRYPT_MODE_CBC, 10);
+					$value = $e->encrypt($value, $passwd);
 				}
 			}
 		}
@@ -57,12 +58,13 @@ class Utils
 			if ($mod->havemcrypt) {
 				if (!$passwd) {
 					$passwd = $mod->GetPreference('pref_masterpass');
-					if ($passwd)
+					if ($passwd) {
 						$passwd = self::unfusc($passwd);
+					}
 				}
 				if ($passwd) {
-					$e = new Auther\Encryption(\MCRYPT_BLOWFISH,\MCRYPT_MODE_CBC,10);
-					$value = $e->decrypt($value,$passwd);
+					$e = new Auther\Encryption(\MCRYPT_BLOWFISH, \MCRYPT_MODE_CBC, 10);
+					$value = $e->decrypt($value, $passwd);
 				}
 			}
 		}
@@ -88,11 +90,12 @@ class Utils
 				$cache_id = md5('bkr'.$tplname.serialize(array_keys($tplvars)));
 				$lang = \CmsNlsOperations::get_current_language();
 				$compile_id = md5('bkr'.$tplname.$lang);
-				$tpl = $smarty->CreateTemplate($mod->GetFileResource($tplname),$cache_id,$compile_id,$smarty);
-				if (!$tpl->isCached())
+				$tpl = $smarty->CreateTemplate($mod->GetFileResource($tplname), $cache_id, $compile_id, $smarty);
+				if (!$tpl->isCached()) {
 					$tpl->assign($tplvars);
+				}
 			} else {
-				$tpl = $smarty->CreateTemplate($mod->GetFileResource($tplname),NULL,NULL,$smarty,$tplvars);
+				$tpl = $smarty->CreateTemplate($mod->GetFileResource($tplname), NULL, NULL, $smarty, $tplvars);
 			}
 			return $tpl->fetch();
 		}
@@ -113,7 +116,7 @@ class Utils
 			$smarty->assign($tplvars);
 			return $mod->ProcessTemplateFromData($data);
 		} else {
-			$tpl = $smarty->CreateTemplate('eval:'.$data,NULL,NULL,$smarty,$tplvars);
+			$tpl = $smarty->CreateTemplate('eval:'.$data, NULL, NULL, $smarty, $tplvars);
 			return $tpl->fetch();
 		}
 	}
@@ -133,7 +136,7 @@ class Utils
 //<![CDATA[
 EOS;
 			if (is_array($jsfuncs)) {
-				$all = array_merge($all,$jsfuncs);
+				$all = array_merge($all, $jsfuncs);
 			} elseif ($jsfuncs) {
 				$all[] = $jsfuncs;
 			}
@@ -142,7 +145,7 @@ EOS;
 $(document).ready(function() {
 EOS;
 				if (is_array($jsloads)) {
-					$all = array_merge($all,$jsloads);
+					$all = array_merge($all, $jsloads);
 				} else {
 					$all[] = $jsloads;
 				}
@@ -155,6 +158,6 @@ EOS;
 </script>
 EOS;
 		}
-		$merged = implode(PHP_EOL,$all);
+		$merged = implode(PHP_EOL, $all);
 	}
 }
