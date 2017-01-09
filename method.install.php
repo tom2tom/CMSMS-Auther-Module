@@ -37,7 +37,7 @@ suppress_activation_message I(1) DEFAULT 0,
 suppress_reset_message I(1) DEFAULT 0
 ";
 $tblname = $pref.'module_auth_contexts';
-$sql = $dict->CreateTableSQL($tblname,$flds,$taboptarray);
+$sql = $dict->CreateTableSQL($tblname, $flds, $taboptarray);
 $dict->ExecuteSQLArray($sql);
 
 $db->CreateSequence($pref.'module_auth_contexts_seq');
@@ -48,7 +48,7 @@ ip C(39) NOTNULL,
 expire I
 ";
 $tblname = $pref.'module_auth_attempts';
-$sql = $dict->CreateTableSQL($tblname,$flds,$taboptarray);
+$sql = $dict->CreateTableSQL($tblname, $flds, $taboptarray);
 $dict->ExecuteSQLArray($sql);
 
 $flds = "
@@ -59,7 +59,7 @@ rkey C(32) NOTNULL,
 type C(16) NOTNULL
 ";
 $tblname = $pref.'module_auth_requests';
-$sql = $dict->CreateTableSQL($tblname,$flds,$taboptarray);
+$sql = $dict->CreateTableSQL($tblname, $flds, $taboptarray);
 $dict->ExecuteSQLArray($sql);
 
 $db->CreateSequence($pref.'module_auth_requests_seq');
@@ -75,7 +75,7 @@ agent C(200) NOTNULL,
 cookie_hash C(40) NOTNULL
 ";
 $tblname = $pref.'module_auth_sessions';
-$sql = $dict->CreateTableSQL($tblname,$flds,$taboptarray);
+$sql = $dict->CreateTableSQL($tblname, $flds, $taboptarray);
 $dict->ExecuteSQLArray($sql);
 
 $flds = "
@@ -88,37 +88,39 @@ lastuse I,
 isactive I(1) DEFAULT 0
 ";
 $tblname = $pref.'module_auth_users';
-$sql = $dict->CreateTableSQL($tblname,$flds,$taboptarray);
+$sql = $dict->CreateTableSQL($tblname, $flds, $taboptarray);
 $dict->ExecuteSQLArray($sql);
 
 $db->CreateSequence($pref.'module_auth_users_seq');
 
 //TODO support extra, runtime-specified, user-parameters
 
-$this->SetPreference('masterpass','OWFmNT1dGbU5FbnRlciBhdCB5b3VyIG93biByaXNrISBEYW5nZXJvdXMgZGF0YSE=');
+$this->SetPreference('masterpass', 'OWFmNT1dGbU5FbnRlciBhdCB5b3VyIG93biByaXNrISBEYW5nZXJvdXMgZGF0YSE=');
 
-$this->SetPreference('attack_mitigation_time','30 minutes');
-$this->SetPreference('attempts_before_ban',10);
-$this->SetPreference('attempts_before_verify',5);
-$this->SetPreference('bcrypt_cost',10);
-$this->SetPreference('cookie_domain',NULL);
-$this->SetPreference('cookie_forget','30 minutes');
-$this->SetPreference('cookie_http',0);
-$this->SetPreference('cookie_name','CMSMSauthID');
+$this->SetPreference('attack_mitigation_time', '30 minutes');
+$this->SetPreference('attempts_before_ban', 10);
+$this->SetPreference('attempts_before_verify', 5);
+$this->SetPreference('bcrypt_cost', 10);
+$this->SetPreference('context_sender', 'PHPAuth'); //for email messages
+$this->SetPreference('context_email', 'no-reply@phpauth.cuonic.com'); //ditto
+$this->SetPreference('cookie_domain', NULL);
+$this->SetPreference('cookie_forget', '30 minutes');
+$this->SetPreference('cookie_http', 0);
+$this->SetPreference('cookie_name', 'CMSMSauthID');
 //$this->SetPreference('cookie_path','/');
-$this->SetPreference('cookie_remember','1 month');
-$this->SetPreference('cookie_secure',0);
+$this->SetPreference('cookie_remember', '1 month');
+$this->SetPreference('cookie_secure', 0);
 
-$this->SetPreference('login_max_length',48);
-$this->SetPreference('login_min_length',5);
-$this->SetPreference('login_use_banlist',1);
+$this->SetPreference('login_max_length', 48);
+$this->SetPreference('login_min_length', 5);
+$this->SetPreference('login_use_banlist', 1);
 
-$this->SetPreference('mail_charset','UTF-8');
-$this->SetPreference('password_min_length',8);
-$this->SetPreference('password_min_score',3);
-$this->SetPreference('request_key_expiration','10 minutes');
+$this->SetPreference('mail_charset', 'UTF-8');
+$this->SetPreference('password_min_length', 8);
+$this->SetPreference('password_min_score', 3);
+$this->SetPreference('request_key_expiration', '10 minutes');
 
-$this->SetPreference('session_key','kd8s2!7HVHG7777ghZfghuior.)\!/jdU');
+$this->SetPreference('session_key', 'kd8s2!7HVHG7777ghZfghuior.)\!/jdU');
 /*
 $this->SetPreference('site_activation_page','activate');
 $this->SetPreference('site_email', 'no-reply@phpauth.cuonic.com');
@@ -135,8 +137,8 @@ $this->SetPreference('smtp_port',25);
 $this->SetPreference('smtp_security',NULL);
 $this->SetPreference('smtp_username','email@example.com');
 */
-$this->SetPreference('suppress_activation_message',0);
-$this->SetPreference('suppress_reset_message',0);
+$this->SetPreference('suppress_activation_message', 0);
+$this->SetPreference('suppress_reset_message', 0);
 
 $this->CreateEvent('AuthRegister');
 $this->CreateEvent('AuthDeregister');
@@ -144,6 +146,6 @@ $this->CreateEvent('AuthLogin');
 $this->CreateEvent('AuthLoginFail');
 $this->CreateEvent('AuthLogout');
 
-$this->CreatePermission('ModifyAuthProperties',$this->Lang('perm_modify'));
-$this->CreatePermission('ReviewAuthProperties',$this->Lang('perm_see'));
-$this->CreatePermission('SendAuthEvents',$this->Lang('perm_send'));
+$this->CreatePermission('ModifyAuthProperties', $this->Lang('perm_modify'));
+$this->CreatePermission('ReviewAuthProperties', $this->Lang('perm_see'));
+$this->CreatePermission('SendAuthEvents', $this->Lang('perm_send'));
