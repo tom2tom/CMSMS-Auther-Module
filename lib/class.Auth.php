@@ -665,7 +665,7 @@ class Auth
 		$expiretime = $dt->getTimestamp();
 
 		$val = $this->getRandomKey(self::KEYSALT);
-		$key = uniqid($val, FALSE);
+		$key = uniqid($val, FALSE); //32-byte string
 
 		$request_id = $this->db->GenID($this->pref.'module_auth_requests_seq');
 
