@@ -6,56 +6,82 @@
 # More info at http://dev.cmsmadesimple.org/projects/auther
 #----------------------------------------------------------------------
 
-$lang['admindescription'] = 'This module provides authentication functionality for other modules';
-$lang['friendlyname'] = 'Authenticator';
-$lang['perm_modify'] = 'Modify Authentication Data';
-$lang['perm_see'] = 'Review Authentication Data';
-$lang['perm_send'] = 'Send Authentication Events';
-$lang['postinstall'] = 'Authenticator module installed sucessfully.<br />Be sure to set relevant permissions';
-$lang['postuninstall'] = 'Authenticator module uninstalled';
-$lang['really_uninstall'] = 'Are you sure you want to uninstall the Authenticator module?';
-
 $lang['account_activated'] = 'Account activated';
 $lang['account_deleted'] = 'Account deleted';
 $lang['account_inactive'] = 'Account has not yet been activated';
 $lang['activatekey_expired'] = 'Activation key has expired'; //NB type-specific prefix
 $lang['activatekey_incorrect'] = 'Activation key is incorrect'; //NB type-specific prefix
 $lang['activation_exists'] = 'An activation email has already been sent';
-$lang['activationkey_invalid'] = 'Activation key is invalid';
 $lang['activation_sent'] = 'Activation email has been sent';
+$lang['activationkey_invalid'] = 'Activation key is invalid';
+$lang['addcontext'] = 'Add new context';
+$lang['adduser'] = 'Add new user';
+$lang['admindescription'] = 'This module provides authentication functionality for other modules';
+$lang['alias'] = 'Alias';
 $lang['already_activated'] = 'Account is already activated';
 $lang['authority_failed'] = 'Incorrect login and/or password';
 
-$lang['email_activation_altbody'] = 'Hello,'."\n\n".'To be able to log in you first need to activate the account by visiting the following link:'."\n".'%s/%s'."\n\n".'You then need to use the following activation key: %s'."\n\n".'If you did not sign up on %s recently then this message was sent in error, please ignore it';
-$lang['email_activation_body'] = 'Hello,<br /><br />To be able to log in you first need to activate the account by clicking on the following link: <strong><a href=\'%s/%s\'>%s/%s</a></strong><br /><br />You then need to use the following activation key: <strong>%s</strong><br /><br />If you did not sign up on %s recently then this message was sent in error, please ignore it';
-$lang['email_activation_subject'] = '%s - Activate account';
+$lang['cancel'] = 'Cancel';
 
+$lang['email_activation_altbody'] = 'Hello,'."\n\n".'To be able to log in you first need to activate your account by visiting the following URL:'."\n".' %s'."\n\n".'If you did not sign up on %s recently then this message was sent in error, please ignore it.';
+$lang['email_activation_body'] = 'Hello,<br /><br />To be able to log in you first need to activate your account by clicking on the following <a href="%s">link</a>.<br /><br />If you did not sign up on %s recently then this message was sent in error, please ignore it.';
+$lang['email_activation_subject'] = '%s - Activate account';
 $lang['email_banned'] = 'The specified email address is not allowed';
 $lang['email_changed'] = 'Email address changed successfully';
 $lang['email_incorrect'] = 'Email address is incorrect';
 $lang['email_invalid'] = 'Email address is invalid';
-
-$lang['email_reset_altbody'] = 'Hello,'."\n\n".'To reset your password please visit the following link:'."\n".'%s/%s'."\n\n".'You then need to use the following password reset key: %s'."\n\n".'If you did not request a password reset key on %s recently then this message was sent in error, please ignore it';
-$lang['email_reset_body'] = 'Hello,<br /><br />To reset your password click the following link:<br /><br /><strong><a href=\'%s/%s\'>%s/%s</a></strong><br /><br />You then need to use the following password reset key: <strong>%s</strong><br /><br />If you did not request a password reset key on %s recently then this message was sent in error, please ignore it';
+$lang['email_reset_altbody'] = 'Hello,'."\n\n".'To reset your password, please visit the following URL:'."\n".' %s'."\n\n".'If you did not request a password reset on %s recently then this message was sent in error, please ignore it.';
+$lang['email_reset_body'] = 'Hello,<br /><br />To reset your password, please click the following <a href="%s">link</a>.<br /><br />If you did not request a password reset on %s recently then this message was sent in error, please ignore it.';
 $lang['email_reset_subject'] = '%s - Password reset request';
 
-$lang['login_incorrect'] = 'Login name is not recognised';
-$lang['login_notvalid'] = 'Login name is invalid';
-//$lang['login_long'] = 'Login name is too long';
-$lang['login_short'] = 'Login name is too short';
-$lang['login_taken'] = 'Login name is already in use';
-
+$lang['friendlyname'] = 'Authenticator';
 $lang['function_disabled'] = 'This function has been disabled';
+
+$lang['help_attack_mitigation_time'] = '';
+$lang['help_attempts_before_ban'] = '';
+$lang['help_attempts_before_verify'] = '';
+$lang['help_bcrypt_cost'] = '';
+$lang['help_context_email'] = '';
+$lang['help_context_sender'] = '';
+$lang['help_cookie_domain'] = '';
+$lang['help_cookie_forget'] = '';
+$lang['help_cookie_http'] = '';
+$lang['help_cookie_name'] = '';
+$lang['help_cookie_path'] = '';
+$lang['help_cookie_remember'] = '';
+$lang['help_cookie_secure'] = '';
+$lang['help_login_max_length'] = '';
+$lang['help_login_min_length'] = '';
+$lang['help_login_use_banlist'] = '';
+$lang['help_mail_charset'] = '';
+$lang['help_masterpass'] = '';
+$lang['help_password_min_length'] = '';
+$lang['help_password_min_score'] = '';
+$lang['help_request_key_expiration'] = '';
+$lang['help_suppress_activation_message'] = '';
+$lang['help_suppress_email_sender'] = '';
+$lang['help_suppress_reset_message'] = '';
+
+$lang['id'] = 'ID';
+$lang['import'] = 'Import';
 
 $lang['logged_in'] = 'You are now logged in';
 $lang['logged_out'] = 'You are now logged out';
+$lang['login_incorrect'] = 'Login name is not recognised';
+//$lang['login_long'] = 'Login name is too long';
+$lang['login_notvalid'] = 'Login name is invalid';
+$lang['login_short'] = 'Login name is too short';
+$lang['login_taken'] = 'Login name is already in use';
 
+$lang['name'] = 'Name';
 $lang['newemail_match'] = 'New email matches previous email';
 $lang['newpassword_invalid'] = 'New password must contain at least one uppercase and lowercase character, and at least one digit';
 $lang['newpassword_long'] = 'New password is too long';
 $lang['newpassword_match'] = 'New password is the same as the old password';
 $lang['newpassword_nomatch'] = 'New passwords do not match';
 $lang['newpassword_short'] = 'New password is too short';
+$lang['nocontext'] = 'No context has been registered';
+$lang['nouser'] = 'No user has been registered for this context';
 
 $lang['password_changed'] = 'Password changed successfully';
 $lang['password_incorrect'] = 'Password is wrong';
@@ -64,21 +90,62 @@ $lang['password_notvalid'] = 'Password is invalid';
 $lang['password_reset'] = 'Password reset successfully';
 $lang['password_short'] = 'Password is too short';
 $lang['password_weak'] = 'Password is too weak';
+$lang['perm_modify'] = 'Modify Authentication Data';
+$lang['perm_see'] = 'Review Authentication Data';
+$lang['perm_send'] = 'Send Authentication Events';
+$lang['postinstall'] = 'Authenticator module installed sucessfully.<br />Be sure to set relevant permissions';
+$lang['postuninstall'] = 'Authenticator module uninstalled';
 
+$lang['really_uninstall'] = 'Are you sure you want to uninstall the Authenticator module?';
 $lang['register_success'] = 'Account created. Activation email sent to email';
 $lang['register_success_emailmessage_suppressed'] = 'Account created';
 $lang['remember_me_invalid'] = 'The remember me field is invalid';
 $lang['reset_exists'] = 'A reset request already exists';
+$lang['reset_requested'] = 'Password reset request sent to email address';
+$lang['reset_requested_emailmessage_suppressed'] = 'Password reset request has been created';
 $lang['resetkey_expired'] = 'Reset key has expired'; //NB type-specific prefix
 $lang['resetkey_incorrect'] = 'Reset key is incorrect'; //NB type-specific prefix
 $lang['resetkey_invalid'] = 'Reset key is invalid';
-$lang['reset_requested_emailmessage_suppressed'] = 'Password reset request has been created';
-$lang['reset_requested'] = 'Password reset request sent to email address';
 
+$lang['submit'] = 'Submit';
 $lang['system_error'] = 'A system error has been encountered. Please try again.';
 
+$lang['tip_delcontext'] = 'delete selected context(s)';
+$lang['tip_delsuser'] = 'delete selected user(s)';
+$lang['tip_importuser'] = 'import user(s) from file';
+$lang['tip_users'] = 'review users for this context';
+
+$lang['title_attack_mitigation_time'] = '';
+$lang['title_attempts_before_ban'] = '';
+$lang['title_attempts_before_verify'] = '';
+$lang['title_bcrypt_cost'] = '';
+$lang['title_context_email'] = '';
+$lang['title_context_sender'] = '';
+$lang['title_contexts'] = 'Contexts';
+$lang['title_cookie_domain'] = '';
+$lang['title_cookie_forget'] = '';
+$lang['title_cookie_http'] = '';
+$lang['title_cookie_name'] = '';
+$lang['title_cookie_path'] = '';
+$lang['title_cookie_remember'] = '';
+$lang['title_cookie_secure'] = '';
+$lang['title_import'] = '';
+$lang['title_login_max_length'] = '';
+$lang['title_login_min_length'] = '';
+$lang['title_login_use_banlist'] = '';
+$lang['title_mail_charset'] = '';
+$lang['title_masterpass'] = '';
+$lang['title_password_min_length'] = '';
+$lang['title_password_min_score'] = '';
+$lang['title_request_key_expiration'] = '';
+$lang['title_settings'] = 'Settings';
+$lang['title_suppress_activation_message'] = '';
+$lang['title_suppress_email_sender'] = '';
+$lang['title_suppress_reset_message'] = '';
+
 $lang['user_blocked'] = 'You are currently locked out of the system';
-$lang['user_verify_failed'] = 'Captcha text was invalid';
+//$lang['user_verify_failed'] = 'Captcha text was invalid';
+$lang['users'] = 'Users';
 
 $lang['event_Register_desc'] = <<<'EOS'
 Event generated when a user registers successfully
@@ -99,7 +166,7 @@ $lang['event_Login_help'] = <<<'EOS'
 <p>An event generated when</p>
 EOS;
 $lang['event_LoginFail_desc'] = <<<'EOS'
-Event generated when a user fails to gain authorisation 
+Event generated when a user fails to gain authorisation
 EOS;
 $lang['event_LoginFail_help'] = <<<'EOS'
 <p>An event generated when</p>
@@ -109,6 +176,9 @@ Event generated when a user ends her/his current authorisation
 EOS;
 $lang['event_Logout_help'] = <<<'EOS'
 <p>An event generated when</p>
+EOS;
+
+$lang['help_import'] = <<<'EOS'
 EOS;
 
 $lang['help_module'] = <<<'EOS'
