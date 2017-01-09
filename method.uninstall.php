@@ -25,6 +25,14 @@ $tblname = $pref.'module_auth_sessions';
 $sql = $dict->DropTableSQL($tblname);
 $dict->ExecuteSQLArray($sql);
 
+/*
+$tblname = $pref.'module_auth_userprops';
+$sql = $dict->DropIndexSQL($pref.'module_auth_userprops_idx', $tblname);
+$dict->ExecuteSQLArray($sql);
+$sql = $dict->DropTableSQL($tblname);
+$dict->ExecuteSQLArray($sql);
+*/
+
 $tblname = $pref.'module_auth_users';
 $sql = $dict->DropTableSQL($tblname);
 $dict->ExecuteSQLArray($sql);
