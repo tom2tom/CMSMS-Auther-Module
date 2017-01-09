@@ -20,6 +20,10 @@
 
 class Auther extends CMSModule
 {
+	//security-levels (per Firehed)
+    const ANONYMOUS = 0;
+    const LOGIN = 1;
+    const HISEC = 2;
 	//factor-types (per Firehed)
 	const KNOWLEDGE = 1;
 	const POSSESSION = 2;
@@ -240,8 +244,105 @@ class Auther extends CMSModule
 		return '';
 	}
 
-	public function _CheckAccess($mode)
+	/*
+	get_tasks:
+	Specify the tasks that this module uses
+	Returns: CmsRegularTask-compliant object, or array of them
+	*/
+/*	public function get_tasks()
 	{
-		return FALSE;
+		return array(
+			new Auther\Cleanold_task(),
+//			new Auther\Clearcache_task()
+		);
+	}
+*/
+	/**
+	_CheckAccess:
+	NOT PART OF THE MODULE API
+	@permission default=''
+	@warn whether to echo error message, default=FALSE
+	*/
+	public function _CheckAccess($permission='', $warn=FALSE)
+	{
+		switch ($permission) {
+		 case '': //anything relevant
+			$name = '';
+			$ok = $this->CheckPermission($this->PermAdminName);
+			if (!$ok) $ok = $this->CheckPermission($this->PermSeeName);
+			if (!$ok) $ok = $this->CheckPermission($this->PermEditName);
+			if (!$ok) $ok = $this->CheckPermission($this->PermPerName);
+			if (!$ok) $ok = $this->CheckPermission($this->PermAddName);
+			if (!$ok) $ok = $this->CheckPermission($this->PermDelName);
+			if (!$ok) $ok = $this->CheckPermission($this->PermModName);
+			if (!$ok) $ok = $this->CheckPermission($this->PermStructName);
+			break;
+		//bookings
+		 case 'view':
+			$name = $this->PermSeeName;
+			$ok = $this->CheckPermission($name);
+			break;
+		 case 'book':
+			$name = $this->PermEditName;
+			$ok = $this->CheckPermission($name);
+			break;
+		 case 'admin':
+			$name = $this->PermAdminName;
+			$ok = $this->CheckPermission($name);
+			break;
+		//bookers
+		 case 'booker':
+			$name = $this->PermPerName;
+			$ok = $this->CheckPermission($name);
+			break;
+		//resources
+		 case 'add':
+			$name = $this->PermAddName;
+			$ok = $this->CheckPermission($name);
+			break;
+		 case 'modify':
+			$name = $this->PermModName;
+			$ok = $this->CheckPermission($name);
+			break;
+		 case 'delete':
+			$name = $this->PermDelName;
+			$ok = $this->CheckPermission($name);
+			break;
+		//module
+		 case 'module':
+			$name = $this->PermStructName;
+			$ok = $this->CheckPermission($name);
+			break;
+		 default:
+			$name = '';
+			$ok = FALSE;
+		}
+		if (!$ok && $warn) {
+			if ($name == '') $name = $this->Lang('perm_some');
+			echo '<p class="error">'.$this->Lang('accessdenied',$name).'</p>';
+		}
+		return $ok;
+	}
+	/**
+	_PrettyMessage:
+	@text: text to display, or if @key = TRUE, a lang-key for the text to display
+	@success: optional default TRUE whether to style message as positive
+	@key: optional default TRUE whether @text is a lang key or raw
+	*/
+	public function _PrettyMessage($text, $success=TRUE, $key=TRUE)
+	{
+		$base = ($key) ? $this->Lang($text) : $text;
+		if ($success)
+			return $this->ShowMessage($base);
+		else {
+			$msg = $this->ShowErrors($base);
+			//strip the link
+			$pos = strpos($msg,'<a href=');
+			$part1 = ($pos !== FALSE) ? substr($msg,0,$pos) : '';
+			$pos = strpos($msg,'</a>',$pos);
+			$part2 = ($pos !== FALSE) ? substr($msg,$pos+4) : $msg;
+			$msg = $part1.$part2;
+			return $msg;
+		}
 	}
 }
