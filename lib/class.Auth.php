@@ -72,7 +72,7 @@ class Auth
 
 		$userdata = $this->getBaseUser($uid);
 
-		if (!$userdata['isactive']) {
+		if (!$userdata['active']) {
 			$this->addAttempt();
 			$this->mod->SendEvent('OnLoginFail', $parms);
 			return array(FALSE,$this->mod->Lang('account_inactive'));
@@ -196,13 +196,13 @@ class Auth
 		}
 
 		$userdata = $this->getBaseUser($data['uid']);
-		if ($userdata['isactive']) {
+		if ($userdata['active']) {
 			$this->addAttempt();
 			$this->deleteRequest($data['id']);
 			return array(FALSE,$this->mod->Lang('system_error').' #02');
 		}
 
-		$sql = 'UPDATE '.$this->pref.'module_auth_users SET isactive=1 WHERE id=?';
+		$sql = 'UPDATE '.$this->pref.'module_auth_users SET active=1 WHERE id=?';
 		$this->db->Execute($sql, array($data['uid']));
 
 		$this->deleteRequest($data['id']);
@@ -500,7 +500,7 @@ class Auth
 			$email = NULL;
 		}
 
-		$sql = 'INSERT INTO '.$this->pref.'module_auth_users (id,login,passhash,email,isactive) VALUES (?,?,?,?,?)';
+		$sql = 'INSERT INTO '.$this->pref.'module_auth_users (id,login,passhash,email,active) VALUES (?,?,?,?,?)';
 
 		if (!$this->db->Execute($sql, array($uid, $login, $password, $email, $isactive))) {
 			$this->deleteRequest($status[$TODO]);
@@ -516,11 +516,11 @@ class Auth
 	/**
 	* Gets basic user-data for the given UID
 	* @uid int user enumerator
-	* Returns: array with members 'uid','login','password','isactive', or else FALSE
+	* Returns: array with members 'uid','login','password','active', or else FALSE
 	*/
 	protected function getBaseUser($uid)
 	{
-		$sql = 'SELECT login,passhash,isactive FROM '.$this->pref.'module_auth_users WHERE id=?';
+		$sql = 'SELECT login,passhash,active FROM '.$this->pref.'module_auth_users WHERE id=?';
 		$data = $this->db->GetRow($sql, array($uid));
 
 		if ($data) {
@@ -533,7 +533,7 @@ class Auth
 	/**
 	* Gets all user-data except password,factor2 for the given UID
 	* @ int $uid user enumerator
-	* Returns: array with members 'uid','email','login','isactive', or else FALSE
+	* Returns: array with members 'uid','email','login','active', or else FALSE
 	*/
 	public function getUser($uid)
 	{
@@ -654,7 +654,7 @@ class Auth
 
 		if ($type == 'activate') {
 			$userdata = $this->getBaseUser($uid);
-			if ($userdata['isactive']) {
+			if ($userdata['active']) {
 				return array(FALSE,$this->mod->Lang('already_activated'));
 			}
 		}
@@ -1090,7 +1090,7 @@ class Auth
 
 		$userdata = $this->getBaseUser($id);
 
-		if ($userdata['isactive']) {
+		if ($userdata['active']) {
 			$this->addAttempt();
 			return array(FALSE,$this->mod->Lang('already_activated'));
 		}
