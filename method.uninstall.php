@@ -49,7 +49,8 @@ $this->RemoveEvent('AuthLogin');
 $this->RemoveEvent('AuthLoginFail');
 $this->RemoveEvent('AuthLogout');
 
-//$this->RemovePermission('SeeAuthProperties');
-$this->RemovePermission('ModifyAuthProperties');
-$this->RemovePermission('ReviewAuthProperties');
-$this->RemovePermission('SendAuthEvents');
+$this->RemovePermission('AuthModuleAdmin');
+$this->RemovePermission('AuthModifyContext');
+$this->RemovePermission('AuthModifyUser');
+$this->RemovePermission('AuthView');
+//$this->RemovePermission('AuthSendEvents');

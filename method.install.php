@@ -85,7 +85,7 @@ passhash C(60),
 email C(96),
 context I,
 lastuse I,
-isactive I(1) DEFAULT 0
+active I(1) DEFAULT 1
 ';
 $tblname = $pref.'module_auth_users';
 $sql = $dict->CreateTableSQL($tblname, $flds, $taboptarray);
@@ -160,6 +160,9 @@ $this->CreateEvent('AuthLogin');
 $this->CreateEvent('AuthLoginFail');
 $this->CreateEvent('AuthLogout');
 
-$this->CreatePermission('ModifyAuthProperties', $this->Lang('perm_modify'));
-$this->CreatePermission('ReviewAuthProperties', $this->Lang('perm_see'));
-$this->CreatePermission('SendAuthEvents', $this->Lang('perm_send'));
+$this->CreatePermission('AuthModuleAdmin', $this->Lang('perm_modify'));
+$this->CreatePermission('AuthModifyContext', $this->Lang('perm_modcontext'));
+$this->CreatePermission('AuthModifyUser', $this->Lang('perm_moduser'));
+$this->CreatePermission('AuthView', $this->Lang('perm_see'));
+//$this->CreatePermission('AuthSendEvents', $this->Lang('perm_send'));
+
