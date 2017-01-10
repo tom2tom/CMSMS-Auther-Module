@@ -20,10 +20,15 @@
 
 class Auther extends CMSModule
 {
+	//security-levels
+	const LOSEC = 1;
+	const NONCED = 2;
+	const FACTORED = 3;
+	const HISEC = 4;
 	//security-levels (per Firehed)
-    const ANONYMOUS = 0;
-    const LOGIN = 1;
-    const HISEC = 2;
+//    const ANONYMOUS = 0;
+//    const LOGIN = 1;
+//    const HISEC = 2;
 	//factor-types (per Firehed)
 	const KNOWLEDGE = 1;
 	const POSSESSION = 2;
@@ -36,6 +41,7 @@ class Auther extends CMSModule
 		parent::__construct();
 		global $CMS_VERSION;
 		$this->before20 = (version_compare($CMS_VERSION, '2.0') < 0);
+		//TODO check for openssl extension - for U2F
 
 		spl_autoload_register(array($this, 'auther_spacedload'));
 	}
@@ -130,7 +136,7 @@ class Auther extends CMSModule
 	{
 		return $this->Lang('postinstall');
 	}
-//	public function IsPluginModule()		{ return FALSE; }
+//	public function IsPluginModule()	{ return FALSE; }
 //	public function MaximumCMSVersion()	{ return 'X' }
 
 	public function MinimumCMSVersion()
@@ -179,26 +185,12 @@ class Auther extends CMSModule
 
 	public function GetHelp()
 	{
-		//construct frontend-url (so no admin login is needed)
-		//cmsms 1.10+ also has ->create_url();
-		//deprecated pretty-url
-/*		$returnid = cmsms()->GetContentOperations()->GetDefaultContent();
-		$oldurl = $this->CreateLink($id,'default',$returnid,'',array(),'',TRUE,FALSE,'',FALSE,'cron/run');
-		$url = $this->CreateLink ('_','default',1,'',array(),'',TRUE);
-		//strip the fake returnid, so that the default will be used
-		$sep = strpos ($url, '&amp;');
-		$newurl = substr($url, 0, $sep);
-		return $this->Lang ('help_module',$newurl,$oldurl);
-*/
 		return $this->Lang('help_module');
 	}
 
 	public function VisibleToAdminUser()
 	{
-		return
-		 $this->CheckPermission('ModifyAuthProperties') ||
-		 $this->CheckPermission('ReviewAuthProperties') ||
-		 $this->CheckPermission('SendAuthEvents');
+		return $this->_CheckPermission();
 	}
 
 	public function SetParameters()
@@ -268,49 +260,25 @@ class Auther extends CMSModule
 		switch ($permission) {
 		 case '': //anything relevant
 			$name = '';
-			$ok = $this->CheckPermission($this->PermAdminName);
-			if (!$ok) $ok = $this->CheckPermission($this->PermSeeName);
-			if (!$ok) $ok = $this->CheckPermission($this->PermEditName);
-			if (!$ok) $ok = $this->CheckPermission($this->PermPerName);
-			if (!$ok) $ok = $this->CheckPermission($this->PermAddName);
-			if (!$ok) $ok = $this->CheckPermission($this->PermDelName);
-			if (!$ok) $ok = $this->CheckPermission($this->PermModName);
-			if (!$ok) $ok = $this->CheckPermission($this->PermStructName);
+			$ok = $this->CheckPermission('AuthModuleAdmin');
+			if (!$ok) $ok = $this->CheckPermission('AuthModifyContext');
+			if (!$ok) $ok = $this->CheckPermission('AuthModifyUser');
+			if (!$ok) $ok = $this->CheckPermission('AuthView');
 			break;
-		//bookings
 		 case 'view':
-			$name = $this->PermSeeName;
-			$ok = $this->CheckPermission($name);
-			break;
-		 case 'book':
-			$name = $this->PermEditName;
+			$name = 'AuthView';
 			$ok = $this->CheckPermission($name);
 			break;
 		 case 'admin':
-			$name = $this->PermAdminName;
+			$name = 'AuthModuleAdmin';
 			$ok = $this->CheckPermission($name);
 			break;
-		//bookers
-		 case 'booker':
-			$name = $this->PermPerName;
+		 case 'context':
+			$name = 'AuthModifyContext';
 			$ok = $this->CheckPermission($name);
 			break;
-		//resources
-		 case 'add':
-			$name = $this->PermAddName;
-			$ok = $this->CheckPermission($name);
-			break;
-		 case 'modify':
-			$name = $this->PermModName;
-			$ok = $this->CheckPermission($name);
-			break;
-		 case 'delete':
-			$name = $this->PermDelName;
-			$ok = $this->CheckPermission($name);
-			break;
-		//module
-		 case 'module':
-			$name = $this->PermStructName;
+		 case 'user':
+			$name = 'AuthModifyUser';
 			$ok = $this->CheckPermission($name);
 			break;
 		 default:
@@ -322,27 +290,5 @@ class Auther extends CMSModule
 			echo '<p class="error">'.$this->Lang('accessdenied',$name).'</p>';
 		}
 		return $ok;
-	}
-	/**
-	_PrettyMessage:
-	@text: text to display, or if @key = TRUE, a lang-key for the text to display
-	@success: optional default TRUE whether to style message as positive
-	@key: optional default TRUE whether @text is a lang key or raw
-	*/
-	public function _PrettyMessage($text, $success=TRUE, $key=TRUE)
-	{
-		$base = ($key) ? $this->Lang($text) : $text;
-		if ($success)
-			return $this->ShowMessage($base);
-		else {
-			$msg = $this->ShowErrors($base);
-			//strip the link
-			$pos = strpos($msg,'<a href=');
-			$part1 = ($pos !== FALSE) ? substr($msg,0,$pos) : '';
-			$pos = strpos($msg,'</a>',$pos);
-			$part2 = ($pos !== FALSE) ? substr($msg,$pos+4) : $msg;
-			$msg = $part1.$part2;
-			return $msg;
-		}
 	}
 }
