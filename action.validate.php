@@ -6,17 +6,17 @@
 # More info at http://dev.cmsmadesimple.org/projects/auther
 #----------------------------------------------------------------------
 
-$tplvars = array(
+$tplvars = [
 //	'see' => $psee,
 	'add' => $padd,
 	'del' => $pdel,
 	'mod' => $mod,
-);
+];
 
 $baseurl = $this->GetModuleURLPath();
-$jsfuncs = array(); //script accumulators
-$jsloads = array();
-$jsincs = array();
+$jsfuncs = []; //script accumulators
+$jsloads = [];
+$jsincs = [];
 
 $jsall = NULL;
 $utils->MergeJS($jsincs, $jsfuncs, $jsloads, $jsall);

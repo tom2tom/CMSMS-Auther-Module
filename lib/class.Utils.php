@@ -88,9 +88,9 @@ class Utils
 		//TODO
 		if (X) {
 			$navstr .= ' '.$mod->CreateLink($id, 'users', $returnid,
-			'&#171; '.$mod->Lang('users'), array(
+			'&#171; '.$mod->Lang('users'), [
 			'context_id'=>$params['context_id'],
-			'edit'=>$params['edit']));
+			'edit'=>$params['edit']]);
 		}
 		$tplvars['inner_nav'] = $navstr;
 	}
@@ -174,9 +174,9 @@ class Utils
 		if (is_array($jsincs)) {
 			$all = $jsincs;
 		} elseif ($jsincs) {
-			$all = array($jsincs);
+			$all = [$jsincs];
 		} else {
-			$all = array();
+			$all = [];
 		}
 		if ($jsfuncs || $jsloads) {
 			$all[] =<<<'EOS'

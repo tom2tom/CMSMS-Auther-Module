@@ -55,11 +55,11 @@ class Auth
 		if ($block_status == 'verify') {
 			if (0) { //TODO FACTOR
 				$this->mod->SendEvent('OnLoginFail', $parms);
-				return array(FALSE,$this->mod->Lang('user_verify_failed'));
+				return [FALSE,$this->mod->Lang('user_verify_failed')];
 			}
 		} elseif ($block_status == 'block') {
 			$this->mod->SendEvent('OnLoginFail', $parms);
-			return array(FALSE,$this->mod->Lang('user_blocked'));
+			return [FALSE,$this->mod->Lang('user_blocked')];
 		}
 
 		$uid = $this->getUID($login);
@@ -67,7 +67,7 @@ class Auth
 		if (!$uid) {
 			$this->addAttempt();
 			$this->mod->SendEvent('OnLoginFail', $parms);
-			return array(FALSE,$this->mod->Lang('login_incorrect'));
+			return [FALSE,$this->mod->Lang('login_incorrect')];
 		}
 
 		$userdata = $this->getBaseUser($uid);
@@ -75,7 +75,7 @@ class Auth
 		if (!$userdata['active']) {
 			$this->addAttempt();
 			$this->mod->SendEvent('OnLoginFail', $parms);
-			return array(FALSE,$this->mod->Lang('account_inactive'));
+			return [FALSE,$this->mod->Lang('account_inactive')];
 		}
 
 		$status = $this->matchPassword($uid, $password);
@@ -83,25 +83,25 @@ class Auth
 		if (!$status[0]) {
 			$this->addAttempt();
 			$this->mod->SendEvent('OnLoginFail', $parms);
-			return array(FALSE,$this->mod->Lang('password_incorrect'));
+			return [FALSE,$this->mod->Lang('password_incorrect')];
 		}
 
 		if (!is_bool($remember)) {
 			$this->addAttempt();
 			$this->mod->SendEvent('OnLoginFail', $parms);
-			return array(FALSE,$this->mod->Lang('remember_me_invalid'));
+			return [FALSE,$this->mod->Lang('remember_me_invalid')];
 		}
 
 		$sessiondata = $this->addSession($uid, $remember);
 
 		if (!$sessiondata) {
 			$this->mod->SendEvent('OnLoginFail', $parms);
-			return array(FALSE,$this->mod->Lang('system_error').' #01');
+			return [FALSE,$this->mod->Lang('system_error').' #01'];
 		}
 
 		$this->mod->SendEvent('OnLogin', $parms);
 
-		$data = array(TRUE,$this->mod->Lang('logged_in'));
+		$data = [TRUE,$this->mod->Lang('logged_in')];
 		$data['hash'] = $sessiondata['hash'];
 		$data['expire'] = $sessiondata['expiretime'];
 		return $data;
@@ -117,16 +117,16 @@ class Auth
 	* @sendmail bool whether to send email-messages if possible default = NULL
 	* Returns: array 0=>T/F for success, 1=>message
 	*/
-	public function register($login, $password, $repeatpassword, $email='', $params=array(), $sendmail=NULL)
+	public function register($login, $password, $repeatpassword, $email='', $params=[], $sendmail=NULL)
 	{
 		$block_status = $this->isBlocked();
 
 		if ($block_status == 'verify') {
 			if (0) { //TODO FACTOR
-				return array(FALSE,$this->mod->Lang('user_verify_failed'));
+				return [FALSE,$this->mod->Lang('user_verify_failed')];
 			}
 		} elseif ($block_status == 'block') {
-			return array(FALSE,$this->mod->Lang('user_blocked'));
+			return [FALSE,$this->mod->Lang('user_blocked')];
 		}
 
 		// Validate login
@@ -136,7 +136,7 @@ class Auth
 		}
 
 		if ($this->isLoginTaken($login)) {
-			return array(FALSE,$this->mod->Lang('login_taken'));
+			return [FALSE,$this->mod->Lang('login_taken')];
 		}
 
 		// Validate password
@@ -146,7 +146,7 @@ class Auth
 		}
 
 		if ($password !== $repeatpassword) {
-			return array(FALSE,$this->mod->Lang('password_nomatch'));
+			return [FALSE,$this->mod->Lang('password_nomatch')];
 		}
 
 		if ($email) {
@@ -167,7 +167,7 @@ class Auth
 		$msg = ($sendmail) ?
 		 $this->mod->Lang('register_success') :
 		 $this->mod->Lang('register_success_message_suppressed');
-		return array(TRUE,$msg);
+		return [TRUE,$msg];
 	}
 
 	/**
@@ -180,12 +180,12 @@ class Auth
 		$block_status = $this->isBlocked();
 
 		if ($block_status == 'block') {
-			return array(FALSE,$this->mod->Lang('user_blocked'));
+			return [FALSE,$this->mod->Lang('user_blocked')];
 		}
 
 		if (strlen($key) !== 32) {
 			$this->addAttempt();
-			return array(FALSE,$this->mod->Lang('activationkey_invalid'));
+			return [FALSE,$this->mod->Lang('activationkey_invalid')];
 		}
 
 		$data = $this->getRequest($key, 'activate');
@@ -199,15 +199,15 @@ class Auth
 		if ($userdata['active']) {
 			$this->addAttempt();
 			$this->deleteRequest($data['id']);
-			return array(FALSE,$this->mod->Lang('system_error').' #02');
+			return [FALSE,$this->mod->Lang('system_error').' #02'];
 		}
 
 		$sql = 'UPDATE '.$this->pref.'module_auth_users SET active=1 WHERE id=?';
-		$this->db->Execute($sql, array($data['uid']));
+		$this->db->Execute($sql, [$data['uid']]);
 
 		$this->deleteRequest($data['id']);
 
-		return array(TRUE,$this->mod->Lang('account_activated'));
+		return [TRUE,$this->mod->Lang('account_activated')];
 	}
 
 	/**
@@ -221,23 +221,23 @@ class Auth
 		$block_status = $this->isBlocked();
 
 		if ($block_status == 'block') {
-			return array(FALSE,$this->mod->Lang('user_blocked'));
+			return [FALSE,$this->mod->Lang('user_blocked')];
 		}
 
 		$status = $this->validateLogin($login);
 
 		if (!$status[0]) {
 			//TODO minimise impact of $login brute-forcing
-			return array(FALSE,$this->mod->Lang('login_invalid'));
+			return [FALSE,$this->mod->Lang('login_invalid')];
 		}
 
 		$sql = 'SELECT id FROM '.$this->pref.'module_auth_users WHERE login=?';
-		$id = $this->db->GetOne($sql, array($login));
+		$id = $this->db->GetOne($sql, [$login]);
 
 		if (!$id) {
 			//TODO minimise impact of $login brute-forcing
 			$this->addAttempt();
-			return array(FALSE,$this->mod->Lang('login_incorrect'));
+			return [FALSE,$this->mod->Lang('login_incorrect')];
 		}
 
 		$status = $this->addRequest($id, $login, 'reset', $sendmail);
@@ -250,7 +250,7 @@ class Auth
 		$msg = ($sendmail) ?
 		 $this->mod->Lang('reset_requested') :
 		 $this->mod->Lang('reset_requested_loginmessage_suppressed');
-		return array(TRUE,$msg);
+		return [TRUE,$msg];
 	}
 
 	/**
@@ -288,7 +288,7 @@ class Auth
 			}
 
 			$sql = 'SELECT '.$sql2.' FROM '.$this->pref.'module_auth_contexts WHERE '.$sql3.'=?';
-			$data = $this->db->GetRow($sql, array($context));
+			$data = $this->db->GetRow($sql, [$context]);
 			if ($data) {
 				//grab defaults for 'empty' settings
 				foreach ($data as $key=>&$val) {
@@ -307,7 +307,7 @@ class Auth
 
 		//grab all defaults
 		if (is_array($propkey)) {
-			$data = array();
+			$data = [];
 			foreach ($propkey as $key) {
 				$data[$key] = $this->mod->GetPreference($key, NULL);
 			}
@@ -325,7 +325,7 @@ class Auth
 	public function getHash($password)
 	{
 		$val = $this->getConfig($this->context, 'bcrypt_cost');
-		return password_hash($password, PASSWORD_BCRYPT, array('cost'=>$val));
+		return password_hash($password, PASSWORD_BCRYPT, ['cost'=>$val]);
 	}
 
 	/**
@@ -336,7 +336,7 @@ class Auth
 	public function getUID($login)
 	{
 		$sql = 'SELECT id FROM '.$this->pref.'module_auth_users WHERE login=?';
-		return $this->db->GetOne($sql, array($login));
+		return $this->db->GetOne($sql, [$login]);
 	}
 
 	/**
@@ -357,7 +357,7 @@ class Auth
 		$val = $this->getConfig($this->context, 'session_key');
 		$hash = sha1(uniqid($val, TRUE));
 
-		$data = array('hash'=>$hash,'cookie_hash'=>sha1($hash.$val));
+		$data = ['hash'=>$hash,'cookie_hash'=>sha1($hash.$val)];
 
 		$dt = new \DateTime('@'.time(), NULL);
 		if ($remember) {
@@ -377,7 +377,7 @@ class Auth
 
 		$sql = 'INSERT INTO '.$this->pref.'module_auth_sessions (uid,hash,expire,ip,agent,cookie_hash) VALUES (?,?,?,?,?,?)';
 
-		if (!$this->db->Execute($sql, array($uid, $hash, $data['expire'], $ip, $agent, $data['cookie_hash']))) {
+		if (!$this->db->Execute($sql, [$uid, $hash, $data['expire'], $ip, $agent, $data['cookie_hash']])) {
 			return FALSE;
 		}
 
@@ -392,7 +392,7 @@ class Auth
 	protected function deleteExistingSessions($uid)
 	{
 		$sql = 'DELETE FROM '.$this->pref.'module_auth_sessions WHERE uid=?';
-		$res = $this->db->Execute($sql, array($uid));
+		$res = $this->db->Execute($sql, [$uid]);
 		return ($res != FALSE);
 	}
 
@@ -404,7 +404,7 @@ class Auth
 	protected function deleteSession($hash)
 	{
 		$sql = 'DELETE FROM '.$this->pref.'module_auth_sessions WHERE hash=?';
-		$res = $this->db->Execute($sql, array($hash));
+		$res = $this->db->Execute($sql, [$hash]);
 		return ($res != FALSE);
 	}
 
@@ -426,7 +426,7 @@ class Auth
 		}
 
 		$sql = 'SELECT id,uid,expire,ip,agent,cookie_hash FROM '.$this->pref.'module_auth_sessions WHERE hash=?';
-		$row = $this->db->GetRow($sql, array($hash));
+		$row = $this->db->GetRow($sql, [$hash]);
 
 		if (!$row) {
 			return FALSE;
@@ -454,7 +454,7 @@ class Auth
 	public function getSessionUID($hash)
 	{
 		$sql = 'SELECT uid FROM '.$this->pref.'module_auth_sessions WHERE hash=?';
-		return $this->db->GetOne($sql, array($hash));
+		return $this->db->GetOne($sql, [$hash]);
 	}
 
 	/**
@@ -465,7 +465,7 @@ class Auth
 	public function isLoginTaken($login)
 	{
 		$sql = 'SELECT id FROM '.$this->pref.'module_auth_users WHERE login=? AND context=?';
-		$num = $this->db->GetOne($sql, array($login, $this->context));
+		$num = $this->db->GetOne($sql, [$login, $this->context]);
 		return ($num > 0);
 	}
 
@@ -478,7 +478,7 @@ class Auth
 	* @params array of additional params default = empty
 	* Returns: array 0=>T/F for success, 1=>message
 	*/
-	protected function addUser($login, $password, $email, &$sendmail, $params=array())
+	protected function addUser($login, $password, $email, &$sendmail, $params=[])
 	{
 		$uid = $this->db->GenID($this->pref.'module_auth_users_seq');
 		$login = htmlentities($login); //TODO encoding management
@@ -502,15 +502,15 @@ class Auth
 
 		$sql = 'INSERT INTO '.$this->pref.'module_auth_users (id,login,passhash,email,active) VALUES (?,?,?,?,?)';
 
-		if (!$this->db->Execute($sql, array($uid, $login, $password, $email, $isactive))) {
+		if (!$this->db->Execute($sql, [$uid, $login, $password, $email, $isactive])) {
 			$this->deleteRequest($status[$TODO]);
-			return array(FALSE,$this->mod->Lang('system_error').' #03');
+			return [FALSE,$this->mod->Lang('system_error').' #03'];
 		}
 
 		if (is_array($params) && count($params) > 0) { //TODO
 		}
 
-		return array(TRUE, '');
+		return [TRUE, ''];
 	}
 
 	/**
@@ -521,7 +521,7 @@ class Auth
 	protected function getBaseUser($uid)
 	{
 		$sql = 'SELECT login,passhash,active FROM '.$this->pref.'module_auth_users WHERE id=?';
-		$data = $this->db->GetRow($sql, array($uid));
+		$data = $this->db->GetRow($sql, [$uid]);
 
 		if ($data) {
 			$data['uid'] = $uid;
@@ -538,7 +538,7 @@ class Auth
 	public function getUser($uid)
 	{
 		$sql = 'SELECT * FROM '.$this->pref.'module_auth_users WHERE id=?';
-		$data = $this->db->GetRow($sql, array($uid));
+		$data = $this->db->GetRow($sql, [$uid]);
 
 		if ($data) {
 			unset($data['id']);
@@ -561,10 +561,10 @@ class Auth
 
 		if ($block_status == 'verify') {
 			if (0) { //TODO FACTOR
-				return array(FALSE,$this->mod->Lang('user_verify_failed'));
+				return [FALSE,$this->mod->Lang('user_verify_failed')];
 			}
 		} elseif ($block_status == 'block') {
-			return array(FALSE,$this->mod->Lang('user_blocked'));
+			return [FALSE,$this->mod->Lang('user_blocked')];
 		}
 
 		$status = $this->matchPassword($uid, $password);
@@ -578,35 +578,35 @@ class Auth
 
 		if (!$userdata) {
 			$this->addAttempt();
-			return array(FALSE,$this->mod->Lang(TODO));
+			return [FALSE,$this->mod->Lang(TODO)];
 		}
 
 		if (!password_verify($password, $userdata['password'])) {
 			$this->addAttempt();
-			return array(FALSE,$this->mod->Lang('password_incorrect'));
+			return [FALSE,$this->mod->Lang('password_incorrect')];
 		}
 
 		$sql = 'DELETE FROM '.$this->pref.'module_auth_users WHERE id=?';
 
-		if (!$this->db->Execute($sql, array($uid))) {
-			return array(FALSE,$this->mod->Lang('system_error').' #05');
+		if (!$this->db->Execute($sql, [$uid])) {
+			return [FALSE,$this->mod->Lang('system_error').' #05'];
 		}
 
 		$sql = 'DELETE FROM '.$this->pref.'module_auth_sessions WHERE uid=?';
 
-		if (!$this->db->Execute($sql, array($uid))) {
-			return array(FALSE,$this->mod->Lang('system_error').' #06');
+		if (!$this->db->Execute($sql, [$uid])) {
+			return [FALSE,$this->mod->Lang('system_error').' #06'];
 		}
 
 		$sql = 'DELETE FROM '.$this->pref.'module_auth_requests WHERE uid=?';
 
-		if (!$this->db->Execute($sql, array($uid))) {
-			return array(FALSE,$this->mod->Lang('system_error').' #07');
+		if (!$this->db->Execute($sql, [$uid])) {
+			return [FALSE,$this->mod->Lang('system_error').' #07'];
 		}
 
 		$this->mod->SendEvent('OnDeregister', $parms);
 
-		return array(TRUE,$this->mod->Lang('account_deleted'));
+		return [TRUE,$this->mod->Lang('account_deleted')];
 	}
 
 	/**
@@ -621,7 +621,7 @@ class Auth
 	protected function addRequest($uid, $login, $type, &$sendmail, $fake=FALSE)
 	{
 		if (!($type == 'activate' || $type == 'reset')) {
-			return array(FALSE,$this->mod->Lang('system_error').' #08');
+			return [FALSE,$this->mod->Lang('system_error').' #08'];
 		}
 
 		// if not set manually, check config data
@@ -631,23 +631,23 @@ class Auth
 				$val = $this->getConfig($this->context, 'suppress_reset_message');
 				if ($val) {
 					$sendmail = FALSE;
-					return array(TRUE,'');
+					return [TRUE,''];
 				}
 			} elseif ($type == 'activate') {
 				$val = $this->getConfig($this->context, 'suppress_activation_message');
 				if ($val) {
 					$sendmail = FALSE;
-					return array(TRUE,'');
+					return [TRUE,''];
 				}
 			}
 		}
 
 		$sql = 'SELECT id,expire FROM '.$this->pref.'module_auth_requests WHERE uid=? AND type=?';
-		$row = $this->db->GetRow($sql, array($uid, $type));
+		$row = $this->db->GetRow($sql, [$uid, $type]);
 
 		if ($row) {
 			if ($row['expire'] > time()) {
-				return array(FALSE,$this->mod->Lang('reset_exists'));
+				return [FALSE,$this->mod->Lang('reset_exists')];
 			}
 			$this->deleteRequest($row['id']);
 		}
@@ -655,7 +655,7 @@ class Auth
 		if ($type == 'activate') {
 			$userdata = $this->getBaseUser($uid);
 			if ($userdata['active']) {
-				return array(FALSE,$this->mod->Lang('already_activated'));
+				return [FALSE,$this->mod->Lang('already_activated')];
 			}
 		}
 
@@ -672,13 +672,13 @@ class Auth
 		if (!$fake) {
 			$sql = 'INSERT INTO '.$this->pref.'module_auth_requests (id,uid,expire,rkey,type) VALUES (?,?,?,?,?)';
 
-			if (!$this->db->Execute($sql, array($request_id, $uid, $expiretime, $key, $type))) {
-				return array(FALSE,$this->mod->Lang('system_error').' #09');
+			if (!$this->db->Execute($sql, [$request_id, $uid, $expiretime, $key, $type])) {
+				return [FALSE,$this->mod->Lang('system_error').' #09'];
 			}
 		}
 
 		if (!$sendmail) {
-			return array(TRUE,$this->mod->Lang('X')); //TODO no email sent
+			return [TRUE,$this->mod->Lang('X')]; //TODO no email sent
 		}
 
 		if ($this->mod->before20) {
@@ -688,7 +688,7 @@ class Auth
 			} else {
 				$sendmail = FALSE;
 				$this->deleteRequest($request_id);
-				return array(FALSE,$this->mod->Lang('system_error').' CMSMailer N/A');
+				return [FALSE,$this->mod->Lang('system_error').' CMSMailer N/A'];
 			}
 		} else {
 			$mlr = new \cms_mailer();
@@ -706,9 +706,9 @@ class Auth
 		$mlr->IsHTML(TRUE);
 
 		//construct frontend-url (so no admin login is needed)
-		$u = $this->mod->create_url('cntnt01', 'validate', '', array(
+		$u = $this->mod->create_url('cntnt01', 'validate', '', [
 				'cauthc'=>$key,
-				'rauthr'=>$request_id));
+				'rauthr'=>$request_id]);
 		$url = str_replace('&amp;', '&', $u);
 
 		if ($type == 'activate') {
@@ -728,7 +728,7 @@ class Auth
 		if (!$res) {
 			$this->deleteRequest($request_id);
 		}
-		return array($res, $msg);
+		return [$res, $msg];
 	}
 
 	/**
@@ -740,20 +740,20 @@ class Auth
 	public function getRequest($key, $type)
 	{
 		$sql = 'SELECT id,uid,expire FROM '.$this->pref.'module_auth_requests WHERE rkey=? AND type=?';
-		$row = $this->db->GetRow($sql, array($key, $type));
+		$row = $this->db->GetRow($sql, [$key, $type]);
 
 		if (!$row) {
 			$this->addAttempt();
-			return array(FALSE,$this->mod->Lang($type.'key_incorrect'));
+			return [FALSE,$this->mod->Lang($type.'key_incorrect')];
 		}
 
 		if ($row['expire'] < time()) {
 			$this->addAttempt();
 			$this->deleteRequest($row['id']);
-			return array(FALSE,$this->mod->Lang($type.'key_expired'));
+			return [FALSE,$this->mod->Lang($type.'key_expired')];
 		}
 
-		return array(0=>TRUE,1=>'','id'=>$row['id'],'uid'=>$row['uid']);
+		return [0=>TRUE,1=>'','id'=>$row['id'],'uid'=>$row['uid']];
 	}
 
 	/**
@@ -764,7 +764,7 @@ class Auth
 	protected function deleteRequest($id)
 	{
 		$sql = 'DELETE FROM '.$this->pref.'module_auth_requests WHERE id=?';
-		$res = $this->db->Execute($sql, array($id));
+		$res = $this->db->Execute($sql, [$id]);
 		return ($res != FALSE);
 	}
 
@@ -777,12 +777,12 @@ class Auth
 	{
 		$val = (int)$this->getConfig($this->context, 'login_min_length');
 		if ($val > 0 && strlen($login) < $val) {
-			return array(FALSE,$this->mod->Lang('login_short'));
+			return [FALSE,$this->mod->Lang('login_short')];
 		}
 
 		$val = (int)$this->getConfig($this->context, 'login_max_length');
 		if ($val > 0 && strlen($login) > $val) {
-			return array(FALSE,$this->mod->Lang('login_long'));
+			return [FALSE,$this->mod->Lang('login_long')];
 		}
 
 		if (preg_match(self::EMAILPATN, $login)) {
@@ -791,12 +791,12 @@ class Auth
 				$parts = explode('@', $login);
 				$bannedDomains = json_decode(file_get_contents(__DIR__.DIRECTORY_SEPARATOR.'domains.json'));
 				if (in_array(strtolower($parts[1]), $bannedDomain)) {
-					return array(FALSE,$this->mod->Lang('email_banned'));
+					return [FALSE,$this->mod->Lang('email_banned')];
 				}
 			}
 		}
 
-		return array(TRUE,'');
+		return [TRUE,''];
 	}
 
 	/**
@@ -807,15 +807,15 @@ class Auth
 	protected function validateEmail($email)
 	{
 		if (!$email || !preg_match(self::EMAILPATN, $email)) {
-			return array(FALSE,$this->mod->Lang('email_invalid'));
+			return [FALSE,$this->mod->Lang('email_invalid')];
 		}
 
 		$parts = explode('@', $email);
 		$bannedDomains = json_decode(file_get_contents(__DIR__.DIRECTORY_SEPARATOR.'domains.json'));
 		if (in_array(strtolower($parts[1]), $bannedDomains)) {
-			return array(FALSE,$this->mod->Lang('email_banned'));
+			return [FALSE,$this->mod->Lang('email_banned')];
 		}
-		return array(TRUE,'');
+		return [TRUE,''];
 	}
 
 	/**
@@ -829,13 +829,13 @@ class Auth
 		$userdata = $this->getBaseUser($uid);
 
 		if (!$userdata) {
-			return array(FALSE,$this->mod->Lang('system_error').' #11');
+			return [FALSE,$this->mod->Lang('system_error').' #11'];
 		}
 
 		if (!password_verify($password, $userdata['password'])) {
-			return array(FALSE,$this->mod->Lang('password_notvalid'));
+			return [FALSE,$this->mod->Lang('password_notvalid')];
 		}
-		return array(TRUE,'');
+		return [TRUE,''];
 	}
 
 	/**
@@ -847,7 +847,7 @@ class Auth
 	{
 		$val = (int)$this->getConfig($this->context, 'password_min_length');
 		if ($val > 0 && strlen($password) < $val) {
-			return array(FALSE,$this->mod->Lang('password_short'));
+			return [FALSE,$this->mod->Lang('password_short')];
 		}
 
 		require __DIR__.DIRECTORY_SEPARATOR.zxcvbn.DIRECTORY_SEPARATOR.Zxcvbn.php;
@@ -856,10 +856,10 @@ class Auth
 
 		$val = (int)$this->getConfig($this->context, 'password_min_score');
 		if ($check['score'] < $val) {
-			return array(FALSE,$this->mod->Lang('password_weak'));
+			return [FALSE,$this->mod->Lang('password_weak')];
 		}
 
-		return array(TRUE,'');
+		return [TRUE,''];
 	}
 
 	/**
@@ -875,14 +875,14 @@ class Auth
 
 		if ($block_status == 'verify') {
 			if (0) { //TODO FACTOR
-				return array(FALSE,$this->mod->Lang('user_verify_failed'));
+				return [FALSE,$this->mod->Lang('user_verify_failed')];
 			}
 		} elseif ($block_status == 'block') {
-			return array(FALSE,$this->mod->Lang('user_blocked'));
+			return [FALSE,$this->mod->Lang('user_blocked')];
 		}
 
 		if (strlen($key) != 32) {
-			return array(FALSE,$this->mod->Lang('resetkey_invalid'));
+			return [FALSE,$this->mod->Lang('resetkey_invalid')];
 		}
 
 		$data = $this->getRequest($key, 'reset');
@@ -899,7 +899,7 @@ class Auth
 
 		if ($password !== $repeatpassword) {
 			// Passwords don't match
-			return array(FALSE,$this->mod->Lang('newpassword_nomatch'));
+			return [FALSE,$this->mod->Lang('newpassword_nomatch')];
 		}
 
 		$userdata = $this->getBaseUser($data['uid']);
@@ -907,23 +907,23 @@ class Auth
 		if (!$userdata) {
 			$this->addAttempt();
 			$this->deleteRequest($data['id']);
-			return array(FALSE,$this->mod->Lang('system_error').' #11');
+			return [FALSE,$this->mod->Lang('system_error').' #11'];
 		}
 
 		if (password_verify($password, $userdata['password'])) {
 			$this->addAttempt();
-			return array(FALSE,$this->mod->Lang('newpassword_match'));
+			return [FALSE,$this->mod->Lang('newpassword_match')];
 		}
 
 		$password = $this->getHash($password);
 		$sql = 'UPDATE '.$this->pref.'module_auth_users SET passhash=? WHERE id=?';
-		$res = $this->db->Execute($sql, array($password, $data['uid']));
+		$res = $this->db->Execute($sql, [$password, $data['uid']]);
 
 		if ($res) {
 			$this->deleteRequest($data['id']);
-			return array(TRUE,$this->mod->Lang('password_reset'));
+			return [TRUE,$this->mod->Lang('password_reset')];
 		}
-		return array(FALSE,$this->mod->Lang('system_error').' #12');
+		return [FALSE,$this->mod->Lang('system_error').' #12'];
 	}
 
 	/**
@@ -940,10 +940,10 @@ class Auth
 
 		if ($block_status == 'verify') {
 			if (0) { //TODO FACTOR
-				return array(FALSE,$this->mod->Lang('user_verify_failed'));
+				return [FALSE,$this->mod->Lang('user_verify_failed')];
 			}
 		} elseif ($block_status == 'block') {
-			return array(FALSE,$this->mod->Lang('user_blocked'));
+			return [FALSE,$this->mod->Lang('user_blocked')];
 		}
 
 		$status = $this->matchPassword($uid, $currpass);
@@ -958,26 +958,26 @@ class Auth
 		if (!$status[0]) {
 			return $status;
 		} elseif ($newpass !== $repeatnewpass) {
-			return array(FALSE,$this->mod->Lang('newpassword_nomatch'));
+			return [FALSE,$this->mod->Lang('newpassword_nomatch')];
 		}
 
 		$userdata = $this->getBaseUser($uid);
 
 		if (!$userdata) {
 			$this->addAttempt();
-			return array(FALSE,$this->mod->Lang('system_error').' #13');
+			return [FALSE,$this->mod->Lang('system_error').' #13'];
 		}
 
 		if (!password_verify($currpass, $userdata['password'])) {
 			$this->addAttempt();
-			return array(FALSE,$this->mod->Lang('password_incorrect'));
+			return [FALSE,$this->mod->Lang('password_incorrect')];
 		}
 
 		$newpass = $this->getHash($newpass);
 
 		$sql = 'UPDATE '.$this->pref.'module_auth_users SET passhash=? WHERE id=?';
-		$this->db->Execute($sql, array($newpass, $uid));
-		return array(TRUE,$this->mod->Lang('password_changed'));
+		$this->db->Execute($sql, [$newpass, $uid]);
+		return [TRUE,$this->mod->Lang('password_changed')];
 	}
 
 	/**
@@ -989,7 +989,7 @@ class Auth
 	public function comparePasswords($uid, $password_for_check)
 	{
 		$sql = 'SELECT passhash FROM '.$this->pref.'module_auth_users WHERE id=?';
-		$password = $this->db->GetOne($sql, array($uid));
+		$password = $this->db->GetOne($sql, [$uid]);
 
 		if ($password) {
 			return password_verify($password_for_check, $password);
@@ -1010,10 +1010,10 @@ class Auth
 
 		if ($block_status == 'verify') {
 			if (0) { //TODO
-				return array(FALSE,$this->mod->Lang('user_verify_failed'));
+				return [FALSE,$this->mod->Lang('user_verify_failed')];
 			}
 		} elseif ($block_status == 'block') {
-			return array(FALSE,$this->mod->Lang('user_blocked'));
+			return [FALSE,$this->mod->Lang('user_blocked')];
 		}
 
 		$status = $this->validateLogin($login);
@@ -1033,27 +1033,27 @@ class Auth
 
 		if (!$userdata) {
 			$this->addAttempt();
-			return array(FALSE,$this->mod->Lang('system_error').' #14');
+			return [FALSE,$this->mod->Lang('system_error').' #14'];
 		}
 
 		if (!password_verify($password, $userdata['password'])) {
 			$this->addAttempt();
-			return array(FALSE,$this->mod->Lang('password_incorrect'));
+			return [FALSE,$this->mod->Lang('password_incorrect')];
 		}
 
 		if ($login == $userdata['login']) {
 			$this->addAttempt();
-			return array(FALSE,$this->mod->Lang('newlogin_match'));
+			return [FALSE,$this->mod->Lang('newlogin_match')];
 		}
 
 		$sql = 'UPDATE '.$this->pref.'module_auth_users SET login=? WHERE id=?';
-		$res = $this->db->Execute($sql, array($login, $uid));
+		$res = $this->db->Execute($sql, [$login, $uid]);
 
 		if ($res == FALSE) {
-			return array(FALSE,$this->mod->Lang('system_error').' #15');
+			return [FALSE,$this->mod->Lang('system_error').' #15'];
 		}
 
-		return array(TRUE,$this->mod->Lang('login_changed'));
+		return [TRUE,$this->mod->Lang('login_changed')];
 	}
 
 	/**
@@ -1067,11 +1067,11 @@ class Auth
 		$block_status = $this->isBlocked();
 
 		if ($block_status == 'block') {
-			return array(FALSE,$this->mod->Lang('user_blocked'));
+			return [FALSE,$this->mod->Lang('user_blocked')];
 		}
 
 		if ($sendmail == NULL) {
-			return array(FALSE,$this->mod->Lang('function_disabled'));
+			return [FALSE,$this->mod->Lang('function_disabled')];
 		}
 
 		$status = $this->validateLogin($login);
@@ -1081,18 +1081,18 @@ class Auth
 		}
 
 		$sql = 'SELECT id FROM '.$this->pref.'module_auth_users WHERE login=?';
-		$id = $this->db->GetOne($sql, array($login));
+		$id = $this->db->GetOne($sql, [$login]);
 
 		if ($id == FALSE) {
 			$this->addAttempt();
-			return array(FALSE,$this->mod->Lang('login_incorrect'));
+			return [FALSE,$this->mod->Lang('login_incorrect')];
 		}
 
 		$userdata = $this->getBaseUser($id);
 
 		if ($userdata['active']) {
 			$this->addAttempt();
-			return array(FALSE,$this->mod->Lang('already_activated'));
+			return [FALSE,$this->mod->Lang('already_activated')];
 		}
 
 		$status = $this->addRequest($id, $login, 'activate', $sendmail);
@@ -1102,7 +1102,7 @@ class Auth
 			return $status;
 		}
 
-		return array(TRUE,$this->mod->Lang('activation_sent'));
+		return [TRUE,$this->mod->Lang('activation_sent')];
 	}
 
 	/**
@@ -1114,7 +1114,7 @@ class Auth
 		$ip = $this->getIp();
 		$this->deleteAttempts($ip, FALSE);
 		$sql = 'SELECT count(*) FROM '.$this->pref.'module_auth_attempts WHERE ip=?';
-		$attempts = $this->db->GetOne($sql, array($ip));
+		$attempts = $this->db->GetOne($sql, [$ip]);
 
 		$val = (int)$this->getConfig($this->context, 'attempts_before_verify');
 		if ($val > 0 && $attempts < $val) {
@@ -1142,7 +1142,7 @@ class Auth
 		$expiretime = $dt->getTimestamp();
 
 		$sql = 'INSERT INTO '.$this->pref.'module_auth_attempts (ip,expire) VALUES (?,?)';
-		$res = $this->db->Execute($sql, array($ip, $expiretime));
+		$res = $this->db->Execute($sql, [$ip, $expiretime]);
 		return ($res != FALSE);
 	}
 
@@ -1156,11 +1156,11 @@ class Auth
 	{
 		if ($all) {
 			$sql = 'DELETE FROM '.$this->pref.'module_auth_attempts WHERE ip=?';
-			$res = $this->db->Execute($sql, array($ip));
+			$res = $this->db->Execute($sql, [$ip]);
 		} else {
 			$sql = 'DELETE FROM '.$this->pref.'module_auth_attempts WHERE ip=? AND expire<?';
 			$nowtime = time();
-			$res = $this->db->Execute($sql, array($ip, $nowtime));
+			$res = $this->db->Execute($sql, [$ip, $nowtime]);
 		}
 		return ($res != FALSE);
 	}

@@ -43,12 +43,12 @@ class Auther extends CMSModule
 		$this->before20 = (version_compare($CMS_VERSION, '2.0') < 0);
 		//TODO check for openssl extension - for U2F
 
-		spl_autoload_register(array($this, 'auther_spacedload'));
+		spl_autoload_register([$this, 'auther_spacedload']);
 	}
 
 	public function __destruct()
 	{
-		spl_autoload_unregister(array($this, 'auther_spacedload'));
+		spl_autoload_unregister([$this, 'auther_spacedload']);
 		if (function_exists('parent::__destruct')) {
 			parent::__destruct();
 		}
@@ -177,9 +177,9 @@ class Auther extends CMSModule
 	public function GetDependencies()
 	{
 		if ($this->before20) {
-			return array('CMSMailer'=>'1.0');
+			return ['CMSMailer'=>'1.0'];
 		} else {
-			return array();
+			return [];
 		}
 	}
 
