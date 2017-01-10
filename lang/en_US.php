@@ -244,7 +244,7 @@ accessing the various services as described above.
 <h4>AuthLogout</h4>
 <h3>Requirements</h3>
 <ul>
-<li>PHP 5.3+</li>
+<li>PHP 5.4+</li>
 <li>PHP Openssl extension (for multi-factor authorisation)</li>
 </ul>
 <h3>Desirables</h3>
