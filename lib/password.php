@@ -1,7 +1,7 @@
 <?php
 /**
  * A Compatibility library with PHP 5.5's simplified password hashing API.
- *
+ * Requires PHP 5.3.7+
  * @author Anthony Ferrara <ircmaxell@php.net>
  * @license http://www.opensource.org/licenses/mit-license.html MIT License
  * @copyright 2012 The Authors
@@ -64,7 +64,7 @@ namespace {
 					$raw_salt_len = 16;
 					// The length required in the final serialization
 					$required_salt_len = 22;
-					$hash_format = sprintf("$2y$%02d$", $cost);
+					$hash_format = sprintf("$2y$%02d$", $cost); //blowfish 'rounds'
 					// The expected length of the final crypt() output
 					$resultLength = 60;
 					break;
