@@ -6,11 +6,12 @@
 # More info at http://dev.cmsmadesimple.org/projects/auther
 #----------------------------------------------------------------------
 
+$lang['accessdenied'] = 'Access denied. You don\'t have %s permission.';
 $lang['account_activated'] = 'Account activated';
 $lang['account_deleted'] = 'Account deleted';
 $lang['account_inactive'] = 'Account has not yet been activated';
-$lang['activatekey_expired'] = 'Activation key has expired'; //NB type-specific prefix
-$lang['activatekey_incorrect'] = 'Activation key is incorrect'; //NB type-specific prefix
+$lang['activatekey_expired'] = 'Activation key has expired'; //type-specific prefix
+$lang['activatekey_incorrect'] = 'Activation key is incorrect'; //type-specific prefix
 $lang['activation_exists'] = 'An activation email has already been sent';
 $lang['activation_sent'] = 'Activation email has been sent';
 $lang['activationkey_invalid'] = 'Activation key is invalid';
@@ -50,17 +51,17 @@ $lang['help_cookie_name'] = '';
 $lang['help_cookie_path'] = '';
 $lang['help_cookie_remember'] = '';
 $lang['help_cookie_secure'] = '';
-$lang['help_login_max_length'] = '';
-$lang['help_login_min_length'] = '';
+$lang['help_login_max_length'] = 'Blank or 0 means no limit';
+$lang['help_login_min_length'] = 'Blank or 0 means no limit';
 $lang['help_login_use_banlist'] = '';
 $lang['help_mail_charset'] = '';
 $lang['help_masterpass'] = '';
-$lang['help_password_min_length'] = '';
+//$lang['help_password_min_length'] = '';
 $lang['help_password_min_score'] = '';
 $lang['help_request_key_expiration'] = '';
-$lang['help_suppress_activation_message'] = '';
-$lang['help_suppress_email_sender'] = '';
-$lang['help_suppress_reset_message'] = '';
+//$lang['help_suppress_activation_message'] = '';
+//$lang['help_suppress_email_sender'] = '';
+//$lang['help_suppress_reset_message'] = '';
 
 $lang['id'] = 'ID';
 $lang['import'] = 'Import';
@@ -72,6 +73,8 @@ $lang['login_incorrect'] = 'Login name is not recognised';
 $lang['login_notvalid'] = 'Login name is invalid';
 $lang['login_short'] = 'Login name is too short';
 $lang['login_taken'] = 'Login name is already in use';
+
+$lang['module_nav']='Module mainpage';
 
 $lang['name'] = 'Name';
 $lang['newemail_match'] = 'New email matches previous email';
@@ -90,9 +93,12 @@ $lang['password_notvalid'] = 'Password is invalid';
 $lang['password_reset'] = 'Password reset successfully';
 $lang['password_short'] = 'Password is too short';
 $lang['password_weak'] = 'Password is too weak';
-$lang['perm_modify'] = 'Modify Authentication Data';
+$lang['perm_modify'] = 'Modify Authentication Module Properties';
+$lang['perm_modcontext'] = 'Modify Authentication Contexts';
+$lang['perm_moduser'] = 'Modify Authenticated Users';
 $lang['perm_see'] = 'Review Authentication Data';
-$lang['perm_send'] = 'Send Authentication Events';
+//$lang['perm_send'] = 'Send Authentication Events';
+$lang['perm_some'] = 'some relevant';
 $lang['postinstall'] = 'Authenticator module installed sucessfully.<br />Be sure to set relevant permissions';
 $lang['postuninstall'] = 'Authenticator module uninstalled';
 
@@ -103,8 +109,8 @@ $lang['remember_me_invalid'] = 'The remember me field is invalid';
 $lang['reset_exists'] = 'A reset request already exists';
 $lang['reset_requested'] = 'Password reset request sent to email address';
 $lang['reset_requested_emailmessage_suppressed'] = 'Password reset request has been created';
-$lang['resetkey_expired'] = 'Reset key has expired'; //NB type-specific prefix
-$lang['resetkey_incorrect'] = 'Reset key is incorrect'; //NB type-specific prefix
+$lang['resetkey_expired'] = 'Reset key has expired'; //type-specific prefix
+$lang['resetkey_incorrect'] = 'Reset key is incorrect'; //type-specific prefix
 $lang['resetkey_invalid'] = 'Reset key is invalid';
 
 $lang['submit'] = 'Submit';
@@ -129,7 +135,7 @@ $lang['title_cookie_name'] = '';
 $lang['title_cookie_path'] = '';
 $lang['title_cookie_remember'] = '';
 $lang['title_cookie_secure'] = '';
-$lang['title_import'] = '';
+$lang['title_import'] = 'Import user-data from file';
 $lang['title_login_max_length'] = '';
 $lang['title_login_min_length'] = '';
 $lang['title_login_use_banlist'] = '';
@@ -145,6 +151,7 @@ $lang['title_suppress_reset_message'] = '';
 
 $lang['user_blocked'] = 'You are currently locked out of the system';
 //$lang['user_verify_failed'] = 'Captcha text was invalid';
+$lang['upload'] = 'Upload';
 $lang['users'] = 'Users';
 
 $lang['event_Register_desc'] = <<<'EOS'
@@ -179,6 +186,26 @@ $lang['event_Logout_help'] = <<<'EOS'
 EOS;
 
 $lang['help_import'] = <<<'EOS'
+<h3>File format</h3>
+<p>The input file must be in ASCII format with data fields separated by commas.
+Any actual comma in a field should be represented by '&amp;#44;'.
+Each line in the file (except the header line, discussed below) represents one user.</p>
+<h4>Header line</h4>
+<p>The first line of the file names the fields in the file, as follows.
+The supplied names may be in any order. Those prefixed by a '#' represent compulsory values.<br />
+<code>#Login,Password,Passhash,Email,#Context,Update</code></p>
+<h4>Other lines</h4>
+<p>The data in each line must conform to the header columns, of course. Any non-compulsory field, or entire line, may be empty.<br />
+If neither a Password or (previously-exported) Passhash value is provided, a default ('changethis') will be applied.<br />
+Context may be a numeric identifier, or alias string, representing a recorded login-context.<br />
+The Update field will be treated as TRUE if it contains something other than 0 or 'no' or 'NO' (no quotes, untranslated)<br />
+<h3>Problems</h3>
+<p>The import process will fail if:<ul>
+<li>the first line field names are are not as expected</li>
+<li>a compulsory-field value is not provided</li>
+<li>a password is not sufficiently secure</li>
+<li>an email address is malformed</li>
+</ul></p>
 EOS;
 
 $lang['help_module'] = <<<'EOS'
@@ -218,6 +245,7 @@ accessing the various services as described above.
 <h3>Requirements</h3>
 <ul>
 <li>PHP 5.3+</li>
+<li>PHP Openssl extension (for multi-factor authorisation)</li>
 </ul>
 <h3>Desirables</h3>
 <h3>Support</h3>
