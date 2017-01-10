@@ -70,7 +70,55 @@ class Utils
 		}
 		return $value;
 	}
-	
+
+	/**
+	BuildNav:
+	Generate XHTML page-change links for admin action
+	@mod: reference to current module-object
+	@id: session identifier
+	@returnid:
+	@params: reference to array of request-parameters including link-related data
+	@tplvars: reference to associative array of template variables
+	Returns: nothing
+	*/
+	public function BuildNav(&$mod, $id, $returnid, &$params, &$tplvars)
+	{
+		$navstr = $mod->CreateLink($id, 'defaultadmin', $returnid,
+		'&#171; '.$mod->Lang('module_nav'));
+		//TODO
+		if (X) {
+			$navstr .= ' '.$mod->CreateLink($id, 'users', $returnid,
+			'&#171; '.$mod->Lang('users'), array(
+			'context_id'=>$params['context_id'],
+			'edit'=>$params['edit']));
+		}
+		$tplvars['inner_nav'] = $navstr;
+	}
+
+	/**
+	PrettyMessage:
+	@mod: reference to current module-object
+	@text: text to display, or if @key = TRUE, a lang-key for the text to display
+	@success: optional default TRUE whether to style message as positive
+	@key: optional default TRUE whether @text is a lang key or raw
+	*/
+	public function PrettyMessage(&$mod, $text, $success=TRUE, $key=TRUE)
+	{
+		$base = ($key) ? $mod->Lang($text) : $text;
+		if ($success)
+			return $mod->ShowMessage($base);
+		else {
+			$msg = $mod->ShowErrors($base);
+			//strip the link
+			$pos = strpos($msg,'<a href=');
+			$part1 = ($pos !== FALSE) ? substr($msg,0,$pos) : '';
+			$pos = strpos($msg,'</a>',$pos);
+			$part2 = ($pos !== FALSE) ? substr($msg,$pos+4) : $msg;
+			$msg = $part1.$part2;
+			return $msg;
+		}
+	}
+
 	/**
 	ProcessTemplate:
 	@mod: reference to current Auther module object
