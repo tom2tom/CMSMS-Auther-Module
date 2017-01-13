@@ -72,6 +72,21 @@ class Utils
 	}
 
 	/**
+	* Returns a random alphanumeric string of the specified length
+	* @length int wanted byte-count
+	* Returns: string
+	*/
+	public function RandomAlnum($length)
+	{
+		$chars = '01234567890123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+		$ret = str_repeat('0', $length);
+		for ($i = 0; $i < $length; $i++) {
+			$ret[$i] = $chars[mt_rand(0, 81)];
+		}
+		return $ret;
+	}
+
+	/**
 	BuildNav:
 	Generate XHTML page-change links for admin action
 	@mod: reference to current module-object
@@ -120,56 +135,13 @@ class Utils
 	}
 
 	/**
-	ProcessTemplate:
-	@mod: reference to current Auther module object
-	@tplname: template identifier
-	@tplvars: associative array of template variables
-	@cache: optional boolean, default TRUE
-	Returns: string, processed template
+	MergeJS:
+	@jsincs:
+	@jsfuncs:
+	@jsloads:
+	Returns: js string
 	*/
-	public static function ProcessTemplate(&$mod, $tplname, $tplvars, $cache=TRUE)
-	{
-		global $smarty;
-		if ($mod->before20) {
-			$smarty->assign($tplvars);
-			return $mod->ProcessTemplate($tplname);
-		} else {
-			if ($cache) {
-				$cache_id = md5('bkr'.$tplname.serialize(array_keys($tplvars)));
-				$lang = \CmsNlsOperations::get_current_language();
-				$compile_id = md5('bkr'.$tplname.$lang);
-				$tpl = $smarty->CreateTemplate($mod->GetFileResource($tplname), $cache_id, $compile_id, $smarty);
-				if (!$tpl->isCached()) {
-					$tpl->assign($tplvars);
-				}
-			} else {
-				$tpl = $smarty->CreateTemplate($mod->GetFileResource($tplname), NULL, NULL, $smarty, $tplvars);
-			}
-			return $tpl->fetch();
-		}
-	}
-
-	/**
-	ProcessTemplateFromData:
-	@mod: reference to current Auther module object
-	@data: string
-	@tplvars: associative array of template variables
-	No cacheing.
-	Returns: string, processed template
-	*/
-	public static function ProcessTemplateFromData(&$mod, $data, $tplvars)
-	{
-		global $smarty;
-		if ($mod->before20) {
-			$smarty->assign($tplvars);
-			return $mod->ProcessTemplateFromData($data);
-		} else {
-			$tpl = $smarty->CreateTemplate('eval:'.$data, NULL, NULL, $smarty, $tplvars);
-			return $tpl->fetch();
-		}
-	}
-
-	public function MergeJS($jsincs, $jsfuncs, $jsloads, &$merged)
+	public function MergeJS($jsincs, $jsfuncs, $jsloads)
 	{
 		if (is_array($jsincs)) {
 			$all = $jsincs;
@@ -206,6 +178,56 @@ EOS;
 </script>
 EOS;
 		}
-		$merged = implode(PHP_EOL, $all);
+		return implode(PHP_EOL, $all);
+	}
+
+	/**
+	ProcessTemplate:
+	@mod: reference to current Auther module object
+	@tplname: template identifier
+	@tplvars: associative array of template variables
+	@cache: optional boolean, default TRUE
+	Returns: string, processed template
+	*/
+	public function ProcessTemplate(&$mod, $tplname, $tplvars, $cache=TRUE)
+	{
+		global $smarty;
+		if ($mod->before20) {
+			$smarty->assign($tplvars);
+			return $mod->ProcessTemplate($tplname);
+		} else {
+			if ($cache) {
+				$cache_id = md5('bkr'.$tplname.serialize(array_keys($tplvars)));
+				$lang = \CmsNlsOperations::get_current_language();
+				$compile_id = md5('bkr'.$tplname.$lang);
+				$tpl = $smarty->CreateTemplate($mod->GetFileResource($tplname), $cache_id, $compile_id, $smarty);
+				if (!$tpl->isCached()) {
+					$tpl->assign($tplvars);
+				}
+			} else {
+				$tpl = $smarty->CreateTemplate($mod->GetFileResource($tplname), NULL, NULL, $smarty, $tplvars);
+			}
+			return $tpl->fetch();
+		}
+	}
+
+	/**
+	ProcessTemplateFromData:
+	@mod: reference to current Auther module object
+	@data: string
+	@tplvars: associative array of template variables
+	No cacheing.
+	Returns: string, processed template
+	*/
+	public function ProcessTemplateFromData(&$mod, $data, $tplvars)
+	{
+		global $smarty;
+		if ($mod->before20) {
+			$smarty->assign($tplvars);
+			return $mod->ProcessTemplateFromData($data);
+		} else {
+			$tpl = $smarty->CreateTemplate('eval:'.$data, NULL, NULL, $smarty, $tplvars);
+			return $tpl->fetch();
+		}
 	}
 }
