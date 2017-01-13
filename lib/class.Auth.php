@@ -2,10 +2,10 @@
 #----------------------------------------------------------------------
 # This file is part of CMS Made Simple module: Auther
 # Copyright (C) 2017 Tom Phane <tpgww@onepost.net>
-# Adapted for CMSMS from PHPAuth <https://www.phpclasses.org/package/9887-PHP-Register-and-login-users-stored-in-a-database.html>
+# Adapted for CMSMS from PHPAuth <https://www.phpclasses.org/package/9887-PHP-Register-and-publicid-users-stored-in-a-database.html>
 # Refer to licence and other details at the top of file Auther.module.php
 # More info at http://dev.cmsmadesimple.org/projects/auther
-# Requires PHP 5.3+
+# Requires PHP 5.4+
 #----------------------------------------------------------------------
 namespace Auther;
 
@@ -13,7 +13,6 @@ namespace Auther;
 2FA support
  captcha?
 
-CMSMailer module support
 addUser() race fix
 generic autoloading
 send events	$this->mod->SendEvent('OnX',$parms);
@@ -43,12 +42,13 @@ class Auth
 
 	/**
 	* Logs a user in
-	* @login string user identifier
+	* @publicid string user identifier
 	* @password plaintext string
+	* @nonce default = FALSE
 	* @remember boolean whether to setup session-expiry-time in self::addSession() default = FALSE
 	* Returns: array, 0=>T/F for success, 1=>message, if success then also session-parameters: 'hash','expire'
 	*/
-	public function login($login, $password, $remember=FALSE)
+	public function login($publicid, $password, $nonce=FALSE, $remember=FALSE)
 	{
 		$block_status = $this->isBlocked();
 
@@ -62,7 +62,7 @@ class Auth
 			return [FALSE,$this->mod->Lang('user_blocked')];
 		}
 
-		$uid = $this->getUID($login);
+		$uid = $this->getUID($publicid);
 
 		if (!$uid) {
 			$this->addAttempt();
@@ -109,7 +109,7 @@ class Auth
 
 	/**
 	* Creates and records a user
-	* @login string user identifier
+	* @publicid string user identifier
 	* @password plaintext string
 	* @repeatpassword plaintext string
 	* @email email address for notices to the user default = ''
@@ -117,7 +117,7 @@ class Auth
 	* @sendmail bool whether to send email-messages if possible default = NULL
 	* Returns: array 0=>T/F for success, 1=>message
 	*/
-	public function register($login, $password, $repeatpassword, $email='', $params=[], $sendmail=NULL)
+	public function register($publicid, $password, $repeatpassword, $email='', $params=[], $sendmail=NULL)
 	{
 		$block_status = $this->isBlocked();
 
@@ -129,13 +129,13 @@ class Auth
 			return [FALSE,$this->mod->Lang('user_blocked')];
 		}
 
-		// Validate login
-		$status = $this->validateLogin($login);
+		// Validate publicid
+		$status = $this->validateLogin($publicid);
 		if (!$status[0]) {
 			return $status;
 		}
 
-		if ($this->isLoginTaken($login)) {
+		if ($this->isLoginTaken($publicid)) {
 			return [FALSE,$this->mod->Lang('login_taken')];
 		}
 
@@ -157,7 +157,7 @@ class Auth
 			}
 		}
 
-		$status = $this->addUser($login, $password, $email, $sendmail, $params);
+		$status = $this->addUser($publicid, $password, $email, $sendmail, $params);
 		if (!$status[0]) {
 			return $status;
 		}
@@ -211,12 +211,12 @@ class Auth
 	}
 
 	/**
-	* Creates a reset-key for a login and sends email
-	* @login string user identifier
+	* Creates a reset-key for @publicid and sends email
+	* @publicid string user identifier
 	* @sendmail boolean whether to send confirmation email default = NULL
 	* Returns: array 0=>T/F for success, 1=>message
 	*/
-	public function requestReset($login, $sendmail=NULL)
+	public function requestReset($publicid, $sendmail=NULL)
 	{
 		$block_status = $this->isBlocked();
 
@@ -224,23 +224,23 @@ class Auth
 			return [FALSE,$this->mod->Lang('user_blocked')];
 		}
 
-		$status = $this->validateLogin($login);
+		$status = $this->validateLogin($publicid);
 
 		if (!$status[0]) {
-			//TODO minimise impact of $login brute-forcing
+			//TODO minimise impact of $publicid brute-forcing
 			return [FALSE,$this->mod->Lang('login_invalid')];
 		}
 
-		$sql = 'SELECT id FROM '.$this->pref.'module_auth_users WHERE login=?';
-		$id = $this->db->GetOne($sql, [$login]);
+		$sql = 'SELECT id FROM '.$this->pref.'module_auth_users WHERE publicid=?';
+		$id = $this->db->GetOne($sql, [$publicid]);
 
 		if (!$id) {
-			//TODO minimise impact of $login brute-forcing
+			//TODO minimise impact of $publicid brute-forcing
 			$this->addAttempt();
 			return [FALSE,$this->mod->Lang('login_incorrect')];
 		}
 
-		$status = $this->addRequest($id, $login, 'reset', $sendmail);
+		$status = $this->addRequest($id, $publicid, 'reset', $sendmail);
 
 		if (!$status[0]) {
 			$this->addAttempt();
@@ -268,12 +268,21 @@ class Auth
 	}
 
 	/**
+	* Change recorded context property
+	* @context numeric identifier or alias for login context
+	*/
+	public function setContext($context)
+	{
+		$this->context = $context;
+	}
+
+	/**
 	* Get specified property(ies) for @context
 	* @context string login-context-alias or int login-context-identifier or NULL
 	* @propkey string property-name or array of them (not validated here)
 	* Returns: property value or assoc. array of them
 	*/
-	private function getConfig($context, $propkey)
+	protected function getConfig($context, $propkey)
 	{
 		if ($context) {
 			if (is_array($propkey)) {
@@ -329,14 +338,14 @@ class Auth
 	}
 
 	/**
-	* Gets user-enumerator for the given login
-	* @login string user identifier
+	* Gets user-enumerator for @publicid
+	* @publicid string user identifier
 	* Returns: user enumerator
 	*/
-	public function getUID($login)
+	public function getUID($publicid)
 	{
-		$sql = 'SELECT id FROM '.$this->pref.'module_auth_users WHERE login=?';
-		return $this->db->GetOne($sql, [$login]);
+		$sql = 'SELECT id FROM '.$this->pref.'module_auth_users WHERE publicid=?';
+		return $this->db->GetOne($sql, [$publicid]);
 	}
 
 	/**
@@ -354,7 +363,7 @@ class Auth
 
 		$this->deleteExistingSessions($uid);
 
-		$val = $this->getConfig($this->context, 'session_key');
+		$val = $this->mod->GetPreference('session_salt');
 		$hash = sha1(uniqid($val, TRUE));
 
 		$data = ['hash'=>$hash,'cookie_hash'=>sha1($hash.$val)];
@@ -442,7 +451,7 @@ class Auth
 			return FALSE;
 		}
 
-		$val = $this->getConfig($this->context, 'session_key');
+		$val = $this->mod->GetPreference('session_salt');
 		return ($row['cookie_hash'] == sha1($hash.$val));
 	}
 
@@ -458,33 +467,33 @@ class Auth
 	}
 
 	/**
-	* Checks if a login name is already in use
-	* @login string user identifier
+	* Checks if @publicid is already in use
+	* @publicid string user identifier
 	* Returns: boolean
 	*/
-	public function isLoginTaken($login)
+	public function isLoginTaken($publicid)
 	{
-		$sql = 'SELECT id FROM '.$this->pref.'module_auth_users WHERE login=? AND context=?';
-		$num = $this->db->GetOne($sql, [$login, $this->context]);
+		$sql = 'SELECT id FROM '.$this->pref.'module_auth_users WHERE publicid=? AND context=?';
+		$num = $this->db->GetOne($sql, [$publicid, $this->context]);
 		return ($num > 0);
 	}
 
 	/**
 	* Records a new user
-	* @login string user identifier
+	* @publicid string user identifier
 	* @password plaintext string
 	* @email email address for messages, possibly empty
 	* @sendmail  reference to boolean whether to send confirmation email messages
 	* @params array of additional params default = empty
 	* Returns: array 0=>T/F for success, 1=>message
 	*/
-	protected function addUser($login, $password, $email, &$sendmail, $params=[])
+	protected function addUser($publicid, $password, $email, &$sendmail, $params=[])
 	{
 		$uid = $this->db->GenID($this->pref.'module_auth_users_seq');
-		$login = htmlentities($login); //TODO encoding management
+		$publicid = htmlentities($publicid); //TODO encoding management
 
 		if ($sendmail) { //TODO
-			$status = $this->addRequest($uid, $login, 'activate', $sendmail);
+			$status = $this->addRequest($uid, $publicid, 'activate', $sendmail);
 
 			if (!$status[0]) {
 				return $status;
@@ -500,9 +509,9 @@ class Auth
 			$email = NULL;
 		}
 
-		$sql = 'INSERT INTO '.$this->pref.'module_auth_users (id,login,passhash,email,active) VALUES (?,?,?,?,?)';
+		$sql = 'INSERT INTO '.$this->pref.'module_auth_users (id,publicid,passhash,address,active) VALUES (?,?,?,?,?)';
 
-		if (!$this->db->Execute($sql, [$uid, $login, $password, $email, $isactive])) {
+		if (!$this->db->Execute($sql, [$uid, $publicid, $password, $email, $isactive])) {
 			$this->deleteRequest($status[$TODO]);
 			return [FALSE,$this->mod->Lang('system_error').' #03'];
 		}
@@ -516,11 +525,11 @@ class Auth
 	/**
 	* Gets basic user-data for the given UID
 	* @uid int user enumerator
-	* Returns: array with members 'uid','login','password','active', or else FALSE
+	* Returns: array with members 'uid','publicid','password','active', or else FALSE
 	*/
 	protected function getBaseUser($uid)
 	{
-		$sql = 'SELECT login,passhash,active FROM '.$this->pref.'module_auth_users WHERE id=?';
+		$sql = 'SELECT publicid,passhash,active FROM '.$this->pref.'module_auth_users WHERE id=?';
 		$data = $this->db->GetRow($sql, [$uid]);
 
 		if ($data) {
@@ -533,7 +542,7 @@ class Auth
 	/**
 	* Gets all user-data except password,factor2 for the given UID
 	* @ int $uid user enumerator
-	* Returns: array with members 'uid','email','login','active', or else FALSE
+	* Returns: array with members 'uid','address','publicid','active', or else FALSE
 	*/
 	public function getUser($uid)
 	{
@@ -610,15 +619,15 @@ class Auth
 	}
 
 	/**
-	* Creates an activation entry and sends login to user
+	* Creates an activation entry and sends publicid to user
 	* @uid int user enumerator
-	* @login string user identifier
+	* @publicid string user identifier
 	* @type string 'reset' or 'activate'
 	* @sendmail boolean reference whether to send confirmation email
 	* @fake boolean whether to treat this as a bogus notice default = FALSE
 	* Returns: array 0=>T/F for success, 1=>message
 	*/
-	protected function addRequest($uid, $login, $type, &$sendmail, $fake=FALSE)
+	protected function addRequest($uid, $publicid, $type, &$sendmail, $fake=FALSE)
 	{
 		if (!($type == 'activate' || $type == 'reset')) {
 			return [FALSE,$this->mod->Lang('system_error').' #08'];
@@ -628,14 +637,14 @@ class Auth
 		if ($sendmail === NULL) {
 			$sendmail = TRUE;
 			if ($type == 'reset') {
-				$val = $this->getConfig($this->context, 'suppress_reset_message');
-				if ($val) {
+				$val = $this->getConfig($this->context, 'send_reset_message');
+				if (!$val) {
 					$sendmail = FALSE;
 					return [TRUE,''];
 				}
 			} elseif ($type == 'activate') {
-				$val = $this->getConfig($this->context, 'suppress_activation_message');
-				if ($val) {
+				$val = $this->getConfig($this->context, 'send_activation_message');
+				if (!$val) {
 					$sendmail = FALSE;
 					return [TRUE,''];
 				}
@@ -694,18 +703,18 @@ class Auth
 			$mlr = new \cms_mailer();
 		}
 
-		$site_name = $this->getConfig($this->context, 'context_sender');
+		$site_name = $this->getConfig($this->context, 'context_sender'); //TODO this gets a personal name
 
 		$mlr->reset();
 		if (1) { //TODO default sender isn't wanted
-			$site_from = $this->getConfig($this->context, 'context_email');
+			$site_from = $this->getConfig($this->context, 'context_address');
 			$mlr->SetFrom($site_from, $site_name);
 		}
 		$mlr->AddAddress($email, '');
 
 		$mlr->IsHTML(TRUE);
 
-		//construct frontend-url (so no admin login is needed)
+		//construct frontend-url (so no admin publicid is needed)
 		$u = $this->mod->create_url('cntnt01', 'validate', '', [
 				'cauthc'=>$key,
 				'rauthr'=>$request_id]);
@@ -769,26 +778,26 @@ class Auth
 	}
 
 	/**
-	* Verifies that @login is a valid login indentifier
-	* @login string user identifier
+	* Verifies that @publicid is a valid publicid indentifier
+	* @publicid string user identifier
 	* Returns: array 0=>T/F for success, 1=>message
 	*/
-	protected function validateLogin($login)
+	protected function validateLogin($publicid)
 	{
 		$val = (int)$this->getConfig($this->context, 'login_min_length');
-		if ($val > 0 && strlen($login) < $val) {
+		if ($val > 0 && strlen($publicid) < $val) {
 			return [FALSE,$this->mod->Lang('login_short')];
 		}
 
 		$val = (int)$this->getConfig($this->context, 'login_max_length');
-		if ($val > 0 && strlen($login) > $val) {
+		if ($val > 0 && strlen($publicid) > $val) {
 			return [FALSE,$this->mod->Lang('login_long')];
 		}
 
-		if (preg_match(self::EMAILPATN, $login)) {
+		if (preg_match(self::EMAILPATN, $publicid)) {
 			$val = $this->getConfig($this->context, 'login_use_banlist');
 			if ($val) {
-				$parts = explode('@', $login);
+				$parts = explode('@', $publicid);
 				$bannedDomains = json_decode(file_get_contents(__DIR__.DIRECTORY_SEPARATOR.'domains.json'));
 				if (in_array(strtolower($parts[1]), $bannedDomain)) {
 					return [FALSE,$this->mod->Lang('email_banned')];
@@ -804,7 +813,7 @@ class Auth
 	* @email string
 	* Returns: array 0=>T/F for success, 1=>message
 	*/
-	protected function validateEmail($email)
+	public function validateEmail($email)
 	{
 		if (!$email || !preg_match(self::EMAILPATN, $email)) {
 			return [FALSE,$this->mod->Lang('email_invalid')];
@@ -843,7 +852,7 @@ class Auth
 	* @password plaintext string
 	* Returns: array 0=>T/F for success, 1=>message
 	*/
-	protected function validatePassword($password)
+	public function validatePassword($password)
 	{
 		$val = (int)$this->getConfig($this->context, 'password_min_length');
 		if ($val > 0 && strlen($password) < $val) {
@@ -855,7 +864,7 @@ class Auth
 		$check = $zxcvbn->passwordStrength($password);
 
 		$val = (int)$this->getConfig($this->context, 'password_min_score');
-		if ($check['score'] < $val) {
+		if ($check['score'] + 1 < $val) { //returned value 0..4, public uses 1..5
 			return [FALSE,$this->mod->Lang('password_weak')];
 		}
 
@@ -998,13 +1007,13 @@ class Auth
 	}
 
 	/**
-	* Changes a user's login name
+	* Changes a user's publicid name
 	* @uid int user enumerator
-	* @login string user identifier
+	* @publicid string user identifier
 	* @password plaintext string
 	* Returns: array 0=>T/F, 1=>message
 	*/
-	public function changelogin($uid, $login, $password)
+	public function changelogin($uid, $publicid, $password)
 	{
 		$block_status = $this->isBlocked();
 
@@ -1016,7 +1025,7 @@ class Auth
 			return [FALSE,$this->mod->Lang('user_blocked')];
 		}
 
-		$status = $this->validateLogin($login);
+		$status = $this->validateLogin($publicid);
 
 		if (!$status[0]) {
 			return $status;
@@ -1041,13 +1050,13 @@ class Auth
 			return [FALSE,$this->mod->Lang('password_incorrect')];
 		}
 
-		if ($login == $userdata['login']) {
+		if ($publicid == $userdata['publicid']) {
 			$this->addAttempt();
 			return [FALSE,$this->mod->Lang('newlogin_match')];
 		}
 
-		$sql = 'UPDATE '.$this->pref.'module_auth_users SET login=? WHERE id=?';
-		$res = $this->db->Execute($sql, [$login, $uid]);
+		$sql = 'UPDATE '.$this->pref.'module_auth_users SET publicid=? WHERE id=?';
+		$res = $this->db->Execute($sql, [$publicid, $uid]);
 
 		if ($res == FALSE) {
 			return [FALSE,$this->mod->Lang('system_error').' #15'];
@@ -1057,12 +1066,12 @@ class Auth
 	}
 
 	/**
-	* Recreates activation email for @login and sends that email
-	* @login string user identifier
+	* Recreates activation email for @publicid and sends that email
+	* @publicid string user identifier
 	* @sendmail default = NULL  whether to send email notice
 	* Returns: array 0=>T/F, 1=>message
 	*/
-	public function resendActivation($login, $sendmail=NULL)
+	public function resendActivation($publicid, $sendmail=NULL)
 	{
 		$block_status = $this->isBlocked();
 
@@ -1074,14 +1083,14 @@ class Auth
 			return [FALSE,$this->mod->Lang('function_disabled')];
 		}
 
-		$status = $this->validateLogin($login);
+		$status = $this->validateLogin($publicid);
 
 		if (!$status[0]) {
 			return $status;
 		}
 
-		$sql = 'SELECT id FROM '.$this->pref.'module_auth_users WHERE login=?';
-		$id = $this->db->GetOne($sql, [$login]);
+		$sql = 'SELECT id FROM '.$this->pref.'module_auth_users WHERE publicid=?';
+		$id = $this->db->GetOne($sql, [$publicid]);
 
 		if ($id == FALSE) {
 			$this->addAttempt();
@@ -1095,7 +1104,7 @@ class Auth
 			return [FALSE,$this->mod->Lang('already_activated')];
 		}
 
-		$status = $this->addRequest($id, $login, 'activate', $sendmail);
+		$status = $this->addRequest($id, $publicid, 'activate', $sendmail);
 
 		if (!$status[0]) {
 			$this->addAttempt();
@@ -1113,16 +1122,16 @@ class Auth
 	{
 		$ip = $this->getIp();
 		$this->deleteAttempts($ip, FALSE);
-		$sql = 'SELECT count(*) FROM '.$this->pref.'module_auth_attempts WHERE ip=?';
-		$attempts = $this->db->GetOne($sql, [$ip]);
+		$sql = 'SELECT count(1) AS tries FROM '.$this->pref.'module_auth_attempts WHERE ip=?';
+		$tries = $this->db->GetOne($sql, [$ip]);
 
 		$val = (int)$this->getConfig($this->context, 'attempts_before_verify');
-		if ($val > 0 && $attempts < $val) {
+		if ($val > 0 && $tries < $val) {
 			return 'allow';
 		}
 
 		$val = (int)$this->getConfig($this->context, 'attempts_before_ban');
-		if ($val > 0 && $attempts < $val) {
+		if ($val > 0 && $tries < $val) {
 			return 'verify';
 		}
 
@@ -1137,7 +1146,7 @@ class Auth
 	{
 		$ip = $this->getIp();
 		$dt = new \DateTime('@'.time(), NULL);
-		$val = $this->getConfig($this->context, 'attack_mitigation_time');
+		$val = $this->getConfig($this->context, 'attack_mitigation_span');
 		$dt->modify('+'.$val);
 		$expiretime = $dt->getTimestamp();
 
@@ -1172,11 +1181,10 @@ class Auth
 	*/
 	public function getRandomKey($length=20)
 	{
-		$chars = 'A1B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q7R8S9T0U1V2W3X4Y5Z6a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6';
-		$key = '';
-
+		$chars = '01234567890123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+		$key = str_repeat('0', $length);
 		for ($i = 0; $i < $length; $i++) {
-			$key .= $chars[mt_rand(0, 103)];
+			$key[$i] = $chars[mt_rand(0, 81)];
 		}
 		return $key;
 	}
@@ -1200,6 +1208,9 @@ class Auth
 	*/
 	public function isLogged()
 	{
+		//TODO review http://php.net/manual/en/features.cookies.php &
+		// http://php.net/manual/en/function.setcookie.php &
+		// http://www.faqs.org/rfcs/rfc6265.html
 		$val = $this->getConfig($this->context, 'cookie_name');
 		return (isset($_COOKIE[$val]) && $this->checkSession($_COOKIE[$val]));
 	}
@@ -1212,5 +1223,33 @@ class Auth
 	{
 		$val = $this->getConfig($this->context, 'cookie_name');
 		return $_COOKIE[$val];
+	}
+
+	/**
+	Gets a captcha-suitable string and URL of a correspoding png-image file
+	Requires PHP extension GD 1 or 2
+	Returns: 2-member array
+	 'code' = @length-byte string
+   'image_src' = URL of cached png image displaying 'code' string
+	*/
+	public function getCaptcha($length = 8)
+	{
+		$config = \cmsms()->GetConfig();
+		$tmpdir = $config['root_path'].DIRECTORY_SEPARATOR.'tmp'.DIRECTORY_SEPARATOR.'cache';
+
+		$funcs = new Auther\Captcha\SimpleCaptcha();
+		$data = $funcs->generate([
+			'background' => 'plain.png',
+			'font' => 'Roboto-Regular.ttf',
+			'size' => 20,
+			'color' => '#000',
+			'length' => $length,
+			'path' => $tmpdir,
+		]);
+
+		$rooturl = (empty($_SERVER['HTTPS'])) ? $config['root_url'] : $config['ssl_url'];
+		$url = str_replace(array($config['root_path'],DIRECTORY_SEPARATOR), array($rooturl,'/'), $tmpdir);
+		$url .= '/'.$data['file'];
+		return ['code' => $data['code'], 'image_src' => $url];
 	}
 }
