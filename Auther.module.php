@@ -211,11 +211,11 @@ class Auther extends CMSModule
 		$this->RestrictUnknownParams();
 		$this->SetParameterType('showtemplate',CLEAN_STRING);
 		$rid = cmsms()->GetContentOperations()->GetDefaultPageID();
-		$this->RegisterRoute('/[Cc]ron\/([a-zA-Z0-9_-]+)(\/.*?)?$/',
-			array('action' => 'default',
+		$this->RegisterRoute('/[Aa]uther\/([a-zA-Z0-9_-]+)(\/.*?)?$/',
+			['action' => 'TODO',
 				'showtemplate' => 'FALSE', //NOT FALSE or any of its equivalents
 				'returnid' => $rid
-			));
+			]);
 	}
 */
 	public function GetEventDescription($eventname)
@@ -243,10 +243,10 @@ class Auther extends CMSModule
 	*/
 /*	public function get_tasks()
 	{
-		return array(
+		return [
 			new Auther\Cleanold_task(),
 //			new Auther\Clearcache_task()
-		);
+		];
 	}
 */
 	/**
