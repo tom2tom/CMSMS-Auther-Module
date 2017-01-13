@@ -11,30 +11,31 @@ $taboptarray = ['mysql' => 'ENGINE MyISAM CHARACTER SET utf8 COLLATE utf8_genera
 $dict = NewDataDictionary($db);
 $pref = \cms_db_prefix();
 
-//cookie_path','/');
-//mail_charset C(16) DEFAULT 'UTF-8',
+//cookie_path C(48), // DEFAULT \'/\'
+//message_charset C(16) DEFAULT 'UTF-8',
+//cookie_secure I(1) DEFAULT 0,
+//cookie_http I(1) DEFAULT 0,
+//cookie_domain C(48),
 $flds = '
 id I KEY,
 name C(48) NOTNULL,
 alias C(16) NOTNULL,
-attack_mitigation_time C(16) DEFAULT \'30 minutes\',
+attack_mitigation_span C(16) DEFAULT \'30 minutes\',
 attempts_before_ban I(1) DEFAULT 10,
 attempts_before_verify I(1) DEFAULT 5,
-bcrypt_cost I(2) DEFAULT 10,
-cookie_domain C(32),
+bcrypt_cost I(1) DEFAULT 16,
 cookie_forget C(16) DEFAULT \'30 minutes\',
-cookie_http I(1) DEFAULT 0,
 cookie_name C(32) DEFAULT \'CMSMSauthID\',
-cookie_remember C(16) DEFAULT \'1 month\',
-cookie_secure I(1) DEFAULT 0,
+cookie_remember C(16) DEFAULT \'1 week\',
 login_max_length I(1) DEFAULT 48,
 login_min_length I(1) DEFAULT 5,
 login_use_banlist I(1) DEFAULT 1,
 password_min_length I(1) DEFAULT 8,
-password_min_score I(1) DEFAULT 3,
+password_min_score I(1) DEFAULT 4,
 request_key_expiration C(16) DEFAULT \'10 minutes\',
-suppress_activation_message I(1) DEFAULT 0,
-suppress_reset_message I(1) DEFAULT 0
+security_level I(1) DEFAULT '.Auther::LOSEC.'.
+send_activation_message I(1) DEFAULT 1,
+send_reset_message I(1) DEFAULT 1
 ';
 $tblname = $pref.'module_auth_contexts';
 $sql = $dict->CreateTableSQL($tblname, $flds, $taboptarray);
@@ -68,7 +69,7 @@ $flds = '
 id I AUTO KEY,
 uid I NOTNULL,
 hash C(40) NOTNULL,
-factor2 C(60),
+challenge C(60),
 expire I,
 ip C(39) NOTNULL,
 agent C(200) NOTNULL,
@@ -80,10 +81,11 @@ $dict->ExecuteSQLArray($sql);
 
 $flds = '
 id I KEY,
-login C(48),
+publicid C(48),
 passhash C(60),
-email C(96),
+address C(96),
 context I,
+addwhen I,
 lastuse I,
 active I(1) DEFAULT 1
 ';
@@ -111,48 +113,37 @@ $db->CreateSequence($pref.'module_auth_userprops_seq');
 
 $this->SetPreference('masterpass', 'OWFmNT1dGbU5FbnRlciBhdCB5b3VyIG93biByaXNrISBEYW5nZXJvdXMgZGF0YSE=');
 
-$this->SetPreference('attack_mitigation_time', '30 minutes');
+$this->SetPreference('attack_mitigation_span', '30 minutes');
 $this->SetPreference('attempts_before_ban', 10);
 $this->SetPreference('attempts_before_verify', 5);
-$this->SetPreference('bcrypt_cost', 10);
-$this->SetPreference('context_sender', 'PHPAuth'); //for email messages
-$this->SetPreference('context_email', 'no-reply@phpauth.cuonic.com'); //ditto
-$this->SetPreference('cookie_domain', NULL);
+$this->SetPreference('bcrypt_cost', 16);
+$this->SetPreference('context_sender', NULL); //for email messages TODO site-name
+$this->SetPreference('context_address', NULL); //ditto
+
+//$this->SetPreference('cookie_domain', NULL);
 $this->SetPreference('cookie_forget', '30 minutes');
-$this->SetPreference('cookie_http', 0);
+//$this->SetPreference('cookie_http', 0);
 $this->SetPreference('cookie_name', 'CMSMSauthID');
-//$this->SetPreference('cookie_path','/');
-$this->SetPreference('cookie_remember', '1 month');
-$this->SetPreference('cookie_secure', 0);
+//$this->SetPreference('cookie_path', NULL);
+$this->SetPreference('cookie_remember', '1 week');
+//$this->SetPreference('cookie_secure', 0);
 
 $this->SetPreference('login_max_length', 48);
 $this->SetPreference('login_min_length', 5);
 $this->SetPreference('login_use_banlist', 1);
 
-$this->SetPreference('mail_charset', 'UTF-8');
+$this->SetPreference('message_charset', 'UTF-8');
+//$this->SetPreference('password_max_length', 72); //for CRYPT_BLOWFISH
 $this->SetPreference('password_min_length', 8);
-$this->SetPreference('password_min_score', 3);
+$this->SetPreference('password_min_score', 4);
 $this->SetPreference('request_key_expiration', '10 minutes');
 
-$this->SetPreference('session_key', 'kd8s2!7HVHG7777ghZfghuior.)\!/jdU');
-/*
-$this->SetPreference('site_activation_page','activate');
-$this->SetPreference('site_email', 'no-reply@phpauth.cuonic.com');
-$this->SetPreference('site_name','PHPAuth');
-$this->SetPreference('site_password_reset_page','reset');
-$this->SetPreference('site_timezone','Europe/Paris');
-$this->SetPreference('site_url', 'https://github.com/PHPAuth/PHPAuth');
-
-$this->SetPreference('smtp',0);
-$this->SetPreference('smtp_auth',1);
-$this->SetPreference('smtp_host','smtp.example.com');
-$this->SetPreference('smtp_password','password');
-$this->SetPreference('smtp_port',25);
-$this->SetPreference('smtp_security',NULL);
-$this->SetPreference('smtp_username','email@example.com');
-*/
-$this->SetPreference('suppress_activation_message', 0);
-$this->SetPreference('suppress_reset_message', 0);
+$this->SetPreference('security_level', Auther::LOSEC);
+$this->SetPreference('send_activation_message', 1);
+$this->SetPreference('send_reset_message', 1);
+$t = 'kd8s2!7HVHG7777ghZfghuior.)\!/jU'; //32-bytes
+$this->SetPreference('session_salt', str_shuffle($t));
+$this->SetPreference('use_context_sender', 0);
 
 $this->CreateEvent('AuthRegister');
 $this->CreateEvent('AuthDeregister');
