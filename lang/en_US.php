@@ -23,6 +23,7 @@ $lang['already_activated'] = 'Account is already activated';
 $lang['authority_failed'] = 'Incorrect login and/or password';
 
 $lang['cancel'] = 'Cancel';
+$lang['compulsory_items'] = 'Properties marked with a <strong>*</strong> are compulsory.' ;
 
 $lang['email_activation_altbody'] = 'Hello,'."\n\n".'To be able to log in you first need to activate your account by visiting the following URL:'."\n".' %s'."\n\n".'If you did not sign up on %s recently then this message was sent in error, please ignore it.';
 $lang['email_activation_body'] = 'Hello,<br /><br />To be able to log in you first need to activate your account by clicking on the following <a href="%s">link</a>.<br /><br />If you did not sign up on %s recently then this message was sent in error, please ignore it.';
@@ -37,31 +38,31 @@ $lang['email_reset_subject'] = '%s - Password reset request';
 
 $lang['friendlyname'] = 'Authenticator';
 $lang['function_disabled'] = 'This function has been disabled';
-
-$lang['help_attack_mitigation_time'] = '';
-$lang['help_attempts_before_ban'] = '';
-$lang['help_attempts_before_verify'] = '';
-$lang['help_bcrypt_cost'] = '';
-$lang['help_context_email'] = '';
-$lang['help_context_sender'] = '';
-$lang['help_cookie_domain'] = '';
-$lang['help_cookie_forget'] = '';
-$lang['help_cookie_http'] = '';
-$lang['help_cookie_name'] = '';
-$lang['help_cookie_path'] = '';
-$lang['help_cookie_remember'] = '';
-$lang['help_cookie_secure'] = '';
+$lang['help_attack_mitigation_span'] = 'Length of time that login-attempt data are retained, something like \'10 minutes\' or \'1 day\' (unquoted, in english that <a href="http://php.net/manual/en/datetime.formats.relative.php">PHP<a> understands)';
+$lang['help_attempts_before_ban'] = 'After this many failed attemts, a user is locked-out for the specified \'attack-protection interval\'. 0 disables this protection.';
+$lang['help_attempts_before_verify'] = 'After this many failed attemts, a user is required to provide extra authentication. 0 disables this protection.';
+$lang['help_bcrypt_cost'] = 'Number 4..31 used as the number of \'rounds\' for blowfish hashing';
+$lang['help_context_address'] = 'Blank means mailer-default value will be used';
+$lang['help_context_sender'] = 'Set to something supported by the mailer module, or else message transmission may be blocked. Blank means mailer-default value will be used';
+//$lang['help_cookie_domain'] = ''; see http://php.net/manual/en/function.setcookie.php
+$lang['help_cookie_forget'] = 'Length of time that a login is tracked, if [TODO], something like \'2 hours\' or \'1 week\' (unquoted, in english that <a href="http://php.net/manual/en/datetime.formats.relative.php">PHP<a> understands)';
+//$lang['help_cookie_http'] = '';
+//$lang['help_cookie_name'] = '';
+//$lang['help_cookie_path'] = '';
+$lang['help_cookie_remember'] = 'Length of time that a user login persists, something like \'2 hours\' or \'1 week\' (unquoted, in english that <a href="http://php.net/manual/en/datetime.formats.relative.php">PHP<a> understands)';
+//$lang['help_cookie_secure'] = '';
 $lang['help_login_max_length'] = 'Blank or 0 means no limit';
 $lang['help_login_min_length'] = 'Blank or 0 means no limit';
-$lang['help_login_use_banlist'] = '';
-$lang['help_mail_charset'] = '';
-$lang['help_masterpass'] = '';
+//$lang['help_login_use_banlist'] = '';
+//$lang['help_message_charset'] = '';
+//$lang['help_masterpass'] = '';
 //$lang['help_password_min_length'] = '';
-$lang['help_password_min_score'] = '';
-$lang['help_request_key_expiration'] = '';
-//$lang['help_suppress_activation_message'] = '';
-//$lang['help_suppress_email_sender'] = '';
-//$lang['help_suppress_reset_message'] = '';
+$lang['help_password_min_score'] = 'Number 1..5 broadly indicating the difficulty of cracking a password (1 is easiest)';
+$lang['help_request_key_expiration'] = 'Length of time before sent confirmation-requests expire, something like \'10 minutes\' or \'1 day\' (unquoted, in english that <a href="http://php.net/manual/en/datetime.formats.relative.php">PHP<a> understands)';
+$lang['help_security_level'] = 'Number 1..4 which determines the process for, and extent of security-checking during, logins (1 is lowest)';
+//$lang['help_send_activation_message'] = '';
+//$lang['help_send_reset_message'] = '';
+//$lang['help_use_context_sender'] = '';
 
 $lang['id'] = 'ID';
 $lang['import'] = 'Import';
@@ -121,38 +122,41 @@ $lang['tip_delsuser'] = 'delete selected user(s)';
 $lang['tip_importuser'] = 'import user(s) from file';
 $lang['tip_users'] = 'review users for this context';
 
-$lang['title_attack_mitigation_time'] = '';
-$lang['title_attempts_before_ban'] = '';
-$lang['title_attempts_before_verify'] = '';
-$lang['title_bcrypt_cost'] = '';
-$lang['title_context_email'] = '';
-$lang['title_context_sender'] = '';
+$lang['title_attack_mitigation_span'] = 'Attack-protection interval';
+$lang['title_attempts_before_ban'] = 'Login atttemts before block';
+$lang['title_attempts_before_verify'] = 'Login atttemts before check';
+$lang['title_bcrypt_cost'] = 'Number of password hashing \'rounds\'';
+$lang['title_context_address'] = 'Sent email-notices from address';
+$lang['title_context_sender'] = 'Sent email-notices from name';
 $lang['title_contexts'] = 'Contexts';
-$lang['title_cookie_domain'] = '';
-$lang['title_cookie_forget'] = '';
-$lang['title_cookie_http'] = '';
-$lang['title_cookie_name'] = '';
-$lang['title_cookie_path'] = '';
-$lang['title_cookie_remember'] = '';
-$lang['title_cookie_secure'] = '';
+//$lang['title_cookie_domain'] = '';
+$lang['title_cookie_forget'] = 'Login/session tracking-data retention';
+//$lang['title_cookie_http'] = '';
+$lang['title_cookie_name'] = 'Name of http cookie which tracks logins';
+//$lang['title_cookie_path'] = '';
+$lang['title_cookie_remember'] = 'Login/session duration';
+//$lang['title_cookie_secure'] = '';
 $lang['title_import'] = 'Import user-data from file';
-$lang['title_login_max_length'] = '';
-$lang['title_login_min_length'] = '';
-$lang['title_login_use_banlist'] = '';
-$lang['title_mail_charset'] = '';
-$lang['title_masterpass'] = '';
-$lang['title_password_min_length'] = '';
-$lang['title_password_min_score'] = '';
-$lang['title_request_key_expiration'] = '';
+$lang['title_login_max_length'] = 'User-identifier maximum length';
+$lang['title_login_min_length'] = 'User-identifier minimum length';
+$lang['title_login_use_banlist'] = 'Prevent blacklisted email addresses';
+$lang['title_message_charset'] = 'Character encoding in email messages';
+$lang['title_masterpass']='Pass-phrase for securing sensitive data';
+$lang['title_password_min_length'] = 'Minimum password-length';
+$lang['title_password_min_score'] = 'Password-complexity minimum score';
+$lang['title_request_key_expiration'] = 'Request-key lifetime';
+$lang['title_security_level'] = 'Security level';
 $lang['title_settings'] = 'Settings';
-$lang['title_suppress_activation_message'] = '';
-$lang['title_suppress_email_sender'] = '';
-$lang['title_suppress_reset_message'] = '';
+$lang['title_send_activation_message'] = 'Send account-activation emails';
+$lang['title_send_reset_message'] = 'Send password-reset emails';
+$lang['title_use_context_sender'] = 'Use specific sender-name in sent emails';
 
 $lang['user_blocked'] = 'You are currently locked out of the system';
 //$lang['user_verify_failed'] = 'Captcha text was invalid';
 $lang['upload'] = 'Upload';
 $lang['users'] = 'Users';
+
+$lang['wantjs'] = 'This process would be easier if javascript were enabled in your browser.';
 
 $lang['event_Register_desc'] = <<<'EOS'
 Event generated when a user registers successfully
