@@ -467,7 +467,8 @@ class Auth
 	}
 
 	/**
-	* Checks if @publicid is already in use
+	* Method for preventing duplicates and user-recognition checks
+	* Checks whether @publicid is recorded for current context
 	* @publicid string user identifier
 	* Returns: boolean
 	*/
@@ -559,6 +560,32 @@ class Auth
 	}
 
 	/**
+	* Gets publicly-accessible user-data for @publicid
+	* @publicid string user identifier
+	* @active optional boolean whether the user is required to be active default = TRUE
+	* Returns: array with members 'publicid','address','addwhen','lastuse', or else FALSE
+	*/
+	public function getPublicUser($publicid, $ative=TRUE)
+	{
+		$sql = 'SELECT address,addwhen,lastuse FROM '.$this->pref.'module_auth_users WHERE comtext=? AND publicid=?';
+		if ($active) {
+			$sql .= ' AND active>0';
+		}
+		$data = $this->db->GetRow($sql, [$this->context,$publicid]);
+
+		if ($data) {
+			$dt = new \DateTime('@0',NULL);
+			$dt->setTimestamp($data['addwhen']);
+			$data['addwhen'] = $dt->format('Y-m-d H:i:s');
+			$dt->setTimestamp($data['lastuse']);
+			$data['lastuse'] = $dt->format('Y-m-d H:i:s');
+			$data['publicid'] = $publicid;
+			return $data;
+		}
+		return FALSE;
+	}
+
+	/**
 	* Deletes a user's data (aka account)
 	* @uid int user enumerator
 	* @password string plaintext
@@ -616,6 +643,16 @@ class Auth
 		$this->mod->SendEvent('OnDeregister', $parms);
 
 		return [TRUE,$this->mod->Lang('account_deleted')];
+	}
+
+	/**
+	* Gets data for all users for current context
+	* Returns: associative array each of which is uid=>publicid, or FALSE
+	*/
+	public function getActiveUsers()
+	{
+		$sql = 'SELECT id,publicid FROM '.$this->pref.'module_auth_users WHERE context=? AND active>0 ORDER BY addwhen';
+		return $this->db->GetAssoc($sql, [$this->context]);
 	}
 
 	/**
