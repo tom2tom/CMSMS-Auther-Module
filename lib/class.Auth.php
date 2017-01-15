@@ -680,7 +680,7 @@ class Auth
 					return [TRUE,''];
 				}
 			} elseif ($type == 'activate') {
-				$val = $this->getConfig($this->context, 'send_activation_message');
+				$val = $this->getConfig($this->context, 'send_activate_message');
 				if (!$val) {
 					$sendmail = FALSE;
 					return [TRUE,''];
