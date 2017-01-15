@@ -832,7 +832,7 @@ class Auth
 		}
 
 		if (preg_match(self::EMAILPATN, $publicid)) {
-			$val = $this->getConfig($this->context, 'login_use_banlist');
+			$val = $this->getConfig($this->context, 'email_banlist');
 			if ($val) {
 				$parts = explode('@', $publicid);
 				$bannedDomains = json_decode(file_get_contents(__DIR__.DIRECTORY_SEPARATOR.'domains.json'));
@@ -855,7 +855,7 @@ class Auth
 		if (!$email || !preg_match(self::EMAILPATN, $email)) {
 			return [FALSE,$this->mod->Lang('email_invalid')];
 		}
-
+		//always check for ban
 		$parts = explode('@', $email);
 		$bannedDomains = json_decode(file_get_contents(__DIR__.DIRECTORY_SEPARATOR.'domains.json'));
 		if (in_array(strtolower($parts[1]), $bannedDomains)) {
