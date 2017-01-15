@@ -38,6 +38,7 @@ $lang['email_reset_subject'] = '%s - Password reset request';
 
 $lang['friendlyname'] = 'Authenticator';
 $lang['function_disabled'] = 'This function has been disabled';
+//$lang['help_address_required'] = '';
 $lang['help_attack_mitigation_span'] = 'Length of time that login-attempt data are retained, something like \'10 minutes\' or \'1 day\' (unquoted, in english that <a href="http://php.net/manual/en/datetime.formats.relative.php">PHP<a> understands)';
 $lang['help_attempts_before_ban'] = 'After this many failed attemts, a user is locked-out for the specified \'attack-protection interval\'. 0 disables this protection.';
 $lang['help_attempts_before_verify'] = 'After this many failed attemts, a user is required to provide extra authentication. 0 disables this protection.';
@@ -51,16 +52,17 @@ $lang['help_cookie_forget'] = 'Length of time that a login is tracked, if [TODO]
 //$lang['help_cookie_path'] = '';
 $lang['help_cookie_remember'] = 'Length of time that a user login persists, something like \'2 hours\' or \'1 week\' (unquoted, in english that <a href="http://php.net/manual/en/datetime.formats.relative.php">PHP<a> understands)';
 //$lang['help_cookie_secure'] = '';
+//$lang['help_email_required'] = '';
+//$lang['help_email_banlist'] = '';
 $lang['help_login_max_length'] = 'Blank or 0 means no limit';
 $lang['help_login_min_length'] = 'Blank or 0 means no limit';
-//$lang['help_login_use_banlist'] = '';
 //$lang['help_message_charset'] = '';
 //$lang['help_masterpass'] = '';
 //$lang['help_password_min_length'] = '';
 $lang['help_password_min_score'] = 'Number 1..5 broadly indicating the difficulty of cracking a password (1 is easiest)';
 $lang['help_request_key_expiration'] = 'Length of time before sent confirmation-requests expire, something like \'10 minutes\' or \'1 day\' (unquoted, in english that <a href="http://php.net/manual/en/datetime.formats.relative.php">PHP<a> understands)';
 $lang['help_security_level'] = 'Number 1..4 which determines the process for, and extent of security-checking during, logins (1 is lowest)';
-//$lang['help_send_activation_message'] = '';
+//$lang['help_send_activate_message'] = '';
 //$lang['help_send_reset_message'] = '';
 //$lang['help_use_context_sender'] = '';
 
@@ -122,6 +124,7 @@ $lang['tip_delsuser'] = 'delete selected user(s)';
 $lang['tip_importuser'] = 'import user(s) from file';
 $lang['tip_users'] = 'review users for this context';
 
+$lang['title_address_required'] = 'Each user must provide her/his contact-address';
 $lang['title_attack_mitigation_span'] = 'Attack-protection interval';
 $lang['title_attempts_before_ban'] = 'Login atttemts before block';
 $lang['title_attempts_before_verify'] = 'Login atttemts before check';
@@ -136,10 +139,11 @@ $lang['title_cookie_name'] = 'Name of http cookie which tracks logins';
 //$lang['title_cookie_path'] = '';
 $lang['title_cookie_remember'] = 'Login/session duration';
 //$lang['title_cookie_secure'] = '';
+$lang['title_email_required'] = 'The contact must be an email-address';
+$lang['title_email_banlist'] = 'Prevent blacklisted email addresses';
 $lang['title_import'] = 'Import user-data from file';
 $lang['title_login_max_length'] = 'User-identifier maximum length';
 $lang['title_login_min_length'] = 'User-identifier minimum length';
-$lang['title_login_use_banlist'] = 'Prevent blacklisted email addresses';
 $lang['title_message_charset'] = 'Character encoding in email messages';
 $lang['title_masterpass']='Pass-phrase for securing sensitive data';
 $lang['title_password_min_length'] = 'Minimum password-length';
@@ -147,7 +151,7 @@ $lang['title_password_min_score'] = 'Password-complexity minimum score';
 $lang['title_request_key_expiration'] = 'Request-key lifetime';
 $lang['title_security_level'] = 'Security level';
 $lang['title_settings'] = 'Settings';
-$lang['title_send_activation_message'] = 'Send account-activation emails';
+$lang['title_send_activate_message'] = 'Send account-activation emails';
 $lang['title_send_reset_message'] = 'Send password-reset emails';
 $lang['title_use_context_sender'] = 'Use specific sender-name in sent emails';
 
