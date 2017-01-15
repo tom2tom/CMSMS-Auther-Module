@@ -21,18 +21,19 @@
 class Auther extends CMSModule
 {
 	//security-levels
-	const LOSEC = 1;
-	const NONCED = 2;
-	const FACTORED = 3;
-	const HISEC = 4;
+	const NOBOT = 1; //captcha only
+	const LOSEC = 2; //conventional login + passwd
+	const NONCED = 3; //login + passwd + sync nonce
+	const CHALLENGED = 4; //login + passwd + async challenge
+	const HISEC = 5; //TBA non-keyed INHERENCE
 	//security-levels (per Firehed)
 //    const ANONYMOUS = 0;
 //    const LOGIN = 1;
 //    const HISEC = 2;
 	//factor-types (per Firehed)
-	const KNOWLEDGE = 1;
-	const POSSESSION = 2;
-	const INHERENCE = 3;
+	const KNOWLEDGE = 1; //aka KNOWN
+	const POSSESSION = 2; //HELD
+	const INHERENCE = 3; //BELONG ??
 
 	public $before20;
 
