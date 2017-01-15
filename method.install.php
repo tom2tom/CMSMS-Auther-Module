@@ -36,7 +36,7 @@ password_min_length I(1) DEFAULT 8,
 password_min_score I(1) DEFAULT 4,
 bcrypt_cost I(1) DEFAULT 16,
 security_level I(1) DEFAULT '.Auther::LOSEC.'.
-send_activation_message I(1) DEFAULT 1,
+send_activate_message I(1) DEFAULT 1,
 send_reset_message I(1) DEFAULT 1
 ';
 $tblname = $pref.'module_auth_contexts';
@@ -144,7 +144,7 @@ $this->SetPreference('password_min_score', 4);
 $this->SetPreference('request_key_expiration', '10 minutes');
 
 $this->SetPreference('security_level', Auther::LOSEC);
-$this->SetPreference('send_activation_message', 1);
+$this->SetPreference('send_activate_message', 1);
 $this->SetPreference('send_reset_message', 1);
 $t = 'kd8s2!7HVHG7777ghZfghuior.)\!/jU'; //32-bytes
 $this->SetPreference('session_salt', str_shuffle($t));
@@ -161,4 +161,3 @@ $this->CreatePermission('AuthModifyContext', $this->Lang('perm_modcontext'));
 $this->CreatePermission('AuthModifyUser', $this->Lang('perm_moduser'));
 $this->CreatePermission('AuthView', $this->Lang('perm_see'));
 //$this->CreatePermission('AuthSendEvents', $this->Lang('perm_send'));
-
