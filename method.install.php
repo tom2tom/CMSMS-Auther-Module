@@ -20,19 +20,21 @@ $flds = '
 id I KEY,
 name C(48) NOTNULL,
 alias C(16) NOTNULL,
+request_key_expiration C(16) DEFAULT \'10 minutes\',
 attack_mitigation_span C(16) DEFAULT \'30 minutes\',
 attempts_before_ban I(1) DEFAULT 10,
 attempts_before_verify I(1) DEFAULT 5,
-bcrypt_cost I(1) DEFAULT 16,
-cookie_forget C(16) DEFAULT \'30 minutes\',
 cookie_name C(32) DEFAULT \'CMSMSauthID\',
+cookie_forget C(16) DEFAULT \'30 minutes\',
 cookie_remember C(16) DEFAULT \'1 week\',
 login_max_length I(1) DEFAULT 48,
 login_min_length I(1) DEFAULT 5,
-login_use_banlist I(1) DEFAULT 1,
+address_required I(1) DEFAULT 0,
+email_required I(1) DEFAULT 0,
+email_banlist I(1) DEFAULT 1,
 password_min_length I(1) DEFAULT 8,
 password_min_score I(1) DEFAULT 4,
-request_key_expiration C(16) DEFAULT \'10 minutes\',
+bcrypt_cost I(1) DEFAULT 16,
 security_level I(1) DEFAULT '.Auther::LOSEC.'.
 send_activation_message I(1) DEFAULT 1,
 send_reset_message I(1) DEFAULT 1
@@ -113,6 +115,7 @@ $db->CreateSequence($pref.'module_auth_userprops_seq');
 
 $this->SetPreference('masterpass', 'OWFmNT1dGbU5FbnRlciBhdCB5b3VyIG93biByaXNrISBEYW5nZXJvdXMgZGF0YSE=');
 
+$this->SetPreference('address_required' 0);
 $this->SetPreference('attack_mitigation_span', '30 minutes');
 $this->SetPreference('attempts_before_ban', 10);
 $this->SetPreference('attempts_before_verify', 5);
@@ -128,9 +131,11 @@ $this->SetPreference('cookie_name', 'CMSMSauthID');
 $this->SetPreference('cookie_remember', '1 week');
 //$this->SetPreference('cookie_secure', 0);
 
+$this->SetPreference('email_banlist', 1);
+$this->SetPreference('email_required', 0);
+
 $this->SetPreference('login_max_length', 48);
 $this->SetPreference('login_min_length', 5);
-$this->SetPreference('login_use_banlist', 1);
 
 $this->SetPreference('message_charset', 'UTF-8');
 //$this->SetPreference('password_max_length', 72); //for CRYPT_BLOWFISH
