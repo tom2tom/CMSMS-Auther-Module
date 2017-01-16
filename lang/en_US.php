@@ -42,7 +42,6 @@ $lang['function_disabled'] = 'This function has been disabled';
 $lang['help_attack_mitigation_span'] = 'Length of time that login-attempt data are retained, something like \'10 minutes\' or \'1 day\' (unquoted, in english that <a href="http://php.net/manual/en/datetime.formats.relative.php">PHP<a> understands)';
 $lang['help_attempts_before_ban'] = 'After this many failed attemts, a user is locked-out for the specified \'attack-protection interval\'. 0 disables this protection.';
 $lang['help_attempts_before_verify'] = 'After this many failed attemts, a user is required to provide extra authentication. 0 disables this protection.';
-$lang['help_bcrypt_cost'] = 'Number 4..31 used as the number of \'rounds\' for blowfish hashing';
 $lang['help_context_address'] = 'Blank means mailer-default value will be used';
 $lang['help_context_sender'] = 'Set to something supported by the mailer module, or else message transmission may be blocked. Blank means mailer-default value will be used';
 //$lang['help_cookie_domain'] = ''; see http://php.net/manual/en/function.setcookie.php
@@ -128,7 +127,6 @@ $lang['title_address_required'] = 'Each user must provide her/his contact-addres
 $lang['title_attack_mitigation_span'] = 'Attack-protection interval';
 $lang['title_attempts_before_ban'] = 'Login atttemts before block';
 $lang['title_attempts_before_verify'] = 'Login atttemts before check';
-$lang['title_bcrypt_cost'] = 'Number of password hashing \'rounds\'';
 $lang['title_context_address'] = 'Sent email-notices from address';
 $lang['title_context_sender'] = 'Sent email-notices from name';
 $lang['title_contexts'] = 'Contexts';

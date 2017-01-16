@@ -34,7 +34,6 @@ email_required I(1) DEFAULT 0,
 email_banlist I(1) DEFAULT 1,
 password_min_length I(1) DEFAULT 8,
 password_min_score I(1) DEFAULT 4,
-bcrypt_cost I(1) DEFAULT 16,
 security_level I(1) DEFAULT '.Auther::LOSEC.'.
 send_activate_message I(1) DEFAULT 1,
 send_reset_message I(1) DEFAULT 1
@@ -97,7 +96,7 @@ $dict->ExecuteSQLArray($sql);
 
 $db->CreateSequence($pref.'module_auth_users_seq');
 
-/* support extra, runtime-specified, user-parameters
+/* support for extra, runtime-specified, user-parameters
 $flds = '
 id I KEY,
 uid I,
@@ -113,13 +112,13 @@ $db->Execute('CREATE INDEX '.$tblname.'_idx ON '.$tblname.' (uid)');
 $db->CreateSequence($pref.'module_auth_userprops_seq');
 */
 
-$this->SetPreference('masterpass', 'OWFmNT1dGbU5FbnRlciBhdCB5b3VyIG93biByaXNrISBEYW5nZXJvdXMgZGF0YSE=');
+$funcs = new Auther\Crypter();
+$funcs->encrypt_preference($this, 'masterpass', base64_decode('U3VjayBpdCB1cCwgY3JhY2tlcnMh'));
 
 $this->SetPreference('address_required' 0);
 $this->SetPreference('attack_mitigation_span', '30 minutes');
 $this->SetPreference('attempts_before_ban', 10);
 $this->SetPreference('attempts_before_verify', 5);
-$this->SetPreference('bcrypt_cost', 16);
 $this->SetPreference('context_sender', NULL); //for email messages TODO site-name
 $this->SetPreference('context_address', NULL); //ditto
 
