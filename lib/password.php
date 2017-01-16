@@ -18,14 +18,20 @@ Returns: (192 + 16*N)bytes|FALSE The hashed password, or empty string, or FALSE 
 */
 function password_hash($passwd, $masterkey)
 {
-	if (!$passwd) {
+	if ($passwd == FALSE && !is_numeric($passwd)) {
 		trigger_error('No password provided', E_USER_WARNING);
 		return '';
-	}
-	if (!function_exists('crypt')) {
+	} elseif (!function_exists('crypt')) {
 		trigger_error('Crypt extension must be present for password hashing', E_USER_WARNING);
 		return FALSE;
 	}
+	//obfuscate short passwords (other than time-wasting, useless, really)
+	$t = 1;
+	while (($len = bytelen($passwd)) < 32) {
+		$passwd .= str_shuffle($passwd);
+		$t += $t;
+	}
+	$passwd .= chr($t);
 
 	$e = new Encryption(\MCRYPT_TWOFISH, \MCRYPT_MODE_CBC, 10000);
 	return $e->encrypt($passwd, $masterkey);
@@ -35,29 +41,26 @@ function password_hash($passwd, $masterkey)
 password_verify:
 Verify @password against @hash
 
-@password: string The password to verify
+@passwd: string The password to verify
 @hash: string The hash to verify against
 @masterkey: string Persistent key for password en/decoding
+@tries: no. of verification attempts
 
-Returns: boolean Whether @password matches @hash
+Returns: boolean Whether @passwd matches @hash
 */
-function password_verify($passwd, $hash, $masterkey)
+function password_verify($passwd, $hash, $masterkey, $tries=1)
 {
 	if (!function_exists('crypt')) {
 		trigger_error('Crypt extension must be present for password verification', E_USER_WARNING);
+		sleep(1);
 		return FALSE;
 	}
-
-	$test = password_hash($passwd, $masterkey);
-	if (!$test || bytelen($test) != bytelen($hash)) {
-		return FALSE;
+	if (password_hash($passwd, $masterkey) === $hash) {
+		return TRUE;
 	}
-	//slower comparison helps resist attacks
-	$status = 0;
-	for ($i = 0; $i < bytelen($test); $i++) {
-		$status |= ($test[$i] ^ $hash[$i]);
-	}
-	return ($status === 0);
+	$t = min(2000, $tries * 500);
+	usleep($t * 1000);
+	return FALSE;
 }
 
 /**
@@ -67,7 +70,7 @@ Unhash @hash
 @hash: string a hashed password
 @masterkey: string Persistent key for password en/decoding
 
-Returns: plaintext string
+Returns: plaintext string, or FALSE
 */
 function password_retrieve($hash, $masterkey)
 {
@@ -77,16 +80,25 @@ function password_retrieve($hash, $masterkey)
 	}
 
 	$e = new Encryption(\MCRYPT_TWOFISH, \MCRYPT_MODE_CBC, 10000);
-	return $e->decrypt($hash, $masterkey);
+	$plain = $e->decrypt($hash, $masterkey);
+	if ($plain) {
+		$len = bytelen($plain) - 1;
+		$t = ord(substr($plain, -1));
+		if ($t > 1) {
+			$len /= $t;
+		}
+		return substr($plain, 0, $len);
+	}
+	return FALSE;
 }
 
 /**
 bytelen:
-Count the number of bytes in a binary string
+Count the number of bytes in @binary_string
 
-Vanilla strlen() might be shadowed by the mbstring extension.
-In that case, strlen() will count the number of *characters*
-per the internal encoding, and that may be < the wanted number.
+Vanilla strlen() might be shadowed by the mbstring extension,
+in which case strlen() will count the number of characters
+per the internal encoding, which count may be < the wanted number.
 
 @binary_string: string The input string
 
