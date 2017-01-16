@@ -35,17 +35,15 @@ class Auth
 		$tnis->pref = \cms_db_prefix();
 		$this->context = $context;
 
-		if (version_compare(phpversion(), '5.5.0', '<')) {
-			require(__DIR__.DIRECTORY_SEPARATOR.'password.php');
-		}
+		require(__DIR__.DIRECTORY_SEPARATOR.'password.php');
 	}
 
 	/**
 	* Logs a user in
-	* @publicid string user identifier
-	* @password plaintext string
-	* @nonce default = FALSE
-	* @remember boolean whether to setup session-expiry-time in self::addSession() default = FALSE
+	* @publicid: string user identifier
+	* @password: plaintext string
+	* @nonce: default = FALSE
+	* @remember: boolean whether to setup session-expiry-time in self::addSession() default = FALSE
 	* Returns: array, 0=>T/F for success, 1=>message, if success then also session-parameters: 'hash','expire'
 	*/
 	public function login($publicid, $password, $nonce=FALSE, $remember=FALSE)
@@ -109,12 +107,12 @@ class Auth
 
 	/**
 	* Creates and records a user
-	* @publicid string user identifier
-	* @password plaintext string
-	* @repeatpassword plaintext string
-	* @email email address for notices to the user default = ''
-	* @params array extra user-parameters for self::addUser() default = empty
-	* @sendmail bool whether to send email-messages if possible default = NULL
+	* @publicid: string user identifier
+	* @password: plaintext string
+	* @repeatpassword: plaintext string
+	* @email: email address for notices to the user default = ''
+	* @params: array extra user-parameters for self::addUser() default = empty
+	* @sendmail: bool whether to send email-messages if possible default = NULL
 	* Returns: array 0=>T/F for success, 1=>message
 	*/
 	public function register($publicid, $password, $repeatpassword, $email='', $params=[], $sendmail=NULL)
@@ -172,7 +170,7 @@ class Auth
 
 	/**
 	* Activates a user's account
-	* @key string
+	* @key: string
 	* Returns: array 0=>T/F for success, 1=>message
 	*/
 	public function activate($key)
@@ -212,8 +210,8 @@ class Auth
 
 	/**
 	* Creates a reset-key for @publicid and sends email
-	* @publicid string user identifier
-	* @sendmail boolean whether to send confirmation email default = NULL
+	* @publicid: string user identifier
+	* @sendmail: boolean whether to send confirmation email default = NULL
 	* Returns: array 0=>T/F for success, 1=>message
 	*/
 	public function requestReset($publicid, $sendmail=NULL)
@@ -255,7 +253,7 @@ class Auth
 
 	/**
 	* Logs out the session, identified by session-hash
-	* @hash 40-byte string
+	* @hash: 40-byte string
 	* Returns: boolean
 	*/
 	public function logout($hash)
@@ -269,7 +267,7 @@ class Auth
 
 	/**
 	* Change recorded context property
-	* @context numeric identifier or alias for login context
+	* @context: numeric identifier or alias for login context
 	*/
 	public function setContext($context)
 	{
@@ -278,8 +276,8 @@ class Auth
 
 	/**
 	* Get specified property(ies) for @context
-	* @context string login-context-alias or int login-context-identifier or NULL
-	* @propkey string property-name or array of them (not validated here)
+	* @context: string login-context-alias or int login-context-identifier or NULL
+	* @propkey: string property-name or array of them (not validated here)
 	* Returns: property value or assoc. array of them
 	*/
 	protected function getConfig($context, $propkey)
@@ -328,18 +326,18 @@ class Auth
 
 	/**
 	* Hashes the provided password using Bcrypt
-	* @password plaintext string
+	* @password: plaintext string
+	* @masterkey:
 	* Returns: hashed password string
 	*/
-	public function getHash($password)
+	public function getHash($password, $masterkey)
 	{
-		$val = $this->getConfig($this->context, 'bcrypt_cost');
-		return password_hash($password, PASSWORD_BCRYPT, ['cost'=>$val]);
+		return password_hash($password, $masterkey);
 	}
 
 	/**
 	* Gets user-enumerator for @publicid
-	* @publicid string user identifier
+	* @publicid: string user identifier
 	* Returns: user enumerator
 	*/
 	public function getUID($publicid)
@@ -350,8 +348,8 @@ class Auth
 
 	/**
 	* Creates a session for user @uid
-	* @uid int user enumerator
-	* @remember boolean whether to setup an expiry time for the session
+	* @uid: int user enumerator
+	* @remember: boolean whether to setup an expiry time for the session
 	* Returns: array with members 'hash','expire','expiretime','cookie_hash', or else FALSE
 	*/
 	protected function addSession($uid, $remember)
@@ -395,7 +393,7 @@ class Auth
 
 	/**
 	* Removes all existing sessions for user @uid
-	* @uid int user enumerator
+	* @uid: int user enumerator
 	* Returns: boolean
 	*/
 	protected function deleteExistingSessions($uid)
@@ -407,7 +405,7 @@ class Auth
 
 	/**
 	* Removes a session based on @hash
-	* @hash string
+	* @hash: string
 	* Returns: boolean
 	*/
 	protected function deleteSession($hash)
@@ -419,7 +417,7 @@ class Auth
 
 	/**
 	* Checks if a session is valid
-	* @hash string sha1-generated session identifier
+	* @hash: string sha1-generated session identifier
 	* Returns: boolean
 	*/
 	public function checkSession($hash)
@@ -457,7 +455,7 @@ class Auth
 
 	/**
 	* Retrieves the user-enumerator associated with the given session-hash
-	* @hash string
+	* @hash: string
 	* Returns: int
 	*/
 	public function getSessionUID($hash)
@@ -469,7 +467,7 @@ class Auth
 	/**
 	* Method for preventing duplicates and user-recognition checks
 	* Checks whether @publicid is recorded for current context
-	* @publicid string user identifier
+	* @publicid: string user identifier
 	* Returns: boolean
 	*/
 	public function isLoginTaken($publicid)
@@ -481,11 +479,11 @@ class Auth
 
 	/**
 	* Records a new user
-	* @publicid string user identifier
-	* @password plaintext string
-	* @email email address for messages, possibly empty
-	* @sendmail  reference to boolean whether to send confirmation email messages
-	* @params array of additional params default = empty
+	* @publicid: string user identifier
+	* @password: plaintext string
+	* @email: email address for messages, possibly empty
+	* @sendmail:  reference to boolean whether to send confirmation email messages
+	* @params: array of additional params default = empty
 	* Returns: array 0=>T/F for success, 1=>message
 	*/
 	protected function addUser($publicid, $password, $email, &$sendmail, $params=[])
@@ -525,7 +523,7 @@ class Auth
 
 	/**
 	* Gets basic user-data for the given UID
-	* @uid int user enumerator
+	* @uid: int user enumerator
 	* Returns: array with members 'uid','publicid','password','active', or else FALSE
 	*/
 	protected function getBaseUser($uid)
@@ -542,7 +540,7 @@ class Auth
 
 	/**
 	* Gets all user-data except password,factor2 for the given UID
-	* @ int $uid user enumerator
+	* @uid: int user enumerator
 	* Returns: array with members 'uid','address','publicid','active', or else FALSE
 	*/
 	public function getUser($uid)
@@ -561,8 +559,8 @@ class Auth
 
 	/**
 	* Gets publicly-accessible user-data for @publicid
-	* @publicid string user identifier
-	* @active optional boolean whether the user is required to be active default = TRUE
+	* @publicid: string user identifier
+	* @active: optional boolean whether the user is required to be active default = TRUE
 	* Returns: array with members 'publicid','address','addwhen','lastuse', or else FALSE
 	*/
 	public function getPublicUser($publicid, $ative=TRUE)
@@ -587,11 +585,12 @@ class Auth
 
 	/**
 	* Deletes a user's data (aka account)
-	* @uid int user enumerator
-	* @password string plaintext
+	* @uid: int user enumerator
+	* @password: string plaintext
+	* @masterkey:
 	* Returns: array 0=>T/F for success, 1=>message
 	*/
-	public function deleteUser($uid, $password)
+	public function deleteUser($uid, $password, $masterkey)
 	{
 		$block_status = $this->isBlocked();
 
@@ -617,7 +616,7 @@ class Auth
 			return [FALSE,$this->mod->Lang(TODO)];
 		}
 
-		if (!password_verify($password, $userdata['password'])) {
+		if (!password_verify($password, $userdata['password'], $masterkey)) {
 			$this->addAttempt();
 			return [FALSE,$this->mod->Lang('password_incorrect')];
 		}
@@ -657,11 +656,11 @@ class Auth
 
 	/**
 	* Creates an activation entry and sends publicid to user
-	* @uid int user enumerator
-	* @publicid string user identifier
-	* @type string 'reset' or 'activate'
-	* @sendmail boolean reference whether to send confirmation email
-	* @fake boolean whether to treat this as a bogus notice default = FALSE
+	* @uid: int user enumerator
+	* @publicid: string user identifier
+	* @type: string 'reset' or 'activate'
+	* @sendmail: boolean reference whether to send confirmation email
+	* @fake: boolean whether to treat this as a bogus notice default = FALSE
 	* Returns: array 0=>T/F for success, 1=>message
 	*/
 	protected function addRequest($uid, $publicid, $type, &$sendmail, $fake=FALSE)
@@ -779,8 +778,8 @@ class Auth
 
 	/**
 	* Returns request data if @key is valid
-	* @key 32-byte string from uniqid() with 19-random-bytes prefix
-	* @type string 'reset' or 'activate'
+	* @key: 32-byte string from uniqid() with 19-random-bytes prefix
+	* @type: string 'reset' or 'activate'
 	* Returns: array 0=>T/F for success, 1=>message, if success then also 'id','uid'
 	*/
 	public function getRequest($key, $type)
@@ -804,7 +803,7 @@ class Auth
 
 	/**
 	* Deletes request from database
-	* @id int request enumerator
+	* @id: int request enumerator
 	* Returns: boolean
 	*/
 	protected function deleteRequest($id)
@@ -816,7 +815,7 @@ class Auth
 
 	/**
 	* Verifies that @publicid is a valid publicid indentifier
-	* @publicid string user identifier
+	* @publicid: string user identifier
 	* Returns: array 0=>T/F for success, 1=>message
 	*/
 	protected function validateLogin($publicid)
@@ -847,7 +846,7 @@ class Auth
 
 	/**
 	* Verifies that @email is an acceptable email address
-	* @email string
+	* @email: string
 	* Returns: array 0=>T/F for success, 1=>message
 	*/
 	public function validateEmail($email)
@@ -866,11 +865,12 @@ class Auth
 
 	/**
 	* Verifies that @password is valid
-	* @uid int user enumerator
-	* @password plaintext string
+	* @uid: int user enumerator
+	* @password: plaintext string
+	* @masterkey:
 	* Returns: array 0=>T/F for success, 1=>message
 	*/
-	protected function matchPassword($uid, $password)
+	protected function matchPassword($uid, $password, $masterkey)
 	{
 		$userdata = $this->getBaseUser($uid);
 
@@ -878,7 +878,7 @@ class Auth
 			return [FALSE,$this->mod->Lang('system_error').' #11'];
 		}
 
-		if (!password_verify($password, $userdata['password'])) {
+		if (!password_verify($password, $userdata['password'], $masterkey)) {
 			return [FALSE,$this->mod->Lang('password_notvalid')];
 		}
 		return [TRUE,''];
@@ -886,7 +886,7 @@ class Auth
 
 	/**
 	* Verifies that @password respects security requirements
-	* @password plaintext string
+	* @password: plaintext string
 	* Returns: array 0=>T/F for success, 1=>message
 	*/
 	public function validatePassword($password)
@@ -910,12 +910,13 @@ class Auth
 
 	/**
 	* Allows a user to reset her/his password after requesting a reset
-	* @key string
-	* @password plaintext string
-	* @repeatpassword plaintext string
+	* @key: string
+	* @password: plaintext string
+	* @repeatpassword: plaintext string
+	* @masterkey:
 	* Returns: array 0=>T/F for success, 1=>message
 	*/
-	public function resetPassword($key, $password, $repeatpassword)
+	public function resetPassword($key, $password, $repeatpassword, $masterkey)
 	{
 		$block_status = $this->isBlocked();
 
@@ -956,7 +957,7 @@ class Auth
 			return [FALSE,$this->mod->Lang('system_error').' #11'];
 		}
 
-		if (password_verify($password, $userdata['password'])) {
+		if (password_verify($password, $userdata['password'], $masterkey)) {
 			$this->addAttempt();
 			return [FALSE,$this->mod->Lang('newpassword_match')];
 		}
@@ -974,13 +975,14 @@ class Auth
 
 	/**
 	* Changes a user's password
-	* @uid int user enumerator
-	* @currpass plaintext string
-	* @newpass plaintext string
-	* @repeatnewpass plaintext string
+	* @uid: int user enumerator
+	* @currpass: plaintext string
+	* @newpass: plaintext string
+	* @repeatnewpass: plaintext string
+	* @masterkey:
 	* Returns: array 0->T/F, 1=>message
 	*/
-	public function changePassword($uid, $currpass, $newpass, $repeatnewpass)
+	public function changePassword($uid, $currpass, $newpass, $repeatnewpass, $masterkey)
 	{
 		$block_status = $this->isBlocked();
 
@@ -1014,7 +1016,7 @@ class Auth
 			return [FALSE,$this->mod->Lang('system_error').' #13'];
 		}
 
-		if (!password_verify($currpass, $userdata['password'])) {
+		if (!password_verify($currpass, $userdata['password'], $masterkey)) {
 			$this->addAttempt();
 			return [FALSE,$this->mod->Lang('password_incorrect')];
 		}
@@ -1028,29 +1030,31 @@ class Auth
 
 	/**
 	* Compare user's password with given password
-	* @uid int user enumerator
-	* @password_for_check string
+	* @uid: int user enumerator
+	* @password_for_check: string
+	* @masterkey:
 	* Returns: boolean indicating match
 	*/
-	public function comparePasswords($uid, $password_for_check)
+	public function comparePasswords($uid, $password_for_check, $masterkey)
 	{
 		$sql = 'SELECT passhash FROM '.$this->pref.'module_auth_users WHERE id=?';
 		$password = $this->db->GetOne($sql, [$uid]);
 
 		if ($password) {
-			return password_verify($password_for_check, $password);
+			return password_verify($password_for_check, $password, $masterkey);
 		}
 		return FALSE;
 	}
 
 	/**
 	* Changes a user's publicid name
-	* @uid int user enumerator
-	* @publicid string user identifier
-	* @password plaintext string
+	* @uid: int user enumerator
+	* @publicid: string user identifier
+	* @password: plaintext string
+	* @masterkey:
 	* Returns: array 0=>T/F, 1=>message
 	*/
-	public function changelogin($uid, $publicid, $password)
+	public function changelogin($uid, $publicid, $password, $masterkey)
 	{
 		$block_status = $this->isBlocked();
 
@@ -1082,7 +1086,7 @@ class Auth
 			return [FALSE,$this->mod->Lang('system_error').' #14'];
 		}
 
-		if (!password_verify($password, $userdata['password'])) {
+		if (!password_verify($password, $userdata['password'], $masterkey)) {
 			$this->addAttempt();
 			return [FALSE,$this->mod->Lang('password_incorrect')];
 		}
@@ -1104,8 +1108,8 @@ class Auth
 
 	/**
 	* Recreates activation email for @publicid and sends that email
-	* @publicid string user identifier
-	* @sendmail default = NULL  whether to send email notice
+	* @publicid: string user identifier
+	* @sendmail: default = NULL  whether to send email notice
 	* Returns: array 0=>T/F, 1=>message
 	*/
 	public function resendActivation($publicid, $sendmail=NULL)
@@ -1194,8 +1198,8 @@ class Auth
 
 	/**
 	* Deletes some/all attempts for a given IP from database
-	* @ip string
-	* @all boolean default = FALSE
+	* @ip: string
+	* @all: boolean default = FALSE
 	* Returns: boolean indicating success
 	*/
 	protected function deleteAttempts($ip, $all=FALSE)
@@ -1213,7 +1217,7 @@ class Auth
 
 	/**
 	* Returns a random string of a specified length
-	* @length int wanted byte-count
+	* @length: int wanted byte-count
 	* Returns: string
 	*/
 	public function getRandomKey($length=20)
