@@ -40,13 +40,13 @@ class Utils
 		$navstr = $mod->CreateLink($id, 'defaultadmin', $returnid,
 		'&#171; '.$mod->Lang('module_nav'));
 		//TODO
-		if (X) {
+		if ($params['action'] == 'openuser') {
 			$navstr .= ' '.$mod->CreateLink($id, 'users', $returnid,
 			'&#171; '.$mod->Lang('users'), [
-			'context_id'=>$params['context_id'],
+			'item_id'=>$params['item_id'],
 			'edit'=>$params['edit']]);
 		}
-		$tplvars['inner_nav'] = $navstr;
+		return $navstr;
 	}
 
 	/**
