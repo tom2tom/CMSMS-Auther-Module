@@ -55,7 +55,6 @@ if (!function_exists('getModulePrefs')) {
 
 	'send_activate_message',	0, 0, 0,
 	'send_reset_message',		0, 0, 0,
-	'use_context_sender',		0, 0, 0,
 	'context_sender',			1, 50, 0,
 	'context_address',			1, 50, 0,
 	'message_charset',			1, 16, 0,
@@ -337,7 +336,7 @@ EOS;
 		$one->title = $this->Lang('title_'.$kn);
 		switch ($keys[$i+1]) {
 		 case 0:
-			$one->input = $this->CreateInputCheckbox($id, $kn, $this->GetPreference($kn, 0));
+			$one->input = $this->CreateInputCheckbox($id, $kn, 1, $this->GetPreference($kn, 0));
 			$one->must = 0;
 			break;
 		 case 1:
@@ -359,8 +358,17 @@ EOS;
 		}
 		$settings[] = $one;
 	}
-	
+
 	$tplvars['settings'] = $settings;
+
+	$jsloads[] = <<<EOS
+$('[name="{$id}send_activate_message"],[name="{$id}send_reset_message"]').change(function() {
+ if (this.checked) {
+  $('[name="{$id}address_required"],[name="{$id}email_required"]').prop('checked',true);
+ }
+});
+EOS;
+	
 	$tplvars['submit'] = $this->CreateInputSubmit($id,'submit',$this->Lang('submit'));
 	$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('cancel'));
 } //$pset
