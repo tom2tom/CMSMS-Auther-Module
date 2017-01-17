@@ -46,8 +46,8 @@ $lang['help_alias'] = 'For selecting a context at runtime. If left blank, an ali
 $lang['help_attack_mitigation_span'] = 'Length of time that login-attempt data are retained, something like \'10 minutes\' or \'1 day\' (unquoted, in english that <a href="http://php.net/manual/en/datetime.formats.relative.php">PHP understands</a>)';
 $lang['help_attempts_before_ban'] = 'After this many failed attemts, a user is locked-out for the specified \'attack-protection interval\'. 0 disables this protection.';
 $lang['help_attempts_before_verify'] = 'After this many failed attemts, a user is required to provide extra authentication. 0 disables this protection.';
-$lang['help_context_address'] = 'Blank means mailer-default value will be used';
-$lang['help_context_sender'] = 'Set to something supported by the mailer module, or else message transmission may be blocked. Blank means mailer-default value will be used';
+$lang['help_context_address'] = 'Above information about sender name appplies here too';
+$lang['help_context_sender'] = 'Typically this will be blank/empty, to use the mailer-default value. Otherwise set to a value supported by the mailer module, or else message transmission may be blocked.';
 //$lang['help_cookie_domain'] = ''; see http://php.net/manual/en/function.setcookie.php
 $lang['help_cookie_forget'] = 'Length of time that a login is tracked, if [TODO], something like \'2 hours\' or \'1 week\' (unquoted, in english that <a href="http://php.net/manual/en/datetime.formats.relative.php">PHP understands</a>)';
 //$lang['help_cookie_http'] = '';
@@ -67,7 +67,6 @@ $lang['help_request_key_expiration'] = 'Length of time before sent confirmation-
 $lang['help_security_level'] = 'Number 1..4 which determines the process for, and extent of security-checking during, logins (1 is lowest)';
 //$lang['help_send_activate_message'] = '';
 //$lang['help_send_reset_message'] = '';
-//$lang['help_use_context_sender'] = '';
 
 $lang['id'] = 'ID';
 $lang['import'] = 'Import';
@@ -80,7 +79,8 @@ $lang['login_notvalid'] = 'Login name is invalid';
 $lang['login_short'] = 'Login name is too short';
 $lang['login_taken'] = 'Login name is already in use';
 
-$lang['module_nav']='Module mainpage';
+$lang['missingname'] = 'No name yet';
+$lang['module_nav'] = 'Module mainpage';
 
 $lang['name'] = 'Name';
 $lang['newemail_match'] = 'New email matches previous email';
@@ -132,8 +132,9 @@ $lang['title_alias'] = 'Alias';
 $lang['title_attack_mitigation_span'] = 'Attack-protection interval';
 $lang['title_attempts_before_ban'] = 'Login atttemts before block';
 $lang['title_attempts_before_verify'] = 'Login atttemts before check';
-$lang['title_context_address'] = 'Sent email-notices from address';
-$lang['title_context_sender'] = 'Sent email-notices from name';
+$lang['title_context_address'] = 'Email-address used as as originator';
+$lang['title_context_sender'] = 'Name of email-notice sender';
+$lang['title_contextadd'] = 'Add login-context';
 $lang['title_contextfull'] = 'Login-context properties';
 $lang['title_contexts'] = 'Contexts';
 //$lang['title_cookie_domain'] = '';
@@ -158,7 +159,8 @@ $lang['title_security_level'] = 'Security level';
 $lang['title_settings'] = 'Settings';
 $lang['title_send_activate_message'] = 'Send account-activation emails';
 $lang['title_send_reset_message'] = 'Send password-reset emails';
-$lang['title_use_context_sender'] = 'Use specific sender-name in sent emails';
+$lang['title_useradd'] = 'Add user';
+$lang['title_userfull'] = 'User properties';
 
 $lang['user_blocked'] = 'You are currently locked out of the system';
 //$lang['user_verify_failed'] = 'Captcha text was invalid';
@@ -219,65 +221,4 @@ The Update field will be treated as TRUE if it contains something other than 0 o
 <li>a password is not sufficiently secure</li>
 <li>an email address is malformed</li>
 </ul></p>
-EOS;
-
-$lang['help_module'] = <<<'EOS'
-<h3>What does this module do?</h3>
-It provides several authentication "services" for use by other parts of the website,
-other modules or (after patching relevant core files) admininstrator access.
-Specifically
-<ul>
-<li>Any number of authorisation "contexts" with individual properties</li>
-<li>Several security levels</li>
-<li>[De]registration of users by self and/or administrator</li>
-<li>Bulk [de]registration of users by administrator</li>
-<li>Login/out of users</li>
-<li>User data change by self or adminstrator</li>
-<li>Lost/forgotten data recovery by users</li>
-<li>Optional email notices/confirmations</li>
-<li>Optional 2-factor authorisation</li>
-<li>Enhanced data security</li>
-<li>UI objects for inclusion in page/form</li>
-</ul>
-<h3>How is it used?</h3>
-The module includes several PHP classes which together provide a robust API for
-accessing the various services as described above.
-<pre></pre>
-<h3>Styling</h3>
-<h3>Permissions</h3>
-<h4>Modify Authentication Module Properties</h4>
-<h4>Modify Authentication Contexts</h4>
-<h4>Modify Authenticated Users</h4>
-<h4>Review Authentication Data</h4>
-<h3>Events</h3>
-<h4>AuthRegister</h4>
-<h4>AuthDeregister</h4>
-<h4>AuthLogin</h4>
-<h4>AuthLoginFail</h4>
-<h4>AuthLogout</h4>
-<h3>Requirements</h3>
-<ul>
-<li>PHP 5.4+</li>
-<li>PHP Mcrypt extension</li>
-<li>PHP Openssl extension (for multi-factor authorisation)</li>
-</ul>
-<h3>Desirables</h3>
-<h3>Support</h3>
-<p>This module is provided as-is. Please read the text of the license for the full disclaimer.
-Just to be clear, there's no guarantee of support. However, there are some resources available
-to help you with it:</p>
-<ul>
-<li>for the latest version of this module, or to file a bug report, go to the
-<a href="http://dev.cmsmadesimple.org/projects/auther">module's Forge page</a></li>
-<li>discussion of this module may be found in the
-<a href="http://forum.cmsmadesimple.org">CMS Made Simple Forums</a></li>
-<li>you may have some success emailing the author directly<br />
-</li>
-</ul>
-<h3>Copyright and license</h3>
-<p>Copyright &copy; 2017 Tom Phane &lt;tpgww@onepost.net&gt;<br />
-All rights reserved.</p>
-<p>This module has been released under version 3 of the
-<a href="http://www.gnu.org/licenses/licenses.html#AGPL">GNU Affero Public License</a>.
-The module must not be used otherwise than in acccordance with that license.</p>
 EOS;
