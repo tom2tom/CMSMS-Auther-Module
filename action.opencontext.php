@@ -41,7 +41,6 @@ if (!function_exists('getContextProperties')) {
 
 	'send_activate_message',0, 0, 0,
 	'send_reset_message',	0, 0, 0,
-	'use_context_sender',	0, 0, 0,
 	'context_sender',		1, 50, 0,
 	'context_address',		1, 50, 0,
 	'message_charset',		1, 16, 0,
@@ -149,8 +148,8 @@ if (isset($params['cancel'])) {
 	$pre = cms_db_prefix();
 	if ($cid == -1) {
 		$cid = $db->GenId($pre.'module_auth_contexts_seq');
-		array_unshift($args, $cid);
-		array_unshift($keys, 'id');
+		array_shift($args, $cid);
+		array_shift($keys, 'id');
 		$flds = implode(',',$keys);
 		$fillers = str_repeat('?,',count($keys)-1);
 		$sql = 'INSERT INTO '.$pre.'module_auth_contexts ('.$flds.') VALUES ('.$fillers.'?)';
@@ -176,17 +175,27 @@ if ($cid > -1) { //existing data
 		$kn = $keys[$i];
 		$data[$kn] = $this->GetPreference($kn);
 	}
+	if (!$data['name']) {
+		$data['name'] = $this->Lang('missingname');
+	}
 }
 
 $utils = new Auther\Utils();
 
 $tplvars = ['mod' => $pmod];
-$tplvars['pagenav'] = $utils->BuildNav($this,$id,$returnid,$params,$tplvars);
-$hidden = ['item_id'=>$cid,'edit'=>!empty($params['edit'])]; //TODO etc
+$tplvars['pagenav'] = $utils->BuildNav($this,$id,$returnid,$params);
+$hidden = [
+	'item_id'=>$cid,
+	'edit'=>!empty($params['edit'])
+]; //TODO etc
 $tplvars['startform'] = $this->CreateFormStart($id,'opencontext',$returnid,'POST',
 	'','','',$hidden);
 $tplvars['endform'] = $this->CreateFormEnd();
-$tplvars['title'] = $this->Lang('title_contextfull');
+if ($cid == -1) {
+	$tplvars['title'] = $this->Lang('title_contextadd');
+} else {
+	$tplvars['title'] = $this->Lang('title_contextfull');
+}
 //$tplvars['desc'] = TODO;
 $tplvars['compulsory'] = $this->Lang('compulsory_items');
 
@@ -210,7 +219,7 @@ for ($i = 0; $i < $c; $i += 4) {
 	switch ($keys[$i+1]) {
 	 case 0:
 	 	if ($pmod) {
-			$one->input = $this->CreateInputCheckbox($id, $kn, $data[$kn]);
+			$one->input = $this->CreateInputCheckbox($id, $kn, 1, $data[$kn]);
 		} else {
 			$one->input = ($data[$kn]) ? $yes:$no;
 		}
@@ -248,6 +257,13 @@ for ($i = 0; $i < $c; $i += 4) {
 
 $tplvars['options'] = $options;
 if ($pmod) {
+	$jsloads[] = <<<EOS
+$('[name="{$id}send_activate_message"],[name="{$id}send_reset_message"]').change(function() {
+ if (this.checked) {
+  $('[name="{$id}address_required"],[name="{$id}email_required"]').prop('checked',true);
+ }
+});
+EOS;
 	$tplvars['submit'] = $this->CreateInputSubmit($id,'submit',$this->Lang('submit'));
 	$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('cancel'));
 } else {
