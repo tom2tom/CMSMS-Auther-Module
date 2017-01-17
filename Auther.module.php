@@ -191,7 +191,7 @@ class Auther extends CMSModule
 
 	public function VisibleToAdminUser()
 	{
-		return $this->_CheckPermission();
+		return $this->_CheckAccess();
 	}
 
 	public function SetParameters()
