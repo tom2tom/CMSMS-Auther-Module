@@ -83,8 +83,8 @@ $dict->ExecuteSQLArray($sql);
 $flds = '
 id I KEY,
 publicid C(48),
-passhash C(60),
 address C(96),
+passhash B,
 context I,
 addwhen I,
 lastuse I,
@@ -115,7 +115,7 @@ $db->CreateSequence($pref.'module_auth_userprops_seq');
 $funcs = new Auther\Crypter();
 $funcs->encrypt_preference($this, 'masterpass', base64_decode('U3VjayBpdCB1cCwgY3JhY2tlcnMh'));
 
-$this->SetPreference('address_required' 0);
+$this->SetPreference('address_required', 0);
 $this->SetPreference('attack_mitigation_span', '30 minutes');
 $this->SetPreference('attempts_before_ban', 10);
 $this->SetPreference('attempts_before_verify', 5);
