@@ -10,6 +10,24 @@ namespace Auther;
 class Utils
 {
 	/**
+	ContextID:
+	Get identifier (number) for @context
+	@context: identifier number|alias|name
+	Returns: int or FALSE
+	*/
+	public function ContextID($context)
+	{
+		$db = \cmsms()->GetDB();
+		$pre = \cms_db_prefix();
+		$sql = 'SELECT id FROM '.$pre.'module_auth_contexts WHERE id=? OR name=? or alias=?';
+		$id = $db->GetOne($sql, [(int)$context,$context,$context]);
+		if ($id) {
+			return (int)$id;
+		}
+		return FALSE;
+	}
+
+	/**
 	RandomAlnum:
 	Generate a random alphanumeric string of the specified length
 	@length int wanted byte-count
