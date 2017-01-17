@@ -83,7 +83,7 @@ $dict->ExecuteSQLArray($sql);
 $flds = '
 id I KEY,
 publicid C(48),
-address C(96),
+address B,
 passhash B,
 context I,
 addwhen I,
@@ -147,7 +147,6 @@ $this->SetPreference('send_activate_message', 1);
 $this->SetPreference('send_reset_message', 1);
 $t = 'kd8s2!7HVHG7777ghZfghuior.)\!/jU'; //32-bytes
 $this->SetPreference('session_salt', str_shuffle($t));
-$this->SetPreference('use_context_sender', 0);
 
 $this->CreateEvent('AuthRegister');
 $this->CreateEvent('AuthDeregister');
