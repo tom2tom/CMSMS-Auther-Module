@@ -6,7 +6,9 @@
 # More info at http://dev.cmsmadesimple.org/projects/auther
 #----------------------------------------------------------------------
 
-function langval(&$mod, $key, $def) {
+if (!function_exists('langhasval')) {
+ function langhasval(&$mod, $key)
+ {
 	static $cmsvers = 0;
 	static $trans;
 	static $realm;
@@ -21,68 +23,148 @@ function langval(&$mod, $key, $def) {
 		}
 	}
 	if ($cmsvers == 1) {
-		if (array_key_exists($key, $trans)) {
-			//NOTE $trans[] values could be any encoding
-			//use $mod->Lang($k) to transcode to UTF-8, interpret embedded params etc
-			return $trans[$key];
-		} else {
-			return $def;
-		}
+		return (array_key_exists($key, $trans));
 	} else {
-		if (CmsLangOperations::key_exists($key, $realm)) {
-			return CmsLangOperations::lang_from_realm($realm, $key);
-		} else {
-			return $def;
-		}
+		return (CmsLangOperations::key_exists($key, $realm));
 	}
+ }
+}
+if (!function_exists('getModulePrefs')) {
+ function getModulePrefs()
+ {
+	//for each set: 0=name, 1=input-type, 2=text-input-size (length or rows), 3=compulsory
+	//text-lengths here must conform to field lengths in module_auth_contexts table
+	//see also: getContextProperties()
+	return [
+	'security_level',			1, 3, 1,
+
+	'login_max_length',			1, 3, 0,
+	'login_min_length',			1, 3, 0,
+
+	'password_min_length',		1, 3, 1,
+	'password_min_score',		1, 3, 1,
+
+	'address_required',			0, 0, 0,
+	'email_required',			0, 0, 0,
+	'email_banlist',			0, 0, 0,
+
+	'attempts_before_verify',	1, 3, 0,
+	'attempts_before_ban',		1, 3, 0,
+	'attack_mitigation_span',	1, 16, 0,
+	'request_key_expiration',	1, 16, 1,
+
+	'send_activate_message',	0, 0, 0,
+	'send_reset_message',		0, 0, 0,
+	'use_context_sender',		0, 0, 0,
+	'context_sender',			1, 50, 0,
+	'context_address',			1, 50, 0,
+	'message_charset',			1, 16, 0,
+
+	'cookie_name',				1, 32, 1,
+//	'cookie_domain',			1, 48, 1,
+//	'cookie_path',				1, 48, 1,
+//	'cookie_http',				0, 0, 0,
+//	'cookie_secure',			0, 0, 0,
+	'cookie_remember',			1, 16, 1,
+	'cookie_forget',			1, 16, 1,
+	];
+ }
 }
 
-$pdev = $this->CheckPermission('Modify Any Page');
-$pset = $this->_CheckAccess('module');
-$padm = $pset || $this->_CheckAccess('admin');
-if ($padm) {
-//	$psee = TRUE;
-	$padd = TRUE;
-	$pdel = TRUE;
-	$pmod = TRUE;
-	$pbkg = TRUE;
-	$pper = TRUE;
+$pmod = $this->_CheckAccess('admin');
+if ($pmod) {
+	$psee = TRUE;
 	$pset = TRUE;
 } else {
-//	$psee = $this->_CheckAccess('view');
-	$padd = $this->_CheckAccess('add');
-	$pdel = $this->_CheckAccess('delete');
-	$pmod = $this->_CheckAccess('modify');
-	$pbkg = $this->_CheckAccess('book');
-	$pper = $this->_CheckAccess('booker');
-	$pset = $this->_CheckAccess('Modify Auth Settings');
+	$psee = $this->_CheckAccess('view');
+	$pset = FALSE;
 }
 
-$mod = $padm || $pmod;
-$bmod = $padm || $pbkg;
-
 if (isset($params['submit'])) {
+	if (!$pset) {
+		exit;
+	}
 	//save settings
-	foreach ($params as $kn=>$val) {
-		if (strncmp ($kn, 'pref_', 5) == 0) {
-			$kn = substr($kn, 5);
-			//validate, process
-			$this->SetPreference($kn, $val);
+	$cfuncs = new Auther\Crypter();
+	$kn = 'masterpass';
+	$oldpw = $cfuncs->decrypt_preference($this, $kn);
+	if ($oldpw != $params[$kn]) {
+		$val = $params[$kn];
+		//TODO re-hash all relevant data
+		$cfuncs->encrypt_preference($this, $kn, $val);
+	}
+
+	$keys = getModulePrefs();
+	$c = count($keys);
+	for ($i = 0; $i < $c; $i += 4) {
+		$kn = $keys[$i];
+		if (isset($params[$kn])) {
+			if ($keys[$i+1] === 0) { //boolean property
+				$this->SetPreference($kn, 1);
+			} else {
+				$val = $params[$kn];
+				if (is_numeric($val)) {
+					$val += 0;
+				}
+//TODO validate, process
+				switch ($kn) {
+				 case 'attack_mitigation_span':
+				 case 'request_key_expiration':
+				 case 'cookie_remember':
+				 case 'cookie_forget':
+				 	if (empty($dt)) {
+						$dt = new DateTime('@0', NULL);
+					}
+					$lvl = error_reporting(0);
+					$dt = $dt->modify('+'.$val);
+					error_reporting($lvl);
+					if (!$dt) {
+						//TODO abort, message
+						break 2;
+					}
+					break;
+				 case 'security_level':
+					if ($val < Auther::NOBOT) {
+						$val = Auther::NOBOT;
+					} elseif ($val > Auther::HISEC) {
+						$val = Auther::HISEC;
+					}
+					break;
+				 case 'password_min_score':
+					if ($val < 1) {
+						$val = 1;
+					} elseif ($val > 5) {
+						$val = 5;
+					}
+					break;
+				 default:
+					break;
+				}
+				$this->SetPreference($kn, $val);
+			}
+		} elseif ($keys[$i+1] === 0) {
+			$this->SetPreference($kn, 0);
 		}
 	}
 	$params['active_tab'] = 'settings';
+} elseif (isset($params['delete'])) {
+	if (!$pmod) {
+		exit;
+	}
+	if (isset($params['sel'])) {
+$this->Crash();
+		foreach ($params['sel'] as $cid) {
+//TODO do stuff
+		}
+	}
+	$params['active_tab'] = 'items';
 }
 
-$tplvars = array(
-//	'see' => $psee,
-	'add' => $padd,
-	'adm' => $padm,
-	'bmod' => $bmod,
-	'del' => $pdel,
-	'mod' => $mod, //not $pmod
-);
-
-$baseurl = $this->GetModuleURLPath();
+$tplvars = [
+	'mod' => $pmod,
+	'see' => $psee,
+	'set' => $pset
+];
 
 if ($pset) {
 	if (isset($params['active_tab']))
@@ -93,8 +175,8 @@ if ($pset) {
 	$seetab2 = ($showtab=='settings');
 
 	$tplvars['tab_headers'] = $this->StartTabHeaders().
-		$this->SetTabHeader('items',$this->Lang('title_items'),$seetab1).
-		$this->SetTabHeader('settings',$this->Lang('settings'),$seetab2).
+		$this->SetTabHeader('items',$this->Lang('title_contexts'),$seetab1).
+		$this->SetTabHeader('settings',$this->Lang('title_settings'),$seetab2).
 		$this->EndTabHeaders().
 		$this->StartTabContent();
 } else {
@@ -107,92 +189,188 @@ $tplvars['tab_footers'] = $this->EndTabContent();
 $tplvars['end_tab'] = $this->EndTab();
 $tplvars['endform'] = $this->CreateFormEnd();
 
+if (!empty($msg)) {
+	$tplvars['message'] = $msg;
+}
+
 $utils = new Auther\Utils();
-//$resume = json_encode(array($params['action'])); //head of resumption Q
-$jsfuncs = array(); //script accumulators
-$jsloads = array();
-$jsincs = array();
+$baseurl = $this->GetModuleURLPath();
+
+$jsfuncs = []; //script accumulators
+$jsloads = [];
+$jsincs = [];
 
 //CONTEXTS TAB
-$tplvars['startform1'] = $this->CreateFormStart($id,'processitem',$returnid,
-	'POST','','','',array('active_tab'=>'items','resume'=>$resume));
 $tplvars['start_items_tab'] = $this->StartTab('items');
+$tplvars['startform1'] = $this->CreateFormStart($id,'defaultadmin',$returnid);
+
+$theme = ($this->before20) ? cmsms()->get_variable('admintheme'):
+	cms_utils::get_theme_object();
+
+$pre = cms_db_prefix();
+$sql = <<<EOS
+SELECT C.id,C.name,C.alias,COUNT(U.context) AS users
+FROM {$pre}module_auth_contexts C
+LEFT JOIN {$pre}module_auth_users U ON C.id = U.context
+GROUP BY U.context
+EOS;
+$data = $db->GetArray($sql);
+
+if ($data) {
+	$tplvars['title_name'] = $this->Lang('title_');
+	$tplvars['title_alias'] = $this->Lang('title_');
+	$tplvars['title_id'] = $this->Lang('title_');
+
+	if ($pmod) {
+		$t = $this->Lang('TODO');
+	} else {
+		$t = $this->Lang('TODO');
+	}
+	$icon_user = '<img src="'.$baseurl.'/images/user.png" alt="'.$t.'" title="'.$t.'" border="0" />';
+	$icon_see = $theme->DisplayImage('icons/system/view.gif',$this->Lang('view'),'','','systemicon');
+	if ($pmod) {
+		$icon_edit = $theme->DisplayImage('icons/system/edit.gif',$this->Lang('edit'),'','','systemicon');
+		$icon_delete = $theme->DisplayImage('icons/system/delete.gif',$this->Lang('delete'),'','','systemicon');
+	}
+
+	$rows = [];
+	foreach ($data as &$one) {
+		$cid = (int)$one['id'];
+		$oneset = new stdClass();
+		$oneset->name = $one['name'];
+		$oneset->alias = $one['alias'];
+		$oneset->id = $cid;
+		$oneset->users = $this->CreateLink($id,'users','',$icon_user,
+			['item_id'=>$cid]);
+		$oneset->see = $this->CreateLink($id,'opencontext','',$icon_see,
+			['item_id'=>$cid, 'edit'=>0]);
+		if ($pmod) {
+			$oneset->edit = $this->CreateLink($id,'opencontext','',$icon_edit,
+				['item_id'=>$cid,'edit'=>1]);
+			$oneset->del = $this->CreateLink($id,'deletecontext','',$icon_delete,
+				['item_id'=>$cid]);
+			$oneset->sel = $this->CreateInputCheckbox($id,'sel[]',$cid,-1);
+		}
+		$rows[] = $oneset;
+	}
+	unset($one);
+
+	$tplvars['items'] = $rows;
+	$tplvars['icount'] = count($rows);
+
+	if ($pmod) {
+		$tplvars['delbtn'] = $this->CreateInputSubmit($id,'delete',$this->Lang('delete'),
+			'title="'.$this->Lang('tip_delsel_items').'"');
+
+		$jsfuncs[] = <<<EOS
+function any_selected() {
+ var cb = $('#itemstable input[name="{$id}sel[]"]:checked');
+ return (cb.length > 0);
+}
+EOS;
+		$t = $this->Lang('confirm_delsel');
+		$jsloads[] = <<<EOS
+ $('#itemacts #{$id}delete').click(function() {
+  if (any_selected()) {
+   return confirm('$t');
+  } else {
+   return false;
+  }
+ });
+EOS;
+		$t = $this->Lang('confirm_del','%s');
+		$jsloads[] = <<<EOS
+ $('#itemstable .linkdel > a').click(function() {
+  var nm = $(this.parentNode).siblings(':first').children(':first').text();
+  return confirm('$t'.replace('%s',nm));
+ });
+EOS;
+	}
+} else { //no data
+	$tplvars['noitems'] = $this->Lang('nocontext');
+	$tplvars['icount'] = 0;
+}
+
+if ($pmod) {
+	$t = $this->Lang('addcontext');
+	$icon_add = $theme->DisplayImage('icons/system/newobject.gif',$t,'','','systemicon');
+	$tplvars['iconlinkadd'] = $this->CreateLink($id,'opencontext','',$icon_add,
+		['item_id'=>-1,'edit'=>1]);
+	$tplvars['textlinkadd'] = $this->CreateLink($id,'opencontext','',$t,
+		['item_id'=>-1,'edit'=>1]);
+}
 
 //SETTINGS TAB
 if ($pset) {
-	$tplvars['startform2'] = $this->CreateFormStart($id,'defaultadmin',$returnid,
-		'POST','','','',array('active_tab'=>'settings','resume'=>$resume));
 	$tplvars['start_settings_tab'] = $this->StartTab('settings');
+	$tplvars['startform2'] = $this->CreateFormStart($id, 'defaultadmin', $returnid);
+	$tplvars['compulsory'] = $this->Lang('compulsory_items');
 
-	$keys = array(
-		'masterpass', 2, 2, 1,
+	$settings = [];
 
-		'attack_mitigation_time', 1,,,
-		'attempts_before_ban', 1,,,
-		'attempts_before_verify', 1,,,
-		'bcrypt_cost', 1,,,
-		'context_sender', 1,,,
-		'context_email', 1,,,
-		'cookie_domain', 1,,,
-		'cookie_forget', 1,,,
-		'cookie_http', 0, 0, 0, 0,
-		'cookie_name', 1,,,
-		'cookie_path', 1,,,
-		'cookie_remember', 1,,,
-		'cookie_secure', 0, 0, 0,
+	if (!isset($cfuncs)) {
+		$cfuncs = new Auther\Crypter();
+	}
+	$t = $cfuncs->decrypt_preference($this,'masterpass');
 
-		'login_max_length', 1,,,
-		'login_min_length', 1,,,
-		'login_use_banlist', 0, 0, 0,
+	$oneset = new stdClass();
+	$oneset->title = $this->Lang('title_masterpass');
+	$oneset->input = $this->CreateTextArea(FALSE, $id, $t, 'pref_masterpass', 'cloaked',
+		$id.'passwd', '', '', 40, 2);
+	$settings[] = $oneset;
 
-		'mail_charset', 1,,,
-		'password_min_length', 1,,,
-		'password_min_score', 1,,,
-		'request_key_expiration', 1,,,
+	$jsincs[] = <<<EOS
+<script type="text/javascript" src="{$baseurl}/include/jquery-inputCloak.min.js"></script>
+EOS;
+	$jsloads[] = <<<EOS
+ $('#{$id}passwd').inputCloak({
+  type:'see4',
+  symbol:'\u25CF'
+ });
+EOS;
 
-		'suppress_email_sender', 0, 0, 0,
-		'suppress_activation_message', 0, 0, 0,
-		'suppress_reset_message', 0, 0, 0,
-	);
-
-	$settings = array();
-
+	$keys = getModulePrefs();
 	$c = count($keys);
-	for ($i = 0; $i < $c; $i+=3) {
+	for ($i = 0; $i < $c; $i += 4) {
 		$kn = $keys[$i];
 		$one = new stdClass();
 		$one->title = $this->Lang('title_'.$kn);
 		switch ($keys[$i+1]) {
 		 case 0:
-			$one->input = $this->CreateInputHidden($id, 'pref_'.$kn, 0).
-				$this->CreateInputCheckbox($id, 'pref_'.$kn, $this->GetPreference($kn, 0));
+			$one->input = $this->CreateInputCheckbox($id, $kn, $this->GetPreference($kn, 0));
 			$one->must = 0;
 			break;
 		 case 1:
 			$l = $keys[$i+2];
-			$one->input = $this->CreateInputText($id, 'pref_'.$kn,
-				$this->GetPreference($kn, ''), $l, $l);
+			$one->input = $this->CreateInputText($id, $kn, $this->GetPreference($kn, ''), $l, $l);
 			$one->must = ($keys[$i+3] > 0);
 			break;
-		 case 2:
+/*		 case 2:
 			$l = $keys[$i+2];
 			$one->input = $this->CreateTextArea(FALSE, $id,
-				$this->GetPreference($kn, ''), 'pref_'.$kn, '', '', '', 50, $l);
+				$this->GetPreference($kn, ''), $kn, '', '', '', 50, $l);
 			$one->must = ($keys[$i+3] > 0);
 			break;
+*/
 		}
-		$one->help = langval($this, 'help_'.$kn, NULL);
+		$kn = 'help_'.$kn;
+		if (langhasval($this, $kn)) {
+			$one->help = $this->Lang($kn);
+		}
 		$settings[] = $one;
 	}
+	
+	$tplvars['settings'] = $settings;
+	$tplvars['submit'] = $this->CreateInputSubmit($id,'submit',$this->Lang('submit'));
+	$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('cancel'));
 } //$pset
 
-$jsall = NULL;
-$utils->MergeJS($jsincs,$jsfuncs,$jsloads,$jsall);
+$jsall = $utils->MergeJS($jsincs, $jsfuncs, $jsloads);
 unset($jsincs);
 unset($jsfuncs);
 unset($jsloads);
 
-echo Auther\Utils::ProcessTemplate($this,'adminpanel.tpl',$tplvars);
-//inject constructed js after other content (pity we can't get to </body> or </html> from here)
-if ($jsall)
-	echo $jsall;
+echo $utils->ProcessTemplate($this, 'adminpanel.tpl', $tplvars);
+if ($jsall) {
+	echo $jsall; //inject constructed js after other content
+}
