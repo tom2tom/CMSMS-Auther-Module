@@ -23,7 +23,10 @@ $lang['already_activated'] = 'Account is already activated';
 $lang['authority_failed'] = 'Incorrect login and/or password';
 
 $lang['cancel'] = 'Cancel';
+$lang['close'] = 'Close';
 $lang['compulsory_items'] = 'Properties marked with a <strong>*</strong> are compulsory.' ;
+$lang['confirm_del'] = 'Are you sure you want to delete \\\'%s\\\'?'; //double-escaped for use in js
+$lang['confirm_delsel'] = 'Are you sure you want to delete selected context(s)?';
 
 $lang['email_activation_altbody'] = 'Hello,'."\n\n".'To be able to log in you first need to activate your account by visiting the following URL:'."\n".' %s'."\n\n".'If you did not sign up on %s recently then this message was sent in error, please ignore it.';
 $lang['email_activation_body'] = 'Hello,<br /><br />To be able to log in you first need to activate your account by clicking on the following <a href="%s">link</a>.<br /><br />If you did not sign up on %s recently then this message was sent in error, please ignore it.';
@@ -39,17 +42,18 @@ $lang['email_reset_subject'] = '%s - Password reset request';
 $lang['friendlyname'] = 'Authenticator';
 $lang['function_disabled'] = 'This function has been disabled';
 //$lang['help_address_required'] = '';
-$lang['help_attack_mitigation_span'] = 'Length of time that login-attempt data are retained, something like \'10 minutes\' or \'1 day\' (unquoted, in english that <a href="http://php.net/manual/en/datetime.formats.relative.php">PHP<a> understands)';
+$lang['help_alias'] = 'For selecting a context at runtime. If left blank, an alias will be derived from tne name.';
+$lang['help_attack_mitigation_span'] = 'Length of time that login-attempt data are retained, something like \'10 minutes\' or \'1 day\' (unquoted, in english that <a href="http://php.net/manual/en/datetime.formats.relative.php">PHP understands</a>)';
 $lang['help_attempts_before_ban'] = 'After this many failed attemts, a user is locked-out for the specified \'attack-protection interval\'. 0 disables this protection.';
 $lang['help_attempts_before_verify'] = 'After this many failed attemts, a user is required to provide extra authentication. 0 disables this protection.';
 $lang['help_context_address'] = 'Blank means mailer-default value will be used';
 $lang['help_context_sender'] = 'Set to something supported by the mailer module, or else message transmission may be blocked. Blank means mailer-default value will be used';
 //$lang['help_cookie_domain'] = ''; see http://php.net/manual/en/function.setcookie.php
-$lang['help_cookie_forget'] = 'Length of time that a login is tracked, if [TODO], something like \'2 hours\' or \'1 week\' (unquoted, in english that <a href="http://php.net/manual/en/datetime.formats.relative.php">PHP<a> understands)';
+$lang['help_cookie_forget'] = 'Length of time that a login is tracked, if [TODO], something like \'2 hours\' or \'1 week\' (unquoted, in english that <a href="http://php.net/manual/en/datetime.formats.relative.php">PHP understands</a>)';
 //$lang['help_cookie_http'] = '';
 //$lang['help_cookie_name'] = '';
 //$lang['help_cookie_path'] = '';
-$lang['help_cookie_remember'] = 'Length of time that a user login persists, something like \'2 hours\' or \'1 week\' (unquoted, in english that <a href="http://php.net/manual/en/datetime.formats.relative.php">PHP<a> understands)';
+$lang['help_cookie_remember'] = 'Length of time that a user login persists, something like \'2 hours\' or \'1 week\' (unquoted, in english that <a href="http://php.net/manual/en/datetime.formats.relative.php">PHP understands</a>)';
 //$lang['help_cookie_secure'] = '';
 //$lang['help_email_required'] = '';
 //$lang['help_email_banlist'] = '';
@@ -59,7 +63,7 @@ $lang['help_login_min_length'] = 'Blank or 0 means no limit';
 //$lang['help_masterpass'] = '';
 //$lang['help_password_min_length'] = '';
 $lang['help_password_min_score'] = 'Number 1..5 broadly indicating the difficulty of cracking a password (1 is easiest)';
-$lang['help_request_key_expiration'] = 'Length of time before sent confirmation-requests expire, something like \'10 minutes\' or \'1 day\' (unquoted, in english that <a href="http://php.net/manual/en/datetime.formats.relative.php">PHP<a> understands)';
+$lang['help_request_key_expiration'] = 'Length of time before sent confirmation-requests expire, something like \'10 minutes\' or \'1 day\' (unquoted, in english that <a href="http://php.net/manual/en/datetime.formats.relative.php">PHP understands</a>)';
 $lang['help_security_level'] = 'Number 1..4 which determines the process for, and extent of security-checking during, logins (1 is lowest)';
 //$lang['help_send_activate_message'] = '';
 //$lang['help_send_reset_message'] = '';
@@ -124,11 +128,13 @@ $lang['tip_importuser'] = 'import user(s) from file';
 $lang['tip_users'] = 'review users for this context';
 
 $lang['title_address_required'] = 'Each user must provide her/his contact-address';
+$lang['title_alias'] = 'Alias';
 $lang['title_attack_mitigation_span'] = 'Attack-protection interval';
 $lang['title_attempts_before_ban'] = 'Login atttemts before block';
 $lang['title_attempts_before_verify'] = 'Login atttemts before check';
 $lang['title_context_address'] = 'Sent email-notices from address';
 $lang['title_context_sender'] = 'Sent email-notices from name';
+$lang['title_contextfull'] = 'Login-context properties';
 $lang['title_contexts'] = 'Contexts';
 //$lang['title_cookie_domain'] = '';
 $lang['title_cookie_forget'] = 'Login/session tracking-data retention';
@@ -144,6 +150,7 @@ $lang['title_login_max_length'] = 'User-identifier maximum length';
 $lang['title_login_min_length'] = 'User-identifier minimum length';
 $lang['title_message_charset'] = 'Character encoding in email messages';
 $lang['title_masterpass']='Pass-phrase for securing sensitive data';
+$lang['title_name'] = 'Name';
 $lang['title_password_min_length'] = 'Minimum password-length';
 $lang['title_password_min_score'] = 'Password-complexity minimum score';
 $lang['title_request_key_expiration'] = 'Request-key lifetime';
@@ -238,10 +245,10 @@ accessing the various services as described above.
 <pre></pre>
 <h3>Styling</h3>
 <h3>Permissions</h3>
-<h4>Modify Authentication Data</h4>
+<h4>Modify Authentication Module Properties</h4>
+<h4>Modify Authentication Contexts</h4>
+<h4>Modify Authenticated Users</h4>
 <h4>Review Authentication Data</h4>
-<h4>Send Authentication Events</h4>
-<ul>
 <h3>Events</h3>
 <h4>AuthRegister</h4>
 <h4>AuthDeregister</h4>
@@ -251,6 +258,7 @@ accessing the various services as described above.
 <h3>Requirements</h3>
 <ul>
 <li>PHP 5.4+</li>
+<li>PHP Mcrypt extension</li>
 <li>PHP Openssl extension (for multi-factor authorisation)</li>
 </ul>
 <h3>Desirables</h3>
