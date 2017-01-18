@@ -292,7 +292,7 @@ ORDER BY U.last_name,U.first_name';
 						$choices[$t] = $uid;
 					}
 				} else {
-					$choices = [$this->Lang('NA')=>-1];
+					$choices = [$this->Lang('notpermitted')=>-1];
 				}
 				$one->input = $this->CreateInputDropdown($id, $kn, $choices, -2, $data[$kn]);
 			} else {
@@ -304,10 +304,10 @@ ORDER BY U.last_name,U.first_name';
 						if ($row) {
 							$t = trim($row['first_name'].' '.$row['last_name']);
 						} else {
-							$t = $this->Lang('NA');
+							$t = $this->Lang('notpermitted');
 						}
 					} else {
-						$t = $this->Lang('NA');
+						$t = $this->Lang('notpermitted');
 					}
 				} else {
 					$t = $this->Lang('allpermitted');
