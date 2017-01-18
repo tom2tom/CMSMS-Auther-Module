@@ -88,7 +88,7 @@ $lang['login_taken'] = 'Login name is already in use';
 $lang['missingname'] = 'No name yet';
 $lang['module_nav'] = 'Module mainpage';
 
-$lang['NA'] = 'Not applicable';
+//$lang['NA'] = 'Not applicable';
 $lang['name'] = 'Name';
 $lang['newemail_match'] = 'New email matches previous email';
 $lang['newpassword_invalid'] = 'New password must contain at least one uppercase and lowercase character, and at least one digit';
@@ -97,6 +97,7 @@ $lang['newpassword_match'] = 'New password is the same as the old password';
 $lang['newpassword_nomatch'] = 'New passwords do not match';
 $lang['newpassword_short'] = 'New password is too short';
 $lang['nocontext'] = 'No context has been registered';
+$lang['notpermitted'] = 'Not permitted';
 $lang['nouser'] = 'No user has been registered for the \'%s\' context';
 
 $lang['password_changed'] = 'Password changed successfully';
