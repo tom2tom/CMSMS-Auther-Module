@@ -47,6 +47,7 @@ if (!function_exists('getModulePrefs')) {
 	'address_required',			0, 0, 0,
 	'email_required',			0, 0, 0,
 	'email_banlist',			0, 0, 0,
+	'forget_rescue',			0, 0, 0,
 
 	'attempts_before_verify',	1, 3, 0,
 	'attempts_before_ban',		1, 3, 0,
@@ -93,12 +94,12 @@ if (isset($params['submit'])) {
 		$cfuncs->encrypt_preference($this, $kn, $val);
 	}
 
-	$keys = getModulePrefs();
-	$c = count($keys);
+	$props = getModulePrefs();
+	$c = count($props);
 	for ($i = 0; $i < $c; $i += 4) {
-		$kn = $keys[$i];
+		$kn = $props[$i];
 		if (isset($params[$kn])) {
-			if ($keys[$i+1] === 0) { //boolean property
+			if ($props[$i+1] === 0) { //boolean property
 				$this->SetPreference($kn, 1);
 			} else {
 				$val = $params[$kn];
@@ -141,7 +142,7 @@ if (isset($params['submit'])) {
 				}
 				$this->SetPreference($kn, $val);
 			}
-		} elseif ($keys[$i+1] === 0) {
+		} elseif ($props[$i+1] === 0) {
 			$this->SetPreference($kn, 0);
 		}
 	}
@@ -201,7 +202,7 @@ $jsincs = [];
 
 //CONTEXTS TAB
 $tplvars['start_items_tab'] = $this->StartTab('items');
-$tplvars['startform1'] = $this->CreateFormStart($id,'defaultadmin',$returnid);
+$tplvars['startform1'] = $this->CreateFormStart($id, 'defaultadmin', $returnid);
 
 $theme = ($this->before20) ? cmsms()->get_variable('admintheme'):
 	cms_utils::get_theme_object();
@@ -216,20 +217,21 @@ EOS;
 $data = $db->GetArray($sql);
 
 if ($data) {
-	$tplvars['title_name'] = $this->Lang('title_');
-	$tplvars['title_alias'] = $this->Lang('title_');
-	$tplvars['title_id'] = $this->Lang('title_');
+	$tplvars['title_name'] = $this->Lang('title_name');
+	$tplvars['title_alias'] = $this->Lang('title_alias');
+	$tplvars['title_id'] = $this->Lang('title_id');
+	$tplvars['title_users'] = $this->Lang('users');
 
 	if ($pmod) {
-		$t = $this->Lang('TODO');
+		$t = $this->Lang('tip_usersedit');
 	} else {
-		$t = $this->Lang('TODO');
+		$t = $this->Lang('tip_users');
 	}
-	$icon_user = '<img src="'.$baseurl.'/images/user.png" alt="'.$t.'" title="'.$t.'" border="0" />';
-	$icon_see = $theme->DisplayImage('icons/system/view.gif',$this->Lang('view'),'','','systemicon');
+	$icon_user = '<img src="'.$baseurl.'/images/users.png" alt="'.$t.'" title="'.$t.'" border="0" />';
+	$icon_see = $theme->DisplayImage('icons/system/view.gif',$this->Lang('tip_view'),'','','systemicon');
 	if ($pmod) {
-		$icon_edit = $theme->DisplayImage('icons/system/edit.gif',$this->Lang('edit'),'','','systemicon');
-		$icon_delete = $theme->DisplayImage('icons/system/delete.gif',$this->Lang('delete'),'','','systemicon');
+		$icon_edit = $theme->DisplayImage('icons/system/edit.gif',$this->Lang('tip_edit'),'','','systemicon');
+		$icon_delete = $theme->DisplayImage('icons/system/delete.gif',$this->Lang('tip_delete'),'','','systemicon');
 	}
 
 	$rows = [];
@@ -239,6 +241,7 @@ if ($data) {
 		$oneset->name = $one['name'];
 		$oneset->alias = $one['alias'];
 		$oneset->id = $cid;
+		$oneset->count = $one['users'];
 		$oneset->users = $this->CreateLink($id,'users','',$icon_user,
 			['item_id'=>$cid]);
 		$oneset->see = $this->CreateLink($id,'opencontext','',$icon_see,
@@ -259,7 +262,7 @@ if ($data) {
 
 	if ($pmod) {
 		$tplvars['delbtn'] = $this->CreateInputSubmit($id,'delete',$this->Lang('delete'),
-			'title="'.$this->Lang('tip_delsel_items').'"');
+			'title="'.$this->Lang('tip_delcontext').'"');
 
 		$jsfuncs[] = <<<EOS
 function any_selected() {
@@ -328,27 +331,27 @@ EOS;
  });
 EOS;
 
-	$keys = getModulePrefs();
-	$c = count($keys);
+	$props = getModulePrefs();
+	$c = count($props);
 	for ($i = 0; $i < $c; $i += 4) {
-		$kn = $keys[$i];
+		$kn = $props[$i];
 		$one = new stdClass();
 		$one->title = $this->Lang('title_'.$kn);
-		switch ($keys[$i+1]) {
+		switch ($props[$i+1]) {
 		 case 0:
 			$one->input = $this->CreateInputCheckbox($id, $kn, 1, $this->GetPreference($kn, 0));
 			$one->must = 0;
 			break;
 		 case 1:
-			$l = $keys[$i+2];
+			$l = $props[$i+2];
 			$one->input = $this->CreateInputText($id, $kn, $this->GetPreference($kn, ''), $l, $l);
-			$one->must = ($keys[$i+3] > 0);
+			$one->must = ($props[$i+3] > 0);
 			break;
 /*		 case 2:
-			$l = $keys[$i+2];
+			$l = $props[$i+2];
 			$one->input = $this->CreateTextArea(FALSE, $id,
 				$this->GetPreference($kn, ''), $kn, '', '', '', 50, $l);
-			$one->must = ($keys[$i+3] > 0);
+			$one->must = ($props[$i+3] > 0);
 			break;
 */
 		}
@@ -368,7 +371,7 @@ $('[name="{$id}send_activate_message"],[name="{$id}send_reset_message"]').change
  }
 });
 EOS;
-	
+
 	$tplvars['submit'] = $this->CreateInputSubmit($id,'submit',$this->Lang('submit'));
 	$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('cancel'));
 } //$pset
