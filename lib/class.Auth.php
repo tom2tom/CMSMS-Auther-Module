@@ -22,6 +22,7 @@ class Auth
 {
 	const EMAILPATN = '/^.+@.+\..+$/';
 	const KEYSALT = 19; //prefix-length 19 + uniqid() 13, hence 32-byte session-key
+	const STRETCHES = 10000;
 
 	protected $mod;
 	protected $db;
@@ -32,7 +33,7 @@ class Auth
 	{
 		$this->mod = $mod;
 		$this->db = \cmsms()->GetDb();
-		$tnis->pref = \cms_db_prefix();
+		$this->pref = \cms_db_prefix();
 		$this->context = $context;
 	}
 
@@ -903,9 +904,9 @@ class Auth
 			return [FALSE,$this->mod->Lang('password_short')];
 		}
 
-		require __DIR__.DIRECTORY_SEPARATOR.zxcvbn.DIRECTORY_SEPARATOR.Zxcvbn.php;
-		$zxcvbn = new ZxcvbnPhp\Zxcvbn();
-		$check = $zxcvbn->passwordStrength($password);
+		require __DIR__.DIRECTORY_SEPARATOR.'ZxcvbnPhp'.DIRECTORY_SEPARATOR.'Zxcvbn.php';
+		$funcs = new \ZxcvbnPhp\Zxcvbn();
+		$check = $funcs->passwordStrength($password);
 
 		$val = (int)$this->getConfig($this->context, 'password_min_score');
 		if ($check['score'] + 1 < $val) { //returned value 0..4, public uses 1..5
@@ -1368,7 +1369,7 @@ class Auth
 
 	Returns: plaintext string, or FALSE
 	*/
-	protected function password_retrieve($hash, $masterkey)
+	public function password_retrieve($hash, $masterkey)
 	{
 		if (!function_exists('crypt')) {
 			trigger_error('Crypt extension must be present for password retrieval', E_USER_WARNING);
