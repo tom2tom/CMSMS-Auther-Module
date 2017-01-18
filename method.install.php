@@ -17,24 +17,29 @@ $pref = \cms_db_prefix();
 //cookie_http I(1) DEFAULT 0,
 //cookie_domain C(48),
 $flds = '
-id I KEY,
+id I(2) KEY,
 name C(48) NOTNULL,
 alias C(16) NOTNULL,
+owner I DEFAULT 0,
 request_key_expiration C(16) DEFAULT \'10 minutes\',
 attack_mitigation_span C(16) DEFAULT \'30 minutes\',
 attempts_before_ban I(1) DEFAULT 10,
 attempts_before_verify I(1) DEFAULT 5,
+context_sender C(48),
+context_address C(96),
 cookie_name C(32) DEFAULT \'CMSMSauthID\',
 cookie_forget C(16) DEFAULT \'30 minutes\',
 cookie_remember C(16) DEFAULT \'1 week\',
 login_max_length I(1) DEFAULT 48,
 login_min_length I(1) DEFAULT 5,
-address_required I(1) DEFAULT 0,
-email_required I(1) DEFAULT 0,
+forget_rescue I(1) DEFAULT 0,
+address_required I(1) DEFAULT 1,
+email_required I(1) DEFAULT 1,
 email_banlist I(1) DEFAULT 1,
+message_charset C(16),
 password_min_length I(1) DEFAULT 8,
 password_min_score I(1) DEFAULT 4,
-security_level I(1) DEFAULT '.Auther::LOSEC.'.
+security_level I(1) DEFAULT '.Auther::LOSEC.',
 send_activate_message I(1) DEFAULT 1,
 send_reset_message I(1) DEFAULT 1
 ';
@@ -85,7 +90,7 @@ id I KEY,
 publicid C(48),
 address B,
 passhash B,
-context I,
+context I(2),
 addwhen I,
 lastuse I,
 active I(1) DEFAULT 1
@@ -115,7 +120,7 @@ $db->CreateSequence($pref.'module_auth_userprops_seq');
 $funcs = new Auther\Crypter();
 $funcs->encrypt_preference($this, 'masterpass', base64_decode('U3VjayBpdCB1cCwgY3JhY2tlcnMh'));
 
-$this->SetPreference('address_required', 0);
+$this->SetPreference('address_required', 1);
 $this->SetPreference('attack_mitigation_span', '30 minutes');
 $this->SetPreference('attempts_before_ban', 10);
 $this->SetPreference('attempts_before_verify', 5);
@@ -131,7 +136,8 @@ $this->SetPreference('cookie_remember', '1 week');
 //$this->SetPreference('cookie_secure', 0);
 
 $this->SetPreference('email_banlist', 1);
-$this->SetPreference('email_required', 0);
+$this->SetPreference('email_required', 1);
+$this->SetPreference('forget_rescue', 0);
 
 $this->SetPreference('login_max_length', 48);
 $this->SetPreference('login_min_length', 5);
