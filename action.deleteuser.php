@@ -10,8 +10,9 @@ if (!($this->_CheckAccess('admin') || $this->_CheckAccess('user'))) {
 	exit;
 }
 
-$uid = (int)$params['item_id'];
+$utils = new Auther\Utils();
+$utils->DeleteUser($params['item_id']);
 
-//TODO delete user
+$this->Crash();
 
 $this->Redirect($id, 'users', '', []); //TODO parms
