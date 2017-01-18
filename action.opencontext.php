@@ -274,28 +274,45 @@ for ($i = 0; $i < $c; $i += 4) {
 				unset($one);
 				break 2;
 			} elseif ($mod) {
-				$choices = [$this->Lang('allpermitted')=>0];
 				$pre = cms_db_prefix();
-	//TODO filter out unpermitted users
-				$sql = 'SELECT user_id,first_name,last_name FROM '.$pre.'users WHERE active=1 ORDER BY last_name,first_name';
+		//cmsms function check_permission() returns FALSE for everyone other than
+		//the current user, so we replicate its backend operation here
+				$sql = 'SELECT DISTINCT U.user_id,U.first_name,U.last_name FROM '.$pre.'users U
+JOIN '.$pre.'user_groups UG ON U.user_id = UG.user_id
+JOIN '.$pre.'group_perms GP ON GP.group_id = UG.group_id
+JOIN '.$pre.'permissions P ON P.permission_id = GP.permission_id
+JOIN '.$pre.'groups GR ON GR.group_id = UG.group_id
+WHERE U.admin_access=1 AND U.active=1 AND GR.active=1 AND P.permission_name IN ("AuthModuleAdmin","AuthModifyContext")
+ORDER BY U.last_name,U.first_name';
 				$allusers = $db->GetAssoc($sql);
 				if ($allusers) {
+					$choices = [$this->Lang('allpermitted')=>0];
 					foreach ($allusers as $uid=>$row) {
 						$t = trim($row['first_name'].' '.$row['last_name']);
 						$choices[$t] = $uid;
 					}
-				}
-				$one->input = $this->CreateInputDropdown($id, $kn, $choices, -1, $data[$kn]);
-			} else {
-				$pre = cms_db_prefix();
-				$sql = 'SELECT first_name,last_name FROM '.$pre.'users WHERE user_id=? AND active=1';
-				$choices = $db->GetRow($sql, [$data[$kn]]);
-				if ($choices) {
-					$t = trim($choices['first_name'].' '.$choices['last_name']);
 				} else {
-					$t = FALSE;
+					$choices = [$this->Lang('NA')=>-1];
 				}
-				$one->input = ($t) ? $t:$this->Lang('allpermitted');
+				$one->input = $this->CreateInputDropdown($id, $kn, $choices, -2, $data[$kn]);
+			} else {
+				if ($data[$kn]) {
+					if ($data[$kn] != -1) {
+						$pre = cms_db_prefix();
+						$sql = 'SELECT first_name,last_name FROM '.$pre.'users WHERE user_id=? AND active=1';
+						$row = $db->GetRow($sql, [$data[$kn]]);
+						if ($row) {
+							$t = trim($row['first_name'].' '.$row['last_name']);
+						} else {
+							$t = $this->Lang('NA');
+						}
+					} else {
+						$t = $this->Lang('NA');
+					}
+				} else {
+					$t = $this->Lang('allpermitted');
+				}
+				$one->input = $t;
 			}
 			$one->must = 0;
 			break;
