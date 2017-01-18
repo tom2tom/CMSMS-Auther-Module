@@ -10,8 +10,7 @@ if (!($this->_CheckAccess('admin') || $this->_CheckAccess('context'))) {
 	exit;
 }
 
-$cid = (int)$params['item_id'];
-
-//TODO delete context
+$utils = new Auther\Utils();
+$utils->DeleteContext($params['item_id']);
 
 $this->Redirect($id, 'defaultadmin');

@@ -152,10 +152,8 @@ if (isset($params['submit'])) {
 		exit;
 	}
 	if (isset($params['sel'])) {
-$this->Crash();
-		foreach ($params['sel'] as $cid) {
-//TODO do stuff
-		}
+		$utils = new Auther\Utils();
+		$utils->DeleteContext($params['sel']);
 	}
 	$params['active_tab'] = 'items';
 }
@@ -287,7 +285,7 @@ EOS;
   return confirm('$t'.replace('%s',nm));
  });
 EOS;
-	}
+	} //$pmod
 } else { //no data
 	$tplvars['noitems'] = $this->Lang('nocontext');
 	$tplvars['icount'] = 0;
