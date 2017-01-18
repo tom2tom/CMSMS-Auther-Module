@@ -50,10 +50,9 @@ class Utils
 	@id: session identifier
 	@returnid:
 	@params: reference to array of request-parameters including link-related data
-	@tplvars: reference to associative array of template variables
 	Returns: nothing
 	*/
-	public function BuildNav(&$mod, $id, $returnid, &$params, &$tplvars)
+	public function BuildNav(&$mod, $id, $returnid, &$params)
 	{
 		$navstr = $mod->CreateLink($id, 'defaultadmin', $returnid,
 		'&#171; '.$mod->Lang('module_nav'));
