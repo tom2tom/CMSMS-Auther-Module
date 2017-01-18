@@ -226,7 +226,7 @@ $theme = ($this->before20) ? cmsms()->get_variable('admintheme'):
 
 $pre = cms_db_prefix();
 $sql = <<<EOS
-SELECT C.id,C.name,C.alias,COUNT(U.context) AS users
+SELECT C.id,C.name,C.alias,C.owner,COUNT(U.context) AS users
 FROM {$pre}module_auth_contexts C
 LEFT JOIN {$pre}module_auth_users U ON C.id = U.context
 GROUP BY U.context
@@ -251,26 +251,30 @@ if ($data) {
 		$icon_delete = $theme->DisplayImage('icons/system/delete.gif',$this->Lang('tip_delete'),'','','systemicon');
 	}
 
+	$uid = ($pmod) ? 0 : get_userid(FALSE); //current user
+
 	$rows = [];
 	foreach ($data as &$one) {
-		$cid = (int)$one['id'];
-		$oneset = new stdClass();
-		$oneset->name = $one['name'];
-		$oneset->alias = $one['alias'];
-		$oneset->id = $cid;
-		$oneset->count = $one['users'];
-		$oneset->users = $this->CreateLink($id,'users','',$icon_user,
-			['item_id'=>$cid]);
-		$oneset->see = $this->CreateLink($id,'opencontext','',$icon_see,
-			['item_id'=>$cid, 'edit'=>0]);
-		if ($pmod) {
-			$oneset->edit = $this->CreateLink($id,'opencontext','',$icon_edit,
-				['item_id'=>$cid,'edit'=>1]);
-			$oneset->del = $this->CreateLink($id,'deletecontext','',$icon_delete,
+		if ($uid == 0 || $uid == $one['owner']) {
+			$cid = (int)$one['id'];
+			$oneset = new stdClass();
+			$oneset->name = $one['name'];
+			$oneset->alias = $one['alias'];
+			$oneset->id = $cid;
+			$oneset->count = $one['users'];
+			$oneset->users = $this->CreateLink($id,'users','',$icon_user,
 				['item_id'=>$cid]);
-			$oneset->sel = $this->CreateInputCheckbox($id,'sel[]',$cid,-1);
+			$oneset->see = $this->CreateLink($id,'opencontext','',$icon_see,
+				['item_id'=>$cid, 'edit'=>0]);
+			if ($pmod) {
+				$oneset->edit = $this->CreateLink($id,'opencontext','',$icon_edit,
+					['item_id'=>$cid,'edit'=>1]);
+				$oneset->del = $this->CreateLink($id,'deletecontext','',$icon_delete,
+					['item_id'=>$cid]);
+				$oneset->sel = $this->CreateInputCheckbox($id,'sel[]',$cid,-1);
+			}
+			$rows[] = $oneset;
 		}
-		$rows[] = $oneset;
 	}
 	unset($one);
 
