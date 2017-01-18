@@ -36,6 +36,7 @@ if (!function_exists('getModulePrefs')) {
 	//text-lengths here must conform to field lengths in module_auth_contexts table
 	//see also: getContextProperties()
 	return [
+	'masterpass',				4, 2, 1,
 	'security_level',			1, 3, 1,
 
 	'login_max_length',			1, 3, 0,
@@ -43,6 +44,7 @@ if (!function_exists('getModulePrefs')) {
 
 	'password_min_length',		1, 3, 1,
 	'password_min_score',		1, 3, 1,
+	'default_password',			4, 50, 1,
 
 	'address_required',			0, 0, 0,
 	'email_required',			0, 0, 0,
@@ -80,18 +82,12 @@ if ($pmod) {
 	$pset = FALSE;
 }
 
+$cfuncs = new Auther\Crypter();
+
 if (isset($params['submit'])) {
+	//save settings
 	if (!$pset) {
 		exit;
-	}
-	//save settings
-	$cfuncs = new Auther\Crypter();
-	$kn = 'masterpass';
-	$oldpw = $cfuncs->decrypt_preference($this, $kn);
-	if ($oldpw != $params[$kn]) {
-		$val = $params[$kn];
-		//TODO re-hash all relevant data
-		$cfuncs->encrypt_preference($this, $kn, $val);
 	}
 
 	$props = getModulePrefs();
@@ -137,6 +133,29 @@ if (isset($params['submit'])) {
 						$val = 5;
 					}
 					break;
+				 case 'masterpass':
+					if ($props[$i+3] > 0) {
+						if (!$val) {
+	//TODO abort, message
+							break 2;
+						}
+					}
+					$oldpw = $cfuncs->decrypt_preference($this, $kn);
+					if ($oldpw != $val) {
+	//TODO re-hash all relevant data
+					}
+					$cfuncs->encrypt_preference($this, $kn, $val);
+					break 2;
+				 case 'default_password':
+					if ($props[$i+3] > 0) {
+						$afuncs = new Auther\Auth($this, NULL);
+						if (!$afuncs->validatePassword($val)) {
+							//TODO abort, message
+							break 2;
+						}
+					}
+					$cfuncs->encrypt_preference($this, $kn, $val);
+					break 2;
 				 default:
 					break;
 				}
@@ -311,23 +330,6 @@ if ($pset) {
 	if (!isset($cfuncs)) {
 		$cfuncs = new Auther\Crypter();
 	}
-	$t = $cfuncs->decrypt_preference($this,'masterpass');
-
-	$oneset = new stdClass();
-	$oneset->title = $this->Lang('title_masterpass');
-	$oneset->input = $this->CreateTextArea(FALSE, $id, $t, 'pref_masterpass', 'cloaked',
-		$id.'passwd', '', '', 40, 2);
-	$settings[] = $oneset;
-
-	$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/jquery-inputCloak.min.js"></script>
-EOS;
-	$jsloads[] = <<<EOS
- $('#{$id}passwd').inputCloak({
-  type:'see4',
-  symbol:'\u25CF'
- });
-EOS;
 
 	$props = getModulePrefs();
 	$c = count($props);
@@ -352,6 +354,22 @@ EOS;
 			$one->must = ($props[$i+3] > 0);
 			break;
 */
+		 case 4:
+		 	switch($kn) {
+			 case 'masterpass':
+				$t = $cfuncs->decrypt_preference($this, $kn);
+				$one->input = $this->CreateTextArea(FALSE, $id, $t, $kn, 'cloaked',
+					'', '', '', 40, $props[$i+2]);
+				break;
+			 case 'default_password':
+				$t = $cfuncs->decrypt_preference($this, $kn);
+				$l = $props[$i+2];
+				$t = $this->CreateInputText($id, $kn, $t, $l, $l);
+				$one->input = str_replace('class="', 'class="cloaked ', $t);
+				break;
+			}
+			$one->must = ($props[$i+3] > 0);
+			break;
 		}
 		$kn = 'help_'.$kn;
 		if (langhasval($this, $kn)) {
@@ -362,12 +380,19 @@ EOS;
 
 	$tplvars['settings'] = $settings;
 
+	$jsincs[] = <<<EOS
+<script type="text/javascript" src="{$baseurl}/include/jquery-inputCloak.min.js"></script>
+EOS;
 	$jsloads[] = <<<EOS
-$('[name="{$id}send_activate_message"],[name="{$id}send_reset_message"]').change(function() {
- if (this.checked) {
-  $('[name="{$id}address_required"],[name="{$id}email_required"]').prop('checked',true);
- }
-});
+ $('.cloaked').inputCloak({
+  type:'see4',
+  symbol:'\u25CF'
+ });
+ $('[name="{$id}send_activate_message"],[name="{$id}send_reset_message"]').change(function() {
+  if (this.checked) {
+   $('[name="{$id}address_required"],[name="{$id}email_required"]').prop('checked',true);
+  }
+ });
 EOS;
 
 	$tplvars['submit'] = $this->CreateInputSubmit($id,'submit',$this->Lang('submit'));

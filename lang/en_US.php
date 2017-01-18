@@ -49,6 +49,7 @@ $lang['help_alias'] = 'For identifying and selecting this context at runtime. If
 $lang['help_attack_mitigation_span'] = 'Length of time that login-attempt data are retained, something like \'10 minutes\' or \'1 day\' (unquoted, in english that <a href="http://php.net/manual/en/datetime.formats.relative.php">PHP understands</a>)';
 $lang['help_attempts_before_ban'] = 'After this many failed attemts, a user is locked-out for the specified \'attack-protection interval\'. 0 disables this protection.';
 $lang['help_attempts_before_verify'] = 'After this many failed attemts, a user is required to provide extra authentication. 0 disables this protection.';
+$lang['help_default_password'] = 'Applied if necessary when adding or importing users';
 $lang['help_context_address'] = 'Above information about sender name appplies here too';
 $lang['help_context_sender'] = 'Typically this will be blank/empty, to use the mailer-default value. Otherwise set to a value supported by the mailer module, or else message transmission may be blocked.';
 //$lang['help_cookie_domain'] = ''; see http://php.net/manual/en/function.setcookie.php
@@ -156,6 +157,7 @@ $lang['title_cookie_name'] = 'Name of http cookie which tracks logins';
 //$lang['title_cookie_path'] = '';
 $lang['title_cookie_remember'] = 'Login/session duration';
 //$lang['title_cookie_secure'] = '';
+$lang['title_default_password'] = 'Default user-password';
 $lang['title_email_required'] = 'The contact must be an email-address';
 $lang['title_email_banlist'] = 'Prevent blacklisted email addresses';
 $lang['title_forget_rescue'] = 'Enable forgotten-password rescue';
@@ -226,12 +228,12 @@ Each line in the file (except the header line, discussed below) represents one u
 <h4>Header line</h4>
 <p>The first line of the file names the fields in the file, as follows.
 The supplied names may be in any order. Those prefixed by a '#' represent compulsory values.<br />
-<code>#Login,Password,Passhash,Address,#Context,Update</code></p>
+<code>#Context,#Login,Password,Passhash,MessageTo,Update</code></p>
 <h4>Other lines</h4>
 <p>The data in each line must conform to the header columns, of course. Any non-compulsory field, or entire line, may be empty.<br />
-If neither a Password or (previously-exported) Passhash value is provided, a default ('changethis') will be applied.<br />
-Address will typically be an email address.<br />
-Context may be a numeric identifier, or alias string, representing a recorded login-context.<br />
+Context may be a numeric identifier, or alias string, representing a login-context (which will be created if not already present).<br />
+If neither a Password or (previously-exported) Passhash value is provided, a default will be applied.<br />
+MessageTo will typically be an email address.<br />
 The Update field will be treated as TRUE if it contains something other than 0 or 'no' or 'NO' (no quotes, untranslated)<br />
 <h3>Problems</h3>
 <p>The import process will fail if:<ul>

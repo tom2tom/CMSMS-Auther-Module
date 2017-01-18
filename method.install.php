@@ -21,6 +21,7 @@ id I(2) KEY,
 name C(48) NOTNULL,
 alias C(16) NOTNULL,
 owner I DEFAULT 0,
+default_password B,
 request_key_expiration C(16) DEFAULT \'10 minutes\',
 attack_mitigation_span C(16) DEFAULT \'30 minutes\',
 attempts_before_ban I(1) DEFAULT 10,
@@ -119,6 +120,7 @@ $db->CreateSequence($pref.'module_auth_userprops_seq');
 
 $funcs = new Auther\Crypter();
 $funcs->encrypt_preference($this, 'masterpass', base64_decode('U3VjayBpdCB1cCwgY3JhY2tlcnMh'));
+$funcs->encrypt_preference($this, 'default_password', base64_decode('Y2hhbmdlfCMkIyR8QVNBUA==')); //score 4
 
 $this->SetPreference('address_required', 1);
 $this->SetPreference('attack_mitigation_span', '30 minutes');

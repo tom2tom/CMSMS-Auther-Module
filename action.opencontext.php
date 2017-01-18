@@ -33,6 +33,7 @@ if (!function_exists('getContextProperties')) {
 
 	'password_min_length',	1, 3, 1,
 	'password_min_score',	1, 3, 1,
+	'default_password',		4, 50, 1,
 
 	'address_required',		0, 0, 0,
 	'email_required',		0, 0, 0,
@@ -143,6 +144,15 @@ if (isset($params['cancel'])) {
 					if ($val < 1 || $val > 5) {
 						//TODO abort, message
 					}
+					break;
+				 case 'default_password':
+					$funcs = new Auther\Auth($this, $cid); //TODO if == -1
+					if (!$funcs->validatePassword($val)) {
+						//TODO abort, message
+					}
+					$cfuncs = new Auther\Crypter();
+					$key = $cfuncs->decrypt_preference('masterpass');
+					$val = $funcs->password_hash($val, $key);
 					break;
 				 default:
 					break;
@@ -258,7 +268,8 @@ for ($i = 0; $i < $c; $i += 4) {
 		break;
 */
 	 case 4:
-		if ($kn == 'owner') {
+		switch ($kn) {
+		 case 'owner':
 			if (!$pown) {
 				unset($one);
 				break 2;
@@ -287,7 +298,36 @@ for ($i = 0; $i < $c; $i += 4) {
 				$one->input = ($t) ? $t:$this->Lang('allpermitted');
 			}
 			$one->must = 0;
-		}
+			break;
+		 case 'default_password':
+			if ($mod) {
+				if ($data[$kn]) {
+					$funcs = new Auther\Crypter();
+					$t = $funcs->decrypt_preference($this, 'masterpass');
+					$funcs = new Auther\Auth($this, $cid); //TODO if == -1
+					$val = $funcs->password_retrieve($data[$kn], $t);
+				} else {
+					$val = '';
+				}
+				$l = $props[$i+2];
+				$one->input = $this->CreateInputText($id, $kn, $val, $l, $l);
+				$one->must = ($props[$i+3] > 0);
+
+				$jsincs[] = <<<EOS
+<script type="text/javascript" src="{$baseurl}/include/jquery-inputCloak.min.js"></script>
+EOS;
+				$jsloads[] = <<<EOS
+ $('#{$id}{$kn}').inputCloak({
+  type:'see4',
+  symbol:'\u25CF'
+ });
+EOS;
+			} else {
+				$one->input = ''; //TODO $this->Lang('private');
+				$one->must = 0;
+			}
+			break;
+		} //switch($kn)
 		break;
 	}
 	$kn = 'help_'.$kn;
