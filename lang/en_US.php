@@ -19,6 +19,7 @@ $lang['addcontext'] = 'Add new context';
 $lang['adduser'] = 'Add new user';
 $lang['admindescription'] = 'This module provides authentication functionality for other modules';
 $lang['alias'] = 'Alias';
+$lang['allpermitted'] = 'Everyone permitted';
 $lang['already_activated'] = 'Account is already activated';
 $lang['authority_failed'] = 'Incorrect login and/or password';
 
@@ -27,6 +28,8 @@ $lang['close'] = 'Close';
 $lang['compulsory_items'] = 'Properties marked with a <strong>*</strong> are compulsory.' ;
 $lang['confirm_del'] = 'Are you sure you want to delete \\\'%s\\\'?'; //double-escaped for use in js
 $lang['confirm_delsel'] = 'Are you sure you want to delete selected context(s)?';
+
+$lang['delete'] = 'Delete';
 
 $lang['email_activation_altbody'] = 'Hello,'."\n\n".'To be able to log in you first need to activate your account by visiting the following URL:'."\n".' %s'."\n\n".'If you did not sign up on %s recently then this message was sent in error, please ignore it.';
 $lang['email_activation_body'] = 'Hello,<br /><br />To be able to log in you first need to activate your account by clicking on the following <a href="%s">link</a>.<br /><br />If you did not sign up on %s recently then this message was sent in error, please ignore it.';
@@ -42,7 +45,7 @@ $lang['email_reset_subject'] = '%s - Password reset request';
 $lang['friendlyname'] = 'Authenticator';
 $lang['function_disabled'] = 'This function has been disabled';
 //$lang['help_address_required'] = '';
-$lang['help_alias'] = 'For selecting a context at runtime. If left blank, an alias will be derived from tne name.';
+$lang['help_alias'] = 'For identifying and selecting this context at runtime. If left blank, an alias will be derived from tne name.';
 $lang['help_attack_mitigation_span'] = 'Length of time that login-attempt data are retained, something like \'10 minutes\' or \'1 day\' (unquoted, in english that <a href="http://php.net/manual/en/datetime.formats.relative.php">PHP understands</a>)';
 $lang['help_attempts_before_ban'] = 'After this many failed attemts, a user is locked-out for the specified \'attack-protection interval\'. 0 disables this protection.';
 $lang['help_attempts_before_verify'] = 'After this many failed attemts, a user is required to provide extra authentication. 0 disables this protection.';
@@ -57,11 +60,13 @@ $lang['help_cookie_remember'] = 'Length of time that a user login persists, some
 //$lang['help_cookie_secure'] = '';
 //$lang['help_email_required'] = '';
 //$lang['help_email_banlist'] = '';
+//$lang['help_forget_rescue'] = '';
 $lang['help_login_max_length'] = 'Blank or 0 means no limit';
 $lang['help_login_min_length'] = 'Blank or 0 means no limit';
 //$lang['help_message_charset'] = '';
 //$lang['help_masterpass'] = '';
 //$lang['help_password_min_length'] = '';
+$lang['help_owner'] = 'Admin user assigned to manage this context';
 $lang['help_password_min_score'] = 'Number 1..5 broadly indicating the difficulty of cracking a password (1 is easiest)';
 $lang['help_request_key_expiration'] = 'Length of time before sent confirmation-requests expire, something like \'10 minutes\' or \'1 day\' (unquoted, in english that <a href="http://php.net/manual/en/datetime.formats.relative.php">PHP understands</a>)';
 $lang['help_security_level'] = 'Number 1..4 which determines the process for, and extent of security-checking during, logins (1 is lowest)';
@@ -82,6 +87,7 @@ $lang['login_taken'] = 'Login name is already in use';
 $lang['missingname'] = 'No name yet';
 $lang['module_nav'] = 'Module mainpage';
 
+//$lang['NA'] = 'Not applicable';
 $lang['name'] = 'Name';
 $lang['newemail_match'] = 'New email matches previous email';
 $lang['newpassword_invalid'] = 'New password must contain at least one uppercase and lowercase character, and at least one digit';
@@ -122,16 +128,20 @@ $lang['resetkey_invalid'] = 'Reset key is invalid';
 $lang['submit'] = 'Submit';
 $lang['system_error'] = 'A system error has been encountered. Please try again.';
 
+$lang['tip_delete'] = 'delete this';
 $lang['tip_delcontext'] = 'delete selected context(s)';
-$lang['tip_delsuser'] = 'delete selected user(s)';
+$lang['tip_deluser'] = 'delete selected user(s)';
+$lang['tip_edit'] = 'edit properties';
 $lang['tip_importuser'] = 'import user(s) from file';
-$lang['tip_users'] = 'review users for this context';
+$lang['tip_users'] = 'review users';
+$lang['tip_usersedit'] = 'review/change users';
+$lang['tip_view'] = 'review properties';
 
 $lang['title_address_required'] = 'Each user must provide her/his contact-address';
 $lang['title_alias'] = 'Alias';
 $lang['title_attack_mitigation_span'] = 'Attack-protection interval';
-$lang['title_attempts_before_ban'] = 'Login atttemts before block';
-$lang['title_attempts_before_verify'] = 'Login atttemts before check';
+$lang['title_attempts_before_ban'] = 'Login attempts before block';
+$lang['title_attempts_before_verify'] = 'Login attempts before extra check';
 $lang['title_context_address'] = 'Email-address used as as originator';
 $lang['title_context_sender'] = 'Name of email-notice sender';
 $lang['title_contextadd'] = 'Add login-context';
@@ -146,12 +156,15 @@ $lang['title_cookie_remember'] = 'Login/session duration';
 //$lang['title_cookie_secure'] = '';
 $lang['title_email_required'] = 'The contact must be an email-address';
 $lang['title_email_banlist'] = 'Prevent blacklisted email addresses';
+$lang['title_forget_rescue'] = 'Enable forgotten-password rescue';
+$lang['title_id'] = 'ID number';
 $lang['title_import'] = 'Import user-data from file';
 $lang['title_login_max_length'] = 'User-identifier maximum length';
 $lang['title_login_min_length'] = 'User-identifier minimum length';
 $lang['title_message_charset'] = 'Character encoding in email messages';
 $lang['title_masterpass']='Pass-phrase for securing sensitive data';
 $lang['title_name'] = 'Name';
+$lang['title_owner'] = 'Owner';
 $lang['title_password_min_length'] = 'Minimum password-length';
 $lang['title_password_min_score'] = 'Password-complexity minimum score';
 $lang['title_request_key_expiration'] = 'Request-key lifetime';
