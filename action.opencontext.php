@@ -7,10 +7,13 @@
 #----------------------------------------------------------------------
 
 $cid = (int)$params['item_id']; //-1 for new context
-$pmod = ($cid == -1 || !empty($params['edit']));
-if ($pmod && !($this->_CheckAccess('admin') || $this->_CheckAccess('context'))) {
+$mod = ($cid == -1 || !empty($params['edit']));
+$pmod = $this->_CheckAccess('admin');
+$pown = $this->_CheckAccess('context');
+if ($mod && !($pmod || $pown)) {
 	exit;
 }
+$pmod = $pmod || $pown;
 
 if (!function_exists('getContextProperties')) {
  function getContextProperties()
@@ -21,6 +24,7 @@ if (!function_exists('getContextProperties')) {
 	return [
 	'name',					1, 50, 1,
 	'alias',				1, 16, 0,
+	'owner',				4, 50, 0,
 
 	'security_level',		1, 3, 1,
 
@@ -33,6 +37,7 @@ if (!function_exists('getContextProperties')) {
 	'address_required',		0, 0, 0,
 	'email_required',		0, 0, 0,
 	'email_banlist',		0, 0, 0,
+	'forget_rescue',		0, 0, 0,
 
 	'attempts_before_verify',1, 3, 0,
 	'attempts_before_ban',	1, 3, 0,
@@ -84,17 +89,22 @@ if (isset($params['cancel'])) {
 } elseif (isset($params['submit'])) {
 	$keys = [];
 	$args = [];
-	$keys = getContextProperties();
-	$c = count($keys);
+	$props = getContextProperties();
+	$c = count($props);
 	for ($i = 0; $i < $c; $i += 4) {
-		$kn = $keys[$i];
+		$kn = $props[$i];
 		if (isset($params[$kn])) {
-			if ($keys[$i+1] === 0) { //boolean property
+			if ($props[$i+1] === 0) { //boolean property
 				$keys[] = $kn;
 				$args[] = 1;
+			} elseif ($props[$i+1] === 4) { //custom treatment
+				if ($kn == 'owner') {
+					$keys[] = $kn;
+					$args[] = (int)$params[$kn];
+				}
 			} else {
 				$val = $params[$kn];
-				if ($keys[$i+3] > 0) {
+				if ($props[$i+3] > 0) {
 					if (!($val || is_numeric($val))) {
 						//TODO abort, message
 					}
@@ -106,7 +116,7 @@ if (isset($params['cancel'])) {
 				switch ($kn) {
 				 case 'alias':
 					if (!$val) {
-						$t = strtolower(preg_replace(array('/\s+/', '/__+/'), array('_', '_'), $data['name']));
+						$t = strtolower(preg_replace(array('/\s+/', '/__+/'), array('_', '_'), $params['name']));
 						$val = substr($t, 0, 16); //NB no check for alias duplication
 					}
 					break;
@@ -140,7 +150,7 @@ if (isset($params['cancel'])) {
 				$keys[] = $kn;
 				$args[] = $val;
 			}
-		} elseif ($keys[$i+1] === 0) {
+		} elseif ($props[$i+1] === 0) {
 			$keys[] = $kn;
 			$args[] = 0;
 		}
@@ -148,8 +158,8 @@ if (isset($params['cancel'])) {
 	$pre = cms_db_prefix();
 	if ($cid == -1) {
 		$cid = $db->GenId($pre.'module_auth_contexts_seq');
-		array_shift($args, $cid);
-		array_shift($keys, 'id');
+		array_unshift($args, $cid);
+		array_unshift($keys, 'id');
 		$flds = implode(',',$keys);
 		$fillers = str_repeat('?,',count($keys)-1);
 		$sql = 'INSERT INTO '.$pre.'module_auth_contexts ('.$flds.') VALUES ('.$fillers.'?)';
@@ -158,7 +168,7 @@ if (isset($params['cancel'])) {
 		$args[] = $cid;
 		$sql = 'UPDATE '.$pre.'module_auth_contexts SET '.$flds.'=? WHERE id=?';
 	}
-	$db->Execute($sql, $args);
+	$ares = $db->Execute($sql, $args);
 
 	$this->Redirect($id, 'defaultadmin');
 }
@@ -182,7 +192,7 @@ if ($cid > -1) { //existing data
 
 $utils = new Auther\Utils();
 
-$tplvars = ['mod' => $pmod];
+$tplvars = ['mod' => $mod, 'own' => $pown];
 $tplvars['pagenav'] = $utils->BuildNav($this,$id,$returnid,$params);
 $hidden = [
 	'item_id'=>$cid,
@@ -204,21 +214,21 @@ $jsfuncs = []; //script accumulators
 $jsloads = [];
 $jsincs = [];
 
-if (!$pmod) {
+if (!$mod) {
 	$yes = $this->Lang('yes');
 	$no = $this->Lang('no');
 }
 
 $options = [];
-$keys = getContextProperties();
-$c = count($keys);
+$props = getContextProperties();
+$c = count($props);
 for ($i = 0; $i < $c; $i += 4) {
-	$kn = $keys[$i];
+	$kn = $props[$i];
 	$one = new stdClass();
 	$one->title = $this->Lang('title_'.$kn);
-	switch ($keys[$i+1]) {
+	switch ($props[$i+1]) {
 	 case 0:
-	 	if ($pmod) {
+	 	if ($mod) {
 			$one->input = $this->CreateInputCheckbox($id, $kn, 1, $data[$kn]);
 		} else {
 			$one->input = ($data[$kn]) ? $yes:$no;
@@ -226,27 +236,59 @@ for ($i = 0; $i < $c; $i += 4) {
 		$one->must = 0;
 		break;
 	 case 1:
-	 	if ($pmod) {
-			$l = $keys[$i+2];
+	 	if ($mod) {
+			$l = $props[$i+2];
 			$one->input = $this->CreateInputText($id, $kn, $data[$kn], $l, $l);
-			$one->must = ($keys[$i+3] > 0);
+			$one->must = ($props[$i+3] > 0);
 		} else {
 			$one->input = $data[$kn];
 			$one->must = 0;
 		}
 		break;
 /*	 case 2:
-		$l = $keys[$i+2];
-		if ($pmod) {
+		$l = $props[$i+2];
+		if ($mod) {
 			$one->input = $this->CreateTextArea(FALSE, $id, $data[$kn], 'pref_'.$kn,
 				'', '', '', 50, $l);
-			$one->must = ($keys[$i+3] > 0);
+			$one->must = ($props[$i+3] > 0);
 		} else {
 			$one->input = $data[$kn];
 			$one->must = 0;
 		}
 		break;
 */
+	 case 4:
+		if ($kn == 'owner') {
+			if (!$pown) {
+				unset($one);
+				break 2;
+			} elseif ($mod) {
+				$choices = [$this->Lang('allpermitted')=>0];
+				$pre = cms_db_prefix();
+	//TODO filter out unpermitted users
+				$sql = 'SELECT user_id,first_name,last_name FROM '.$pre.'users WHERE active=1 ORDER BY last_name,first_name';
+				$allusers = $db->GetAssoc($sql);
+				if ($allusers) {
+					foreach ($allusers as $uid=>$row) {
+						$t = trim($row['first_name'].' '.$row['last_name']);
+						$choices[$t] = $uid;
+					}
+				}
+				$one->input = $this->CreateInputDropdown($id, $kn, $choices, -1, $data[$kn]);
+			} else {
+				$pre = cms_db_prefix();
+				$sql = 'SELECT first_name,last_name FROM '.$pre.'users WHERE user_id=? AND active=1';
+				$choices = $db->GetRow($sql, [$data[$kn]]);
+				if ($choices) {
+					$t = trim($choices['first_name'].' '.$choices['last_name']);
+				} else {
+					$t = FALSE;
+				}
+				$one->input = ($t) ? $t:$this->Lang('allpermitted');
+			}
+			$one->must = 0;
+		}
+		break;
 	}
 	$kn = 'help_'.$kn;
 	if (langhasval($this, $kn)) {
@@ -256,7 +298,7 @@ for ($i = 0; $i < $c; $i += 4) {
 }
 
 $tplvars['options'] = $options;
-if ($pmod) {
+if ($mod) {
 	$jsloads[] = <<<EOS
 $('[name="{$id}send_activate_message"],[name="{$id}send_reset_message"]').change(function() {
  if (this.checked) {
