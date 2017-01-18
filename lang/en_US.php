@@ -96,7 +96,7 @@ $lang['newpassword_match'] = 'New password is the same as the old password';
 $lang['newpassword_nomatch'] = 'New passwords do not match';
 $lang['newpassword_short'] = 'New password is too short';
 $lang['nocontext'] = 'No context has been registered';
-$lang['nouser'] = 'No user has been registered for this context';
+$lang['nouser'] = 'No user has been registered for the \'%s\' context';
 
 $lang['password_changed'] = 'Password changed successfully';
 $lang['password_incorrect'] = 'Password is wrong';
@@ -137,7 +137,9 @@ $lang['tip_users'] = 'review users';
 $lang['tip_usersedit'] = 'review/change users';
 $lang['tip_view'] = 'review properties';
 
+$lang['title_active'] = 'Active';
 $lang['title_address_required'] = 'Each user must provide her/his contact-address';
+$lang['title_addressable'] = 'Contactable';
 $lang['title_alias'] = 'Alias';
 $lang['title_attack_mitigation_span'] = 'Attack-protection interval';
 $lang['title_attempts_before_ban'] = 'Login attempts before block';
@@ -157,8 +159,9 @@ $lang['title_cookie_remember'] = 'Login/session duration';
 $lang['title_email_required'] = 'The contact must be an email-address';
 $lang['title_email_banlist'] = 'Prevent blacklisted email addresses';
 $lang['title_forget_rescue'] = 'Enable forgotten-password rescue';
-$lang['title_id'] = 'ID number';
+$lang['title_id'] = 'ID';
 $lang['title_import'] = 'Import user-data from file';
+$lang['title_lastuse'] = 'Latest login';
 $lang['title_login_max_length'] = 'User-identifier maximum length';
 $lang['title_login_min_length'] = 'User-identifier minimum length';
 $lang['title_message_charset'] = 'Character encoding in email messages';
@@ -167,6 +170,7 @@ $lang['title_name'] = 'Name';
 $lang['title_owner'] = 'Owner';
 $lang['title_password_min_length'] = 'Minimum password-length';
 $lang['title_password_min_score'] = 'Password-complexity minimum score';
+$lang['title_register'] = 'Registered';
 $lang['title_request_key_expiration'] = 'Request-key lifetime';
 $lang['title_security_level'] = 'Security level';
 $lang['title_settings'] = 'Settings';
@@ -174,6 +178,7 @@ $lang['title_send_activate_message'] = 'Send account-activation emails';
 $lang['title_send_reset_message'] = 'Send password-reset emails';
 $lang['title_useradd'] = 'Add user';
 $lang['title_userfull'] = 'User properties';
+$lang['title_usersfor'] = 'Registered users for \\\'%s\\\'';
 
 $lang['user_blocked'] = 'You are currently locked out of the system';
 //$lang['user_verify_failed'] = 'Captcha text was invalid';
@@ -221,10 +226,11 @@ Each line in the file (except the header line, discussed below) represents one u
 <h4>Header line</h4>
 <p>The first line of the file names the fields in the file, as follows.
 The supplied names may be in any order. Those prefixed by a '#' represent compulsory values.<br />
-<code>#Login,Password,Passhash,Email,#Context,Update</code></p>
+<code>#Login,Password,Passhash,Address,#Context,Update</code></p>
 <h4>Other lines</h4>
 <p>The data in each line must conform to the header columns, of course. Any non-compulsory field, or entire line, may be empty.<br />
 If neither a Password or (previously-exported) Passhash value is provided, a default ('changethis') will be applied.<br />
+Address will typically be an email address.<br />
 Context may be a numeric identifier, or alias string, representing a recorded login-context.<br />
 The Update field will be treated as TRUE if it contains something other than 0 or 'no' or 'NO' (no quotes, untranslated)<br />
 <h3>Problems</h3>
