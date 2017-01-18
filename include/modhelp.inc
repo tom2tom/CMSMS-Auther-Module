@@ -24,11 +24,11 @@ admin interface, and keep note of that context's identifier.<br /><br />
 Into your php code, add something like the following:
 <pre>
 $somevar = new Auther\Setup();
-list($xhtml,$js) = $somevar->Get($context,$task,$handler,$id[,$token]);
+list($xhtml,$js) = $somevar->Get($context,$mode,$handler,$id[,$token]);
 </pre>
 where:<br />
 $context = identifier (number or alias) for the relevant recorded context<br />
-$task = operation descriptor string, one of
+$mode = mode-descriptor string, one of
 <ul>
 <li>'login'</li>
 <li>'register'</li>
@@ -37,10 +37,17 @@ $task = operation descriptor string, one of
 </ul>
 $handler = something to receive and process feedback after the form has been processed, one of
 <ul>
-<li>TODO</li>
-</ul>
-$id = session identifier<br />
-(if available) $token = identifier provided to $handler by a previous Get()<br />
+<li>an array [$classname,$methodname] where $methodname is static and the method returns boolean for success</li>
+<li>a string 'classname::methodname' where the method returns boolean for success</li>
+<li>an array [$modulename,$actionname] AND the action should be a 'doer', not a 'shower', returns HTML code</li>
+<li>an array [$modulename,'method.whatever'] to be included, the code must conclude with variable $res = T/F indicating success</li>
+<li>a string 'absolute-path-to-whatever.php' to be included, the code must conclude with variable $res = T/F indicating success</li>
+<li>an URL like <server-root-url>/index.php?mact=<modulename>,cntnt01,<actionname>,0
+ - provided the PHP curl extension is available</li>
+<li><b>BUT NOT</b> a closure in a static context (PHP 5.3+) OR static closure (PHP 5.4+)</li>
+/ul>
+$id = module ID string, as widely used in the CMSModule class<br />
+<i>(if available)</i> $token = identifier provided to $handler by a previous Get()<br />
 $xhtml = displayable content (a form including inputs, buttons etc)<br />
 $js = associated javascript<br /><br />
 Then put the displayable content ($xhtml) and javascript ($js) into your page/template
@@ -58,13 +65,6 @@ in whatever manner is appropriate.
 <h4>AuthLogin</h4>
 <h4>AuthLoginFail</h4>
 <h4>AuthLogout</h4>
-<h3>Requirements</h3>
-<ul>
-<li>PHP 5.4+</li>
-<li>PHP Mcrypt extension</li>
-<li>PHP Openssl extension (for multi-factor authorisation)</li>
-</ul>
-<h3>Desirables</h3>
 <h3>Support</h3>
 <p>This module is provided as-is. Please read the text of the license for the full disclaimer.
 Just to be clear, there's no guarantee of support. However, there are some resources available
@@ -83,3 +83,10 @@ All rights reserved.</p>
 <p>This module has been released under version 3 of the
 <a href="http://www.gnu.org/licenses/licenses.html#AGPL">GNU Affero Public License</a>.
 The module must not be used otherwise than in acccordance with that license.</p>
+<h3>Requirements</h3>
+<ul>
+<li>PHP 5.4+</li>
+<li>PHP Mcrypt extension</li>
+<li>PHP Openssl extension (for multi-factor authorisation)</li>
+</ul>
+<h3>Desirables</h3>
