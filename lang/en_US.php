@@ -88,7 +88,7 @@ $lang['login_taken'] = 'Login name is already in use';
 $lang['missingname'] = 'No name yet';
 $lang['module_nav'] = 'Module mainpage';
 
-//$lang['NA'] = 'Not applicable';
+$lang['NA'] = 'Not applicable';
 $lang['name'] = 'Name';
 $lang['newemail_match'] = 'New email matches previous email';
 $lang['newpassword_invalid'] = 'New password must contain at least one uppercase and lowercase character, and at least one digit';
