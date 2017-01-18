@@ -10,6 +10,7 @@
    <th>{$title_name}</th>
    <th>{$title_alias}</th>
    <th>{$title_id}</th>
+   <th>{$title_users}</th>
    <th class="pageicon"></th>
    <th class="pageicon"></th>
 {if $mod} <th class="pageicon"></th>
@@ -22,6 +23,7 @@
    <td>{$entry->name}</td>
    <td>{$entry->alias}</td>
    <td>{$entry->id}</td>
+   <td>{$entry->count}</td>
    <td>{$entry->users}</td>
    <td>{$entry->see}</td>
 {if $mod} <td>{$entry->edit}</td>
@@ -36,7 +38,7 @@
  <p class="pageinput">{$noitems}</p>
 {/if}
 {if $mod}<div id="itemacts" class="pageoptions" style="margin-top:1em;">
-{$iconlinkadd} {$textlinkadd}{if ($icount > 0)}span style="margin-left:12em;"{$delbtn}</span>{/if}
+{$iconlinkadd} {$textlinkadd}{if ($icount > 0)}<span style="margin-left:12em;">{$delbtn}</span>{/if}
 </div>{/if}
 {$endform}
 {$end_tab}
