@@ -34,8 +34,6 @@ class Auth
 		$this->db = \cmsms()->GetDb();
 		$tnis->pref = \cms_db_prefix();
 		$this->context = $context;
-
-		require(__DIR__.DIRECTORY_SEPARATOR.'password.php');
 	}
 
 	/**
@@ -332,7 +330,7 @@ class Auth
 	*/
 	public function getHash($password, $masterkey)
 	{
-		return password_hash($password, $masterkey);
+		return $this->password_hash($password, $masterkey);
 	}
 
 	/**
@@ -481,12 +479,12 @@ class Auth
 	* Records a new user
 	* @publicid: string user identifier
 	* @password: plaintext string
-	* @email: email address for messages, possibly empty
+	* @address: email or other type of address for messages, possibly empty
 	* @sendmail:  reference to boolean whether to send confirmation email messages
 	* @params: array of additional params default = empty
 	* Returns: array 0=>T/F for success, 1=>message
 	*/
-	protected function addUser($publicid, $password, $email, &$sendmail, $params=[])
+	protected function addUser($publicid, $password, $address, &$sendmail, $params=[])
 	{
 		$uid = $this->db->GenID($this->pref.'module_auth_users_seq');
 		$publicid = htmlentities($publicid); //TODO encoding management
@@ -504,13 +502,16 @@ class Auth
 		}
 
 		$password = $this->getHash($password);
-		if (!$email) {
-			$email = NULL;
+		if (!$address) {
+			$address = NULL;
+		} else {
+			$funcs = new Auther\Crypter();
+			$address = $funcs->encrypt_value($this->mod, $address);
 		}
 
 		$sql = 'INSERT INTO '.$this->pref.'module_auth_users (id,publicid,passhash,address,active) VALUES (?,?,?,?,?)';
 
-		if (!$this->db->Execute($sql, [$uid, $publicid, $password, $email, $isactive])) {
+		if (!$this->db->Execute($sql, [$uid, $publicid, $password, $address, $isactive])) {
 			$this->deleteRequest($status[$TODO]);
 			return [FALSE,$this->mod->Lang('system_error').' #03'];
 		}
@@ -551,6 +552,10 @@ class Auth
 		if ($data) {
 			unset($data['id']);
 			unset($data['password']);
+
+			$funcs = new Auther\Crypter();
+			$data['address'] = $funcs->decrypt_value($this->mod, $data['address']);
+
 			$data['uid'] = $uid; //=data['id']
 			return $data;
 		}
@@ -572,6 +577,8 @@ class Auth
 		$data = $this->db->GetRow($sql, [$this->context,$publicid]);
 
 		if ($data) {
+			$funcs = new Auther\Crypter();
+			$data['address'] = $funcs->decrypt_value($this->mod, $data['address']);
 			$dt = new \DateTime('@0',NULL);
 			$dt->setTimestamp($data['addwhen']);
 			$data['addwhen'] = $dt->format('Y-m-d H:i:s');
@@ -616,7 +623,7 @@ class Auth
 			return [FALSE,$this->mod->Lang(TODO)];
 		}
 
-		if (!password_verify($password, $userdata['password'], $masterkey)) {
+		if (!$this->password_verify($password, $userdata['password'], $masterkey/*, $tries TODO*/)) {
 			$this->addAttempt();
 			return [FALSE,$this->mod->Lang('password_incorrect')];
 		}
@@ -878,7 +885,7 @@ class Auth
 			return [FALSE,$this->mod->Lang('system_error').' #11'];
 		}
 
-		if (!password_verify($password, $userdata['password'], $masterkey)) {
+		if (!$this->password_verify($password, $userdata['password'], $masterkey/*, $tries TODO*/)) {
 			return [FALSE,$this->mod->Lang('password_notvalid')];
 		}
 		return [TRUE,''];
@@ -957,7 +964,7 @@ class Auth
 			return [FALSE,$this->mod->Lang('system_error').' #11'];
 		}
 
-		if (password_verify($password, $userdata['password'], $masterkey)) {
+		if ($this->password_verify($password, $userdata['password'], $masterkey/*, $tries TODO*/)) {
 			$this->addAttempt();
 			return [FALSE,$this->mod->Lang('newpassword_match')];
 		}
@@ -1016,7 +1023,7 @@ class Auth
 			return [FALSE,$this->mod->Lang('system_error').' #13'];
 		}
 
-		if (!password_verify($currpass, $userdata['password'], $masterkey)) {
+		if (!$this->password_verify($currpass, $userdata['password'], $masterkey/*, $tries TODO*/)) {
 			$this->addAttempt();
 			return [FALSE,$this->mod->Lang('password_incorrect')];
 		}
@@ -1041,7 +1048,7 @@ class Auth
 		$password = $this->db->GetOne($sql, [$uid]);
 
 		if ($password) {
-			return password_verify($password_for_check, $password, $masterkey);
+			return $this->password_verify($password_for_check, $password, $masterkey, 0);
 		}
 		return FALSE;
 	}
@@ -1086,7 +1093,7 @@ class Auth
 			return [FALSE,$this->mod->Lang('system_error').' #14'];
 		}
 
-		if (!password_verify($password, $userdata['password'], $masterkey)) {
+		if (!$this->password_verify($password, $userdata['password'], $masterkey/*, $tries TODO*/)) {
 			$this->addAttempt();
 			return [FALSE,$this->mod->Lang('password_incorrect')];
 		}
@@ -1292,5 +1299,112 @@ class Auth
 		$url = str_replace(array($config['root_path'],DIRECTORY_SEPARATOR), array($rooturl,'/'), $tmpdir);
 		$url .= '/'.$data['file'];
 		return ['code' => $data['code'], 'image_src' => $url];
+	}
+
+	// the following are enhanced replacements for some PHP 5.5+ methods
+
+	/**
+	password_hash:
+	Hash @password
+
+	@passwd: string The password to hash
+	@masterkey: string Persistent key for password en/decoding
+
+	Returns: (192 + 16*N)bytes|FALSE The hashed password, or empty string, or FALSE on error.
+	*/
+	protected function password_hash($passwd, $masterkey)
+	{
+		if ($passwd == FALSE && !is_numeric($passwd)) {
+			trigger_error('No password provided', E_USER_WARNING);
+			return '';
+		} elseif (!function_exists('crypt')) {
+			trigger_error('Crypt extension must be present for password hashing', E_USER_WARNING);
+			return FALSE;
+		}
+		//obfuscate short passwords (other than time-wasting, useless, really)
+		$t = 1;
+		while (($len = $this->bytelen($passwd)) < 32) {
+			$passwd .= str_shuffle($passwd);
+			$t += $t;
+		}
+		$passwd .= chr($t);
+
+		$e = new Encryption(\MCRYPT_TWOFISH, \MCRYPT_MODE_CBC, self::STRETCHES);
+		return $e->encrypt($passwd, $masterkey);
+	}
+
+	/**
+	password_verify:
+	Verify @password against @hash
+
+	@passwd: string The password to verify
+	@hash: string The hash to verify against
+	@masterkey: string Persistent key for password en/decoding
+	@tries: no. of verification attempts
+
+	Returns: boolean Whether @passwd matches @hash
+	*/
+	protected function password_verify($passwd, $hash, $masterkey, $tries=1)
+	{
+		if (!function_exists('crypt')) {
+			trigger_error('Crypt extension must be present for password verification', E_USER_WARNING);
+			sleep(1);
+			return FALSE;
+		}
+		if ($this->password_hash($passwd, $masterkey) === $hash) {
+			return TRUE;
+		}
+		$t = min(2000, $tries * 500);
+		usleep($t * 1000);
+		return FALSE;
+	}
+
+	/**
+	password_retrieve:
+	Unhash @hash
+
+	@hash: string a hashed password
+	@masterkey: string Persistent key for password en/decoding
+
+	Returns: plaintext string, or FALSE
+	*/
+	protected function password_retrieve($hash, $masterkey)
+	{
+		if (!function_exists('crypt')) {
+			trigger_error('Crypt extension must be present for password retrieval', E_USER_WARNING);
+			return FALSE;
+		}
+
+		$e = new Encryption(\MCRYPT_TWOFISH, \MCRYPT_MODE_CBC, self::STRETCHES);
+		$plain = $e->decrypt($hash, $masterkey);
+		if ($plain) {
+			$len = $this->bytelen($plain) - 1;
+			$t = ord(substr($plain, -1));
+			if ($t > 1) {
+				$len /= $t;
+			}
+			return substr($plain, 0, $len);
+		}
+		return FALSE;
+	}
+
+	/*
+	bytelen:
+	Count the number of bytes in @binary_string
+
+	Vanilla strlen() might be shadowed by the mbstring extension,
+	in which case strlen() will count the number of characters
+	per the internal encoding, which count may be < the wanted number.
+
+	@binary_string: string The input string
+
+	Returns: int The number of bytes
+	*/
+	private function bytelen($binary_string)
+	{
+		if (function_exists('mb_strlen')) {
+			return mb_strlen($binary_string, '8bit');
+		}
+		return strlen($binary_string);
 	}
 }
