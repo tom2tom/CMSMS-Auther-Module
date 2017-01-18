@@ -26,6 +26,7 @@ class Auther extends CMSModule
 	const NONCED = 3; //login + passwd + sync nonce
 	const CHALLENGED = 4; //login + passwd + async challenge
 	const HISEC = 5; //TBA non-keyed INHERENCE
+	//NB in several places, NOBOT is treated as min. enum value, and HISEC as max. value 
 	//security-levels (per Firehed)
 //    const ANONYMOUS = 0;
 //    const LOGIN = 1;
@@ -192,6 +193,11 @@ class Auther extends CMSModule
 	public function VisibleToAdminUser()
 	{
 		return $this->_CheckAccess();
+	}
+
+	public function GetHeaderHTML()
+	{
+		return '<link rel="stylesheet" type="text/css" id="adminstyler" href="'.$this->GetModuleURLPath().'/css/admin.css" />';
 	}
 
 	public function SetParameters()
