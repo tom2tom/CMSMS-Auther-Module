@@ -35,7 +35,7 @@
  <p class="pageinput">{$nousers}</p>
 {/if}
 <div id="itemacts" class="pageoptions" style="margin-top:1em;">
-{if $mod}{$iconlinkadd} {$textlinkadd}<span style="margin-left:12em;">{/if}
+{if $mod}{$iconlinkadd} {$textlinkadd}<span style="margin-left:8em;">{/if}
 {$close}
 {if $mod}{if ($ucount > 0)} {$delete} {/if}{$import}</span>{/if}
 </div>
