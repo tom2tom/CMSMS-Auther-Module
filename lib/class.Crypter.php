@@ -52,16 +52,12 @@ class Crypter
 	public function encrypt_value(&$mod, $value, $passwd=FALSE)
 	{
 		if ($value) {
-			if ($mod->havemcrypt) {
-				if (!$passwd) {
-					$passwd = $this->decrypt_preference($mod, 'masterpass');
-				}
-				if ($passwd) {
-					$e = new Encryption(\MCRYPT_TWOFISH, \MCRYPT_MODE_CBC, self::STRETCHES);
-					$value = $e->encrypt($value, $passwd);
-				}
-			} else {
-				$value = $this->fusc($value);
+			if (!$passwd) {
+				$passwd = $this->decrypt_preference($mod, 'masterpass');
+			}
+			if ($passwd) {
+				$e = new Encryption(\MCRYPT_TWOFISH, \MCRYPT_MODE_CBC, self::STRETCHES);
+				$value = $e->encrypt($value, $passwd);
 			}
 		}
 		return $value;
@@ -77,16 +73,12 @@ class Crypter
 	public function decrypt_value(&$mod, $value, $passwd=FALSE)
 	{
 		if ($value) {
-			if ($mod->havemcrypt) {
-				if (!$passwd) {
-					$passwd = $this->decrypt_preference($mod, 'masterpass');
-				}
-				if ($passwd) {
-					$e = new Encryption(\MCRYPT_TWOFISH, \MCRYPT_MODE_CBC, self::STRETCHES);
-					$value = $e->decrypt($value, $passwd);
-				}
-			} else {
-				$value = $this->unfusc($value);
+			if (!$passwd) {
+				$passwd = $this->decrypt_preference($mod, 'masterpass');
+			}
+			if ($passwd) {
+				$e = new Encryption(\MCRYPT_TWOFISH, \MCRYPT_MODE_CBC, self::STRETCHES);
+				$value = $e->decrypt($value, $passwd);
 			}
 		}
 		return $value;
