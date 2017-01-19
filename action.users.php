@@ -19,35 +19,19 @@ if (!function_exists('displaywhen')) {
  }
 }
 
-if (isset($params['delete'])) {
+if (isset($params['close'])) {
+	$this->Redirect($id, 'defaultadmin');
+} elseif (isset($params['delete'])) {
 	if (!$pmod) exit;
 	if (!empty($params['sel'])) {
 		$utils = new Auther\Utils();
 		$utils->DeleteUser($params['sel']);
 	}
 } elseif (isset($params['import'])) {
-	if (!$pmod) exit;
-	$utils = new Auther\Utils();
-	if (isset($_FILES) && isset($_FILES[$id.'csvfile'])) {
-		$funcs = new Auther\Import();
-		$res = $funcs->ImportUsers($this, $id);
-		$msg = $utils->PrettyMessage($this, $res[1], $res[0], FALSE);
-	} else {
-		$tplvars = [];
-		$tplvars['pagenav'] = $utils->BuildNav($this,$id,$returnid,$params);
-		$hidden = ['item_id'=>$cid]; //TODO etc
-		$tplvars['startform'] = $this->CreateFormStart($id,'users',$returnid,'POST','multipart/form-data','','',
-			$hidden);
-		$tplvars['endform'] = $this->CreateFormEnd();
-		$tplvars['title'] = $this->Lang('title_import');
-		$tplvars['chooser'] = $this->CreateInputFile($id,'csvfile','text/csv',25);
-		$tplvars['apply'] = $this->CreateInputSubmit($id,'import',$this->Lang('upload'));
-		$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('cancel'));
-		$tplvars['help'] = $this->Lang('help_import');
-
-		echo $utils->ProcessTemplate($this, 'chooser.tpl', $tplvars);
-		return;
+	if (!$pmod) {
+		exit;
 	}
+	$this->Redirect($id, 'import', '', ['resume'=>'users', 'item_id'=>$cid]);
 } elseif (!($pmod || $psee)) {
 	exit;
 }
@@ -73,6 +57,8 @@ $tplvars['title'] = $this->Lang('title_usersfor',$t);
 
 if (!empty($msg)) {
 	$tplvars['message'] = $msg;
+} elseif (!empty($params['message'])) {
+	$tplvars['message'] = $params['message'];
 }
 
 //$utils = new Auther\Utils();
@@ -97,8 +83,8 @@ if ($data) {
 	$tplvars['title_active'] = $this->Lang('title_active');
 
 	$icon_see = $theme->DisplayImage('icons/system/view.gif',$this->Lang('tip_view'),'','','systemicon');
-	$icon_yes = $theme->DisplayImage('icons/system/yes.gif','','','','systemicon');
-	$icon_no = $theme->DisplayImage('icons/system/no.gif','','','','systemicon');
+	$icon_yes = $theme->DisplayImage('icons/system/true.gif','','','','systemicon');
+	$icon_no = $theme->DisplayImage('icons/system/false.gif','','','','systemicon');
 	if ($pmod) {
 		$icon_edit = $theme->DisplayImage('icons/system/edit.gif',$this->Lang('tip_edit'),'','','systemicon');
 		$icon_delete = $theme->DisplayImage('icons/system/delete.gif',$this->Lang('tip_delete'),'','','systemicon');
@@ -108,7 +94,8 @@ if ($data) {
 	$zone = $config['timezone'];
 	try {
 		$tz = new DateTimeZone($zone);
-		$offset = $tz->getOffset();
+		$dt = new DateTime('now', $tz);
+		$offset = $tz->getOffset($dt);
 	} catch (Exception $e) {
 		$offset = 0;
 	}
@@ -188,7 +175,8 @@ if ($pmod) {
 		[]);
 	$tplvars['textlinkadd'] = $this->CreateLink($id,'openuser','',$t,
 		[]);
-	$tplvars['import'] = $this->CreateInputSubmit($id,'import',$this->Lang('import'));
+	$tplvars['import'] = $this->CreateInputSubmit($id,'import',$this->Lang('import'),
+		'title="'.$this->Lang('tip_importuser').'"');
 }
 $tplvars['close'] = $this->CreateInputSubmit($id,'close',$this->Lang('close'));
 
