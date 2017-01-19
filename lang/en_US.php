@@ -76,6 +76,8 @@ $lang['help_security_level'] = 'Number 1..4 which determines the process for, an
 
 $lang['id'] = 'ID';
 $lang['import'] = 'Import';
+$lang['import_count'] = '%s item(s) imported';
+$lang['import_fails'] = '%s item(s) could not be imported';
 
 $lang['logged_in'] = 'You are now logged in';
 $lang['logged_out'] = 'You are now logged out';
@@ -97,6 +99,7 @@ $lang['newpassword_match'] = 'New password is the same as the old password';
 $lang['newpassword_nomatch'] = 'New passwords do not match';
 $lang['newpassword_short'] = 'New password is too short';
 $lang['nocontext'] = 'No context has been registered';
+$lang['none'] = 'None';
 $lang['notpermitted'] = 'Not permitted';
 $lang['nouser'] = 'No user has been registered for the \'%s\' context';
 
