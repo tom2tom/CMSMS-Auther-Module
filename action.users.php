@@ -30,13 +30,8 @@ if (isset($params['delete'])) {
 	$utils = new Auther\Utils();
 	if (isset($_FILES) && isset($_FILES[$id.'csvfile'])) {
 		$funcs = new Auther\Import();
-		list($res,$prop) = $funcs->ImportItems($this,$id);
-		if ($res) {
-			$t = $this->Lang('import_result',$prop,$this->Lang('itemv_multi'));
-			$msg = $utils->PrettyMessage($this,$t,TRUE,FALSE);
-		} else {
-			$msg = $utils->PrettyMessage($this,$prop,FALSE);
-		}
+		$res = $funcs->ImportUsers($this, $id);
+		$msg = $utils->PrettyMessage($this, $res[1], $res[0], FALSE);
 	} else {
 		$tplvars = [];
 		$tplvars['pagenav'] = $utils->BuildNav($this,$id,$returnid,$params);
