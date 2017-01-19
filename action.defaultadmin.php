@@ -175,7 +175,13 @@ if (isset($params['submit'])) {
 		$utils->DeleteContext($params['sel']);
 	}
 	$params['active_tab'] = 'items';
+} elseif (isset($params['import'])) {
+	if (!$pmod) {
+		exit;
+	}
+	$this->Redirect($id, 'import', '', ['resume'=>'defaultadmin']);
 }
+
 
 $tplvars = [
 	'mod' => $pmod,
@@ -208,6 +214,8 @@ $tplvars['endform'] = $this->CreateFormEnd();
 
 if (!empty($msg)) {
 	$tplvars['message'] = $msg;
+} elseif (!empty($params['message'])) {
+	$tplvars['message'] = $params['message'];
 }
 
 $utils = new Auther\Utils();
@@ -282,8 +290,10 @@ if ($data) {
 	$tplvars['icount'] = count($rows);
 
 	if ($pmod) {
-		$tplvars['delbtn'] = $this->CreateInputSubmit($id,'delete',$this->Lang('delete'),
+		$tplvars['delete'] = $this->CreateInputSubmit($id,'delete',$this->Lang('delete'),
 			'title="'.$this->Lang('tip_delcontext').'"');
+		$tplvars['import'] = $this->CreateInputSubmit($id,'import',$this->Lang('import'),
+			'title="'.$this->Lang('tip_importuser').'"');
 
 		$jsfuncs[] = <<<EOS
 function any_selected() {
