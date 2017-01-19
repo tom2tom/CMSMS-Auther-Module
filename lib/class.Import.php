@@ -10,6 +10,7 @@ namespace Auther;
 class Import
 {
 	private $cfuncs = FALSE; //Crypter-class object
+	private $afuncs = FALSE; //Auth-class object
 
 	private function ToChr($match)
 	{
@@ -61,11 +62,13 @@ class Import
 		if (is_numeric($context)) {
 			$name = 'Import_data('.$context.')'; //no translation
 		} else {
-			$name = 'Import_'.$context;
+			$name = $context;
 		}
 		$t = strtolower(preg_replace(['/\s+/', '/__+/'], ['_', '_'], $name));
 		$alias = substr($t, 0, 16);
-		$passwd = $this->cfuncs->decrypt_preference($mod, 'default_password');
+		$t = $this->cfuncs->decrypt_preference($mod, 'masterpass');
+		$pw = $this->cfuncs->decrypt_preference($mod, 'default_password');
+		$hash = $this->afuncs->getHash($pw, $t);
 
 		$sql = 'INSERT INTO '.$pref.'module_auth_contexts (id,name,alias,default_password) VALUES (?,?,?,?)';
 		$db->Execute($sql, [$cid, $name, $alias, $hash]);
@@ -77,9 +80,10 @@ class Import
 	Import user(s) data from uploaded CSV file. Can handle re-ordered columns.
 	@mod: reference to current Auther module object
 	@id: module ID
+	@wanted: numeric id of context, or '*' for all contexts
 	Returns: 2-member array, [0] = T/F indicating success, [1] = message
 	*/
-	public function ImportUsers(&$mod, $id)
+	public function ImportUsers(&$mod, $id, $wanted)
 	{
 		$filekey = $id.'csvfile';
 		if (isset($_FILES) && isset($_FILES[$filekey])) {
@@ -133,10 +137,10 @@ class Import
 			$pref = \cms_db_prefix();
 			$db = \cmsms()->GetDb();
 			//for update checks
-			$exist = $db->GetArray('SELECT id,publicid FROM '.$pref.'module_auth_users ORDER BY id');
+			$exist = $db->GetArray('SELECT id,publicid FROM '.$pref.'module_auth_users ORDER BY id'); //TODO use this for dup-check
 
 			$utils = new Utils();
-			$afuncs = new Auth($mod); //context [re]set in loop
+			$this->afuncs = new Auth($mod); //context [re]set in loop
 			$this->cfuncs = new Crypter();
 
 			$masterkey = $this->cfuncs->decrypt_preference($mod, 'masterpass');;
@@ -207,17 +211,23 @@ class Import
 						$cached['oopsanon'] = $cid;
 					}
 
-					$afuncs->setContext($cid);
+					if (!($wanted == '*' || $wanted == $cid)) {
+						$skips++;
+						continue; //too bad about any newly-created context(s)!
+					}
 
-					$res = $afuncs->validateLogin($data['publicid']);
+					$this->afuncs->setContext($cid);
+
+					$res = $this->afuncs->validateLogin($data['publicid']);
 					$save = $res[0];
-					$res = $afuncs->validatePassword($data['passhash']);
+					$res = $this->afuncs->validatePassword($data['passhash']);
 					$save = $save && $res[0];
-					$res = $afuncs->validateAddress($data['address']);
+					$res = $this->afuncs->validateAddress($data['address']);
 					$save = $save && $res[0];
 
 					if ($save) {
-						$data['passhash'] = $afuncs->password_hash($data['passhash'], $masterkey);
+						$data['context'] = $cid;
+						$data['passhash'] = $this->afuncs->getHash($data['passhash'], $masterkey);
 						$data['address'] = $this->cfuncs->encrypt_value($mod, $data['address'], $masterkey);
 
 						$done = FALSE;
