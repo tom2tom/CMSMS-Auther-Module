@@ -112,7 +112,7 @@ if (isset($params['cancel'])) {
 				switch ($kn) {
 				 case 'alias':
 					if (!$val) {
-						$t = strtolower(preg_replace(array('/\s+/', '/__+/'), array('_', '_'), $params['name']));
+						$t = strtolower(preg_replace(['/\s+/', '/__+/'], ['_', '_'], $params['name']));
 						$val = substr($t, 0, 16); //NB no check for alias duplication
 					}
 					break;
@@ -163,7 +163,7 @@ if (isset($params['cancel'])) {
 	}
 	$pre = cms_db_prefix();
 	if ($cid == -1) {
-		$cid = $db->GenId($pre.'module_auth_contexts_seq');
+		$cid = $db->GenID($pre.'module_auth_contexts_seq');
 		array_unshift($args, $cid);
 		array_unshift($keys, 'id');
 		$flds = implode(',',$keys);
