@@ -18,6 +18,9 @@
 # Read it online at http://www.gnu.org/licenses/licenses.html#AGPL
 #-----------------------------------------------------------------------
 
+if (!extension_loaded('mcrypt')) return;
+//if (!extension_loaded('openssl')) return; //for U2F
+
 class Auther extends CMSModule
 {
 	//security-levels
@@ -26,7 +29,7 @@ class Auther extends CMSModule
 	const NONCED = 3; //login + passwd + sync nonce
 	const CHALLENGED = 4; //login + passwd + async challenge
 	const HISEC = 5; //TBA non-keyed INHERENCE
-	//NB in several places, NOBOT is treated as min. enum value, and HISEC as max. value 
+	//NB in several places, NOBOT is treated as min. enum value, and HISEC as max. value
 	//security-levels (per Firehed)
 //    const ANONYMOUS = 0;
 //    const LOGIN = 1;
@@ -43,7 +46,6 @@ class Auther extends CMSModule
 		parent::__construct();
 		global $CMS_VERSION;
 		$this->before20 = (version_compare($CMS_VERSION, '2.0') < 0);
-		//TODO check for openssl extension - for U2F
 
 		spl_autoload_register([$this, 'auther_spacedload']);
 	}
