@@ -105,7 +105,12 @@ if ($data) {
 	foreach ($data as &$one) {
 		$uid = (int)$one['id'];
 		$oneset = new stdClass();
-		$oneset->name = $one['publicid'];
+		if ($pmod) {
+			$oneset->name = $this->CreateLink($id,'openuser','',$one['publicid'],
+			['item_id'=>$uid,'edit'=>1]);
+		} else {
+			$oneset->name = $one['publicid'];
+		}
 		if ($one['addwhen']) {
 			$oneset->reg = displaywhen($dt, $one['addwhen'] + $offset);
 		} else {
@@ -132,7 +137,97 @@ if ($data) {
 	unset($one);
 
 	$tplvars['users'] = $rows;
-	$tplvars['ucount'] = count($rows);
+	$uc = count($rows);
+	$tplvars['ucount'] = $uc;
+
+	if ($uc > 1) {
+		$jsincs[] = <<<EOS
+<script type="text/javascript" src="{$baseurl}/include/jquery.metadata.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/include/jquery.SSsort.min.js"></script>
+EOS;
+		//TODO make page-rows count window-size-responsive
+		$pagerows = $this->GetPreference('pagerows', 20); //TODO init this
+		if ($pagerows && $uc > $pagerows) {
+			$tplvars['hasnav'] = 1;
+			//setup for SSsort
+			$choices = array(strval($pagerows) => $pagerows);
+			$f = ($pagerows < 4) ? 5 : 2;
+			$n = $pagerows * $f;
+			if ($n < $rc)
+				$choices[strval($n)] = $n;
+			$n *= 2;
+			if ($n < $rc)
+				$choices[strval($n)] = $n;
+			$choices[$this->Lang('all')] = 0;
+			$tplvars['rowchanger'] =
+				$this->CreateInputDropdown($id, 'pagerows', $choices, -1, $pagerows,
+				'onchange="pagerows(this);"').'&nbsp;&nbsp;'.$this->Lang('pagerows');
+			$curpg = '<span id="cpage">1</span>';
+			$totpg = '<span id="tpage">'.ceil($rc/$pagerows).'</span>';
+			$tplvars += [
+				'first' => '<a href="javascript:pagefirst()">'.$this->Lang('first').'</a>',
+				'prev' => '<a href="javascript:pageback()">'.$this->Lang('previous').'</a>',
+				'next' => '<a href="javascript:pageforw()">'.$this->Lang('next').'</a>',
+				'last' => '<a href="javascript:pagelast()">'.$this->Lang('last').'</a>',
+				'pageof' => $this->Lang('pageof', $curpg, $totpg)
+			];
+
+			$jsfuncs[] = <<<'EOS'
+var pagedtable;
+
+function pagefirst() {
+ $.SSsort.movePage(pagedtable,false,true);
+}
+function pagelast() {
+ $.SSsort.movePage(pagedtable,true,true);
+}
+function pageforw() {
+ $.SSsort.movePage(pagedtable,true,false);
+}
+function pageback() {
+ $.SSsort.movePage(pagedtable,false,false);
+}
+function pagerows(cb) {
+ $.SSsort.setCurrent(pagedtable,'pagesize',parseInt(cb.value));
+}
+EOS;
+			$xjs = ",
+  paginate: true,
+  pagesize: $pagerows,
+  currentid: 'cpage',
+  countid: 'tpage'
+";
+		} else { //no rows-paging
+			$xjs = '';
+		}
+
+		$jsloads[] = <<<EOS
+ $.SSsort.addParser({
+  id: 'icon',
+  is: function(s) {
+   return /^\<img/.test(s);  
+  },
+  format: function(s) {
+   var p = s.lastIndexOf('/') + 1;
+   return s.substring(p);
+  },
+  type: 'text'
+ });
+
+ var \$tbl = $('#userstable');
+ pagedtable = \$tbl[0];
+   
+ \$tbl.SSsort({
+  sortClass: 'SortAble',
+  ascClass: 'SortUp',
+  descClass: 'SortDown',
+  oddClass: 'row1',
+  evenClass: 'row2',
+  oddsortClass: 'row1s',
+  evensortClass: 'row2s'{$xjs}
+ });
+EOS;
+	}
 
 	if ($pmod) {
 		$tplvars['delete'] = $this->CreateInputSubmit($id,'delete',$this->Lang('delete'),
@@ -172,9 +267,9 @@ if ($pmod) {
 	$t = $this->Lang('adduser');
 	$icon_add = $theme->DisplayImage('icons/system/newobject.gif',$t,'','','systemicon');
 	$tplvars['iconlinkadd'] = $this->CreateLink($id,'openuser','',$icon_add,
-		[]);
+		['item_id'=>-1,'edit'=>1]);
 	$tplvars['textlinkadd'] = $this->CreateLink($id,'openuser','',$t,
-		[]);
+		['item_id'=>-1,'edit'=>1]);
 	$tplvars['import'] = $this->CreateInputSubmit($id,'import',$this->Lang('import'),
 		'title="'.$this->Lang('tip_importuser').'"');
 }

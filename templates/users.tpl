@@ -1,18 +1,19 @@
 {if !empty($message)}<p>{$message}</p><br />{/if}
 {$startform}
 {if ($ucount > 0)}
+{if !empty($hasnav)}<div class="browsenav">{$first}&nbsp;|&nbsp;{$prev}&nbsp;&lt;&gt;&nbsp;{$next}&nbsp;|&nbsp;{$last}&nbsp;({$pageof})&nbsp;&nbsp;{$rowchanger}</div>{/if}
 <div style="overflow:auto;">
- <table id="userstable" class="leftwards pagetable">
+ <table id="userstable" class="{if $ucount > 1}table_sort {/if}leftwards pagetable">
   <thead><tr>
    <th>{$title_name}</th>
    <th>{$title_first}</th>
    <th>{$title_last}</th>
-   <th>{$title_addr}</th>
-   <th>{$title_active}</th>
-   <th class="pageicon"></th>
-{if $mod} <th class="pageicon"></th>
-   <th class="pageicon"></th>
-   <th class="checkbox"></th>{/if}
+   <th class="{ldelim}sss:'icon'{rdelim}">{$title_addr}</th>
+   <th class="{ldelim}sss:'icon'{rdelim}">{$title_active}</th>
+   <th class="pageicon {ldelim}sss:false{rdelim}"></th>
+{if $mod} <th class="pageicon {ldelim}sss:false{rdelim}"></th>
+   <th class="pageicon {ldelim}sss:false{rdelim}"></th>
+   <th class="checkbox {ldelim}sss:false{rdelim}"></th>{/if}
   </tr></thead>
   <tbody>
  {foreach from=$users item=entry} {cycle values='row1,row2' assign='rowclass'}
@@ -31,6 +32,7 @@
   </tbody>
  </table>
 </div>
+{if !empty($hasnav)}<div class="browsenav">{$first}&nbsp;|&nbsp;{$prev}&nbsp;&lt;&gt;&nbsp;{$next}&nbsp;|&nbsp;{$last}</div>{/if}
 {else}
  <p class="pageinput">{$nousers}</p>
 {/if}

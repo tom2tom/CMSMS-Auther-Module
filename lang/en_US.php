@@ -19,6 +19,7 @@ $lang['addcontext'] = 'Add new context';
 $lang['adduser'] = 'Add new user';
 $lang['admindescription'] = 'This module provides authentication functionality for other modules';
 $lang['alias'] = 'Alias';
+$lang['all'] = 'All';
 $lang['allpermitted'] = 'Everyone permitted';
 $lang['already_activated'] = 'Account is already activated';
 $lang['authority_failed'] = 'Incorrect login and/or password';
@@ -42,6 +43,7 @@ $lang['email_reset_altbody'] = 'Hello,'."\n\n".'To reset your password, please v
 $lang['email_reset_body'] = 'Hello,<br /><br />To reset your password, please click the following <a href="%s">link</a>.<br /><br />If you did not request a password reset on %s recently then this message was sent in error, please ignore it.';
 $lang['email_reset_subject'] = '%s - Password reset request';
 
+$lang['first'] = 'First';
 $lang['friendlyname'] = 'Authenticator';
 $lang['function_disabled'] = 'This function has been disabled';
 //$lang['help_address_required'] = '';
@@ -79,6 +81,7 @@ $lang['import'] = 'Import';
 $lang['import_count'] = '%s item(s) imported';
 $lang['import_fails'] = '%s item(s) could not be imported';
 
+$lang['last'] = 'Last';
 $lang['logged_in'] = 'You are now logged in';
 $lang['logged_out'] = 'You are now logged out';
 $lang['login_incorrect'] = 'Login name is not recognised';
@@ -98,11 +101,14 @@ $lang['newpassword_long'] = 'New password is too long';
 $lang['newpassword_match'] = 'New password is the same as the old password';
 $lang['newpassword_nomatch'] = 'New passwords do not match';
 $lang['newpassword_short'] = 'New password is too short';
+$lang['next'] = 'Next';
 $lang['nocontext'] = 'No context has been registered';
 $lang['none'] = 'None';
 $lang['notpermitted'] = 'Not permitted';
 $lang['nouser'] = 'No user has been registered for the \'%s\' context';
 
+$lang['pageof'] = 'Page %s of %s';
+$lang['pagerows'] = 'rows per page';
 $lang['password_changed'] = 'Password changed successfully';
 $lang['password_incorrect'] = 'Password is wrong';
 $lang['password_nomatch'] = 'Passwords do not match';
@@ -118,6 +124,7 @@ $lang['perm_see'] = 'Review Authentication Data';
 $lang['perm_some'] = 'some relevant';
 $lang['postinstall'] = 'Authenticator module installed sucessfully.<br />Be sure to set relevant permissions';
 $lang['postuninstall'] = 'Authenticator module uninstalled';
+$lang['previous'] = 'Previous';
 
 $lang['really_uninstall'] = 'Are you sure you want to uninstall the Authenticator module?';
 $lang['register_success'] = 'Account created. Activation email sent to email';
