@@ -825,7 +825,7 @@ class Auth
 	* @publicid: string user identifier
 	* Returns: array 0=>T/F for success, 1=>message
 	*/
-	protected function validateLogin($publicid)
+	public function validateLogin($publicid)
 	{
 		$val = (int)$this->getConfig('login_min_length');
 		if ($val > 0 && strlen($publicid) < $val) {
@@ -920,8 +920,8 @@ class Auth
 		if ($val > 0 && strlen($password) < $val) {
 			return [FALSE,$this->mod->Lang('password_short')];
 		}
-
-		require __DIR__.DIRECTORY_SEPARATOR.'ZxcvbnPhp'.DIRECTORY_SEPARATOR.'Zxcvbn.php';
+		//NB once-only else crash
+		require_once __DIR__.DIRECTORY_SEPARATOR.'ZxcvbnPhp'.DIRECTORY_SEPARATOR.'Zxcvbn.php';
 		$funcs = new \ZxcvbnPhp\Zxcvbn();
 		$check = $funcs->passwordStrength($password);
 
@@ -1335,10 +1335,8 @@ class Auth
 		if ($passwd == FALSE && !is_numeric($passwd)) {
 			trigger_error('No password provided', E_USER_WARNING);
 			return '';
-		} elseif (!function_exists('crypt')) {
-			trigger_error('Crypt extension must be present for password hashing', E_USER_WARNING);
-			return FALSE;
 		}
+
 		//obfuscate short passwords (other than time-wasting, useless, really)
 		$t = 1;
 		while (($len = $this->bytelen($passwd)) < 32) {
@@ -1364,11 +1362,6 @@ class Auth
 	*/
 	protected function password_verify($passwd, $hash, $masterkey, $tries=1)
 	{
-		if (!function_exists('crypt')) {
-			trigger_error('Crypt extension must be present for password verification', E_USER_WARNING);
-			sleep(1);
-			return FALSE;
-		}
 		if ($this->password_hash($passwd, $masterkey) === $hash) {
 			return TRUE;
 		}
@@ -1388,11 +1381,6 @@ class Auth
 	*/
 	public function password_retrieve($hash, $masterkey)
 	{
-		if (!function_exists('crypt')) {
-			trigger_error('Crypt extension must be present for password retrieval', E_USER_WARNING);
-			return FALSE;
-		}
-
 		$e = new Encryption(\MCRYPT_TWOFISH, \MCRYPT_MODE_CBC, self::STRETCHES);
 		$plain = $e->decrypt($hash, $masterkey);
 		if ($plain) {
