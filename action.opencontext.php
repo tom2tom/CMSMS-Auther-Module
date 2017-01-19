@@ -98,11 +98,6 @@ if (isset($params['cancel'])) {
 			if ($props[$i+1] === 0) { //boolean property
 				$keys[] = $kn;
 				$args[] = 1;
-			} elseif ($props[$i+1] === 4) { //custom treatment
-				if ($kn == 'owner') {
-					$keys[] = $kn;
-					$args[] = (int)$params[$kn];
-				}
 			} else {
 				$val = $params[$kn];
 				if ($props[$i+3] > 0) {
@@ -149,10 +144,11 @@ if (isset($params['cancel'])) {
 					$funcs = new Auther\Auth($this, $cid); //TODO if == -1
 					if (!$funcs->validatePassword($val)) {
 						//TODO abort, message
+					} else {
+						$cfuncs = new Auther\Crypter();
+						$t = $cfuncs->decrypt_preference($this, 'masterpass');
+						$val = $funcs->getHash($val, $t);
 					}
-					$cfuncs = new Auther\Crypter();
-					$key = $cfuncs->decrypt_preference('masterpass');
-					$val = $funcs->password_hash($val, $key);
 					break;
 				 default:
 					break;
@@ -174,7 +170,7 @@ if (isset($params['cancel'])) {
 		$fillers = str_repeat('?,',count($keys)-1);
 		$sql = 'INSERT INTO '.$pre.'module_auth_contexts ('.$flds.') VALUES ('.$fillers.'?)';
 	} else {
-		$flds = implode('=?',$keys);
+		$flds = implode('=?,',$keys);
 		$args[] = $cid;
 		$sql = 'UPDATE '.$pre.'module_auth_contexts SET '.$flds.'=? WHERE id=?';
 	}
