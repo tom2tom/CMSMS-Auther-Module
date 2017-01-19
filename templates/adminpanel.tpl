@@ -38,7 +38,7 @@
  <p class="pageinput">{$noitems}</p>
 {/if}
 {if $mod}<div id="itemacts" class="pageoptions" style="margin-top:1em;">
-{$iconlinkadd} {$textlinkadd}{if ($icount > 0)}<span style="margin-left:12em;">{$delbtn}</span>{/if}
+{$iconlinkadd} {$textlinkadd}{if ($icount > 0)}<span style="margin-left:8em;">{$delete} {$import}</span>{/if}
 </div>{/if}
 {$endform}
 {$end_tab}
