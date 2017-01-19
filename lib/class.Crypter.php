@@ -19,9 +19,11 @@ class Crypter
 	*/
 	public function encrypt_preference(&$mod, $key, $value)
 	{
-		$passwd = hash('crc32b', $_SERVER['SERVER_NAME'].$mod->GetModulePath()); //TODO
+		$config = \cmsms()->GetConfig();
+		$root = (empty($_SERVER['HTTPS'])) ? $config['root_url'] : $config['ssl_url'];
+		$hash = hash('crc32b', $root.$mod->GetModulePath()); //site-dependent
 		$e = new Encryption(\MCRYPT_TWOFISH, \MCRYPT_MODE_CBC, self::STRETCHES);
-		$st = $e->encrypt($value, $passwd);
+		$st = $e->encrypt($value, $hash);
 		$mod->SetPreference($key, base64_encode($st));
 	}
 
@@ -34,9 +36,11 @@ class Crypter
 	public function decrypt_preference(&$mod, $key)
 	{
 		$st = base64_decode($mod->GetPreference($key));
-		$passwd = hash('crc32b', $_SERVER['SERVER_NAME'].$mod->GetModulePath()); //TODO
+		$config = \cmsms()->GetConfig();
+		$root = (empty($_SERVER['HTTPS'])) ? $config['root_url'] : $config['ssl_url'];
+		$hash = hash('crc32b', $root.$mod->GetModulePath()); //site-dependent
 		$e = new Encryption(\MCRYPT_TWOFISH, \MCRYPT_MODE_CBC, self::STRETCHES);
-		return $e->decrypt($st, $passwd);
+		return $e->decrypt($st, $hash);
 	}
 
 	/**
