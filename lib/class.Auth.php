@@ -274,27 +274,26 @@ class Auth
 	}
 
 	/**
-	* Get specified property(ies) for @context
-	* @context: string login-context-alias or int login-context-identifier or NULL
+	* Get specified property(ies) for the current context
 	* @propkey: string property-name or array of them (not validated here)
 	* Returns: property value or assoc. array of them
 	*/
-	protected function getConfig($context, $propkey)
+	protected function getConfig($propkey)
 	{
-		if ($context) {
+		if ($this->context) {
 			if (is_array($propkey)) {
 				$sql2 = implode(',', $propkey);
 			} else {
 				$sql2 = $propkey;
 			}
-			if (is_int($context)) {
+			if (is_int($this->context)) {
 				$sql3 = 'id';
 			} else {
 				$sql3 = 'alias';
 			}
 
 			$sql = 'SELECT '.$sql2.' FROM '.$this->pref.'module_auth_contexts WHERE '.$sql3.'=?';
-			$data = $this->db->GetRow($sql, [$context]);
+			$data = $this->db->GetRow($sql, [$this->context]);
 			if ($data) {
 				//grab defaults for 'empty' settings
 				foreach ($data as $key=>&$val) {
@@ -367,12 +366,12 @@ class Auth
 
 		$dt = new \DateTime('@'.time(), NULL);
 		if ($remember) {
-			$val = $this->getConfig($this->context, 'cookie_remember');
+			$val = $this->getConfig('cookie_remember');
 			$dt->modify('+'.$val);
 			$data['expire'] = $dt->getTimestamp();
 			$data['expiretime'] = $data['expire'];
 		} else {
-			$val = $this->getConfig($this->context, 'cookie_forget');
+			$val = $this->getConfig('cookie_forget');
 			$dt->modify('+'.$val);
 			$data['expire'] = $dt->getTimestamp();
 			$data['expiretime'] = 0;
@@ -681,13 +680,13 @@ class Auth
 		if ($sendmail === NULL) {
 			$sendmail = TRUE;
 			if ($type == 'reset') {
-				$val = $this->getConfig($this->context, 'send_reset_message');
+				$val = $this->getConfig('send_reset_message');
 				if (!$val) {
 					$sendmail = FALSE;
 					return [TRUE,''];
 				}
 			} elseif ($type == 'activate') {
-				$val = $this->getConfig($this->context, 'send_activate_message');
+				$val = $this->getConfig('send_activate_message');
 				if (!$val) {
 					$sendmail = FALSE;
 					return [TRUE,''];
@@ -713,7 +712,7 @@ class Auth
 		}
 
 		$dt = new \DateTime('@'.time(), NULL);
-		$val = $this->getConfig($this->context, 'request_key_expiration');
+		$val = $this->getConfig('request_key_expiration');
 		$dt->modify('+'.$val);
 		$expiretime = $dt->getTimestamp();
 
@@ -747,11 +746,11 @@ class Auth
 			$mlr = new \cms_mailer();
 		}
 
-		$site_name = $this->getConfig($this->context, 'context_sender'); //TODO this gets a personal name
+		$site_name = $this->getConfig('context_sender'); //TODO this gets a personal name
 
 		$mlr->reset();
 		if (1) { //TODO default sender isn't wanted
-			$site_from = $this->getConfig($this->context, 'context_address');
+			$site_from = $this->getConfig('context_address');
 			$mlr->SetFrom($site_from, $site_name);
 		}
 		$mlr->AddAddress($email, '');
@@ -828,18 +827,18 @@ class Auth
 	*/
 	protected function validateLogin($publicid)
 	{
-		$val = (int)$this->getConfig($this->context, 'login_min_length');
+		$val = (int)$this->getConfig('login_min_length');
 		if ($val > 0 && strlen($publicid) < $val) {
 			return [FALSE,$this->mod->Lang('login_short')];
 		}
 
-		$val = (int)$this->getConfig($this->context, 'login_max_length');
+		$val = (int)$this->getConfig('login_max_length');
 		if ($val > 0 && strlen($publicid) > $val) {
 			return [FALSE,$this->mod->Lang('login_long')];
 		}
 
 		if (preg_match(self::EMAILPATN, $publicid)) {
-			$val = $this->getConfig($this->context, 'email_banlist');
+			$val = $this->getConfig('email_banlist');
 			if ($val) {
 				$parts = explode('@', $publicid);
 				$bannedDomains = json_decode(file_get_contents(__DIR__.DIRECTORY_SEPARATOR.'domains.json'));
@@ -849,6 +848,24 @@ class Auth
 			}
 		}
 
+		return [TRUE,''];
+	}
+
+	/**
+	* Verifies that @address is an acceptable contact address
+	* @address: string
+	* Returns: array 0=>T/F for success, 1=>message
+	*/
+	public function validateAddress($address)
+	{
+		$val = $this->getConfig('address_required');
+		if ($val && !$address) {
+			return [FALSE, $this->mod->Lang('missing_address')]; //TODO
+		}
+		$val = $this->getConfig('email_required');
+		if ($val) {
+			return $this->validateEmail($address);
+		}
 		return [TRUE,''];
 	}
 
@@ -899,7 +916,7 @@ class Auth
 	*/
 	public function validatePassword($password)
 	{
-		$val = (int)$this->getConfig($this->context, 'password_min_length');
+		$val = (int)$this->getConfig('password_min_length');
 		if ($val > 0 && strlen($password) < $val) {
 			return [FALSE,$this->mod->Lang('password_short')];
 		}
@@ -908,7 +925,7 @@ class Auth
 		$funcs = new \ZxcvbnPhp\Zxcvbn();
 		$check = $funcs->passwordStrength($password);
 
-		$val = (int)$this->getConfig($this->context, 'password_min_score');
+		$val = (int)$this->getConfig('password_min_score');
 		if ($check['score'] + 1 < $val) { //returned value 0..4, public uses 1..5
 			return [FALSE,$this->mod->Lang('password_weak')];
 		}
@@ -1174,12 +1191,12 @@ class Auth
 		$sql = 'SELECT count(1) AS tries FROM '.$this->pref.'module_auth_attempts WHERE ip=?';
 		$tries = $this->db->GetOne($sql, [$ip]);
 
-		$val = (int)$this->getConfig($this->context, 'attempts_before_verify');
+		$val = (int)$this->getConfig('attempts_before_verify');
 		if ($val > 0 && $tries < $val) {
 			return 'allow';
 		}
 
-		$val = (int)$this->getConfig($this->context, 'attempts_before_ban');
+		$val = (int)$this->getConfig('attempts_before_ban');
 		if ($val > 0 && $tries < $val) {
 			return 'verify';
 		}
@@ -1195,7 +1212,7 @@ class Auth
 	{
 		$ip = $this->getIp();
 		$dt = new \DateTime('@'.time(), NULL);
-		$val = $this->getConfig($this->context, 'attack_mitigation_span');
+		$val = $this->getConfig('attack_mitigation_span');
 		$dt->modify('+'.$val);
 		$expiretime = $dt->getTimestamp();
 
@@ -1260,7 +1277,7 @@ class Auth
 		//TODO review http://php.net/manual/en/features.cookies.php &
 		// http://php.net/manual/en/function.setcookie.php &
 		// http://www.faqs.org/rfcs/rfc6265.html
-		$val = $this->getConfig($this->context, 'cookie_name');
+		$val = $this->getConfig('cookie_name');
 		return (isset($_COOKIE[$val]) && $this->checkSession($_COOKIE[$val]));
 	}
 
@@ -1270,7 +1287,7 @@ class Auth
 	*/
 	public function getSessionHash()
 	{
-		$val = $this->getConfig($this->context, 'cookie_name');
+		$val = $this->getConfig('cookie_name');
 		return $_COOKIE[$val];
 	}
 
@@ -1297,7 +1314,7 @@ class Auth
 		]);
 
 		$rooturl = (empty($_SERVER['HTTPS'])) ? $config['root_url'] : $config['ssl_url'];
-		$url = str_replace(array($config['root_path'],DIRECTORY_SEPARATOR), array($rooturl,'/'), $tmpdir);
+		$url = str_replace([$config['root_path'], DIRECTORY_SEPARATOR], [$rooturl, '/'], $tmpdir);
 		$url .= '/'.$data['file'];
 		return ['code' => $data['code'], 'image_src' => $url];
 	}
