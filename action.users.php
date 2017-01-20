@@ -205,7 +205,7 @@ EOS;
  $.SSsort.addParser({
   id: 'icon',
   is: function(s) {
-   return /^\<img/.test(s);  
+   return /^\<img/.test(s);
   },
   format: function(s) {
    var p = s.lastIndexOf('/') + 1;
@@ -216,7 +216,7 @@ EOS;
 
  var \$tbl = $('#userstable');
  pagedtable = \$tbl[0];
-   
+
  \$tbl.SSsort({
   sortClass: 'SortAble',
   ascClass: 'SortUp',
@@ -233,27 +233,44 @@ EOS;
 		$tplvars['delete'] = $this->CreateInputSubmit($id,'delete',$this->Lang('delete'),
 			'title="'.$this->Lang('tip_deluser').'"');
 
+		$jsincs[] = <<<EOS
+<script type="text/javascript" src="{$baseurl}/include/jquery.alertable.min.js"></script>
+EOS;
+
 		$jsfuncs[] = <<<EOS
 function any_selected() {
  var cb = $('#userstable input[name="{$id}sel[]"]:checked');
  return (cb.length > 0);
 }
 EOS;
-		$t = $this->Lang('confirm_delsel'); //TODO
+		$t = $this->Lang('confirm_delsel2');
 		$jsloads[] = <<<EOS
  $('#itemacts #{$id}delete').click(function() {
   if (any_selected()) {
-   return confirm('$t');
-  } else {
-   return false;
+   var tg = this;
+   $.alertable.confirm('$t', {
+    okName: '{$this->Lang('proceed')}',
+    cancelName: '{$this->Lang('cancel')}'
+   }).then(function() {
+    $(tg).trigger('click.deferred');
+   });
   }
+  return false;
  });
 EOS;
-		$t = $this->Lang('confirm_del','%s'); //TODO
+		$t = $this->Lang('confirm_del','%s');
 		$jsloads[] = <<<EOS
- $('#userstable .linkdel > a').click(function() {
-  var nm = $(this.parentNode).siblings(':first').children(':first').text();
-  return confirm('$t'.replace('%s',nm));
+ $('#userstable .linkdel > a').click(function(ev) {
+  var tg = ev.target,
+    nm = $(this.parentNode).siblings(':first').children(':first').text(),
+   msg = '$t'.replace('%s',nm);
+  $.alertable.confirm(msg, {
+   okName: '{$this->Lang('proceed')}',
+   cancelName: '{$this->Lang('cancel')}'
+  }).then(function() {
+   $(tg).trigger('click.deferred');
+  });
+  return false;
  });
 EOS;
 	} //$pmod
