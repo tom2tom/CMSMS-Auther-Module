@@ -301,21 +301,37 @@ function any_selected() {
  return (cb.length > 0);
 }
 EOS;
+		$jsincs[] = <<<EOS
+<script type="text/javascript" src="{$baseurl}/include/jquery.alertable.min.js"></script>
+EOS;
 		$t = $this->Lang('confirm_delsel');
 		$jsloads[] = <<<EOS
  $('#itemacts #{$id}delete').click(function() {
   if (any_selected()) {
-   return confirm('$t');
-  } else {
-   return false;
+   var tg = this;
+   $.alertable.confirm('$t', {
+    okName: '{$this->Lang('proceed')}',
+    cancelName: '{$this->Lang('cancel')}'
+   }).then(function() {
+    $(tg).trigger('click.deferreed');
+   });
   }
+  return false;
  });
 EOS;
 		$t = $this->Lang('confirm_del','%s');
 		$jsloads[] = <<<EOS
- $('#itemstable .linkdel > a').click(function() {
-  var nm = $(this.parentNode).siblings(':first').children(':first').text();
-  return confirm('$t'.replace('%s',nm));
+ $('#itemstable .linkdel > a').click(function(ev) {
+  var tg = ev.target,
+   nm = $(this.parentNode).siblings(':first').children(':first').text(),
+   msg = '$t'.replace('%s',nm);
+  $.alertable.confirm($msg, {
+    okName: '{$this->Lang('proceed')}',
+    cancelName: '{$this->Lang('cancel')}'
+  }).then(function() {
+   $(tg).trigger('click.deferreed');
+  });
+  return false;
  });
 EOS;
 	} //$pmod
