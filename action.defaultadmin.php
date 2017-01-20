@@ -46,6 +46,7 @@ if (!function_exists('getModulePrefs')) {
 	'password_min_score',		1, 3, 1,
 	'default_password',			4, 50, 1,
 
+	'name_required',			0, 0, 0,	
 	'address_required',			0, 0, 0,
 	'email_required',			0, 0, 0,
 	'email_banlist',			0, 0, 0,
