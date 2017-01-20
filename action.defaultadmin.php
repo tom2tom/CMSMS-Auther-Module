@@ -49,6 +49,10 @@ if (!function_exists('getModulePrefs')) {
 	'address_required',			0, 0, 0,
 	'email_required',			0, 0, 0,
 	'email_banlist',			0, 0, 0,
+	'email_domains',			1, 60, 0,
+	'email_subdomains',			1, 60, 0,
+	'email_topdomains',			1, 60, 0,
+
 	'forget_rescue',			0, 0, 0,
 
 	'attempts_before_verify',	1, 3, 0,
@@ -325,7 +329,7 @@ EOS;
   var tg = ev.target,
    nm = $(this.parentNode).siblings(':first').children(':first').text(),
    msg = '$t'.replace('%s',nm);
-  $.alertable.confirm($msg, {
+  $.alertable.confirm(msg, {
     okName: '{$this->Lang('proceed')}',
     cancelName: '{$this->Lang('cancel')}'
   }).then(function() {

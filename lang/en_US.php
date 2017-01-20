@@ -63,6 +63,9 @@ $lang['help_cookie_forget'] = 'Length of time that a login is tracked, if [TODO]
 //$lang['help_cookie_path'] = '';
 $lang['help_cookie_remember'] = 'Length of time that a user login persists, something like \'2 hours\' or \'1 week\' (unquoted, in english that <a href="http://php.net/manual/en/datetime.formats.relative.php">PHP understands</a>)';
 //$lang['help_cookie_secure'] = '';
+$lang['help_email_domains'] = 'Comma-separated series of email domains, e.g. \'msn.com,gmail.com\' to use instead of the default values used by the mailcheck script for initial address-validation';
+$lang['help_email_subdomains'] = 'Comma-separated series of partial domains, e.g. \'yahoo,hotmail\' to use instead of the default values used by the mailcheck script for secondary address-validation';
+$lang['help_email_topdomains'] = 'Comma-separated series of top domains, e.g. \'com,com.tw,de,net,net.au\' to use instead of the default values used by the mailcheck script for final address-validation';
 //$lang['help_email_required'] = '';
 //$lang['help_email_banlist'] = '';
 //$lang['help_forget_rescue'] = '';
@@ -180,6 +183,10 @@ $lang['title_cookie_name'] = 'Name of http cookie which tracks logins';
 $lang['title_cookie_remember'] = 'Login/session duration';
 //$lang['title_cookie_secure'] = '';
 $lang['title_default_password'] = 'Default user-password';
+
+$lang['title_email_domains'] = 'Email-address-check domains';
+$lang['title_email_subdomains'] = 'Email-address-check sub-domains';
+$lang['title_email_topdomains'] = 'Email-address-check top-level domains';
 $lang['title_email_required'] = 'The contact must be an email-address';
 $lang['title_email_banlist'] = 'Prevent blacklisted email addresses';
 $lang['title_forget_rescue'] = 'Enable forgotten-password rescue';
