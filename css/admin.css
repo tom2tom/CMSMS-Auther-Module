@@ -62,7 +62,7 @@ table.table_sort th.checkbox {
 
 table.table_sort th.SortAble {
  padding-left:10px;
- background-image:url(../images/bgdark.gif);
+ background-image:url(../images/bgdark.png);
  background-repeat:no-repeat;
  background-position:center left;
  cursor:pointer;
@@ -70,7 +70,7 @@ table.table_sort th.SortAble {
 
 table.table_sort th.SortUp {
  padding-left:10px;
- background-image:url(../images/ascdark.gif);
+ background-image:url(../images/ascdark.png);
  background-repeat:no-repeat;
  background-position:center left;
  cursor:pointer;
@@ -78,7 +78,7 @@ table.table_sort th.SortUp {
 
 table.table_sort th.SortDown {
  padding-left:10px;
- background-image:url(../images/descdark.gif);
+ background-image:url(../images/descdark.png);
  background-repeat:no-repeat;
  background-position:center left;
  cursor:pointer;
