@@ -118,11 +118,6 @@ $db->Execute('CREATE INDEX '.$tblname.'_idx ON '.$tblname.' (uid)');
 $db->CreateSequence($pref.'module_auth_userprops_seq');
 */
 
-//for email address checking by mailcheck.js
-$this->SetPreference('email_domains', ''); //specific/complete domains for initial check
-$this->SetPreference('email_subdomains', ''); //partial domains for secondary check
-$this->SetPreference('email_topdomains', 'biz,co,com,edu,gov,info,mil,name,net,org'); //for final check
-
 $funcs = new Auther\Crypter();
 $funcs->encrypt_preference($this, 'masterpass', base64_decode('U3VjayBpdCB1cCwgY3JhY2tlcnMh'));
 $funcs->encrypt_preference($this, 'default_password', base64_decode('Y2hhbmdlfCMkIyR8QVNBUA==')); //score 4
@@ -143,6 +138,10 @@ $this->SetPreference('cookie_remember', '1 week');
 //$this->SetPreference('cookie_secure', 0);
 
 $this->SetPreference('email_banlist', 1);
+//for email address checking by mailcheck.js
+$this->SetPreference('email_domains', ''); //specific/complete domains for initial check
+$this->SetPreference('email_subdomains', ''); //partial domains for secondary check
+$this->SetPreference('email_topdomains', 'biz,co,com,edu,gov,info,mil,name,net,org'); //for final check
 $this->SetPreference('email_required', 1);
 $this->SetPreference('forget_rescue', 0);
 
