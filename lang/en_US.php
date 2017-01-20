@@ -29,6 +29,7 @@ $lang['close'] = 'Close';
 $lang['compulsory_items'] = 'Properties marked with a <strong>*</strong> are compulsory.' ;
 $lang['confirm_del'] = 'Are you sure you want to delete \\\'%s\\\'?'; //double-escaped for use in js
 $lang['confirm_delsel'] = 'Are you sure you want to delete selected context(s)?';
+$lang['confirm_delsel2'] = 'Are you sure you want to delete selected user(s)?';
 
 $lang['delete'] = 'Delete';
 
@@ -133,6 +134,7 @@ $lang['perm_some'] = 'some relevant';
 $lang['postinstall'] = 'Authenticator module installed sucessfully.<br />Be sure to set relevant permissions';
 $lang['postuninstall'] = 'Authenticator module uninstalled';
 $lang['previous'] = 'Previous';
+$lang['proceed'] = 'Proceed';
 
 $lang['really_uninstall'] = 'Are you sure you want to uninstall the Authenticator module?';
 $lang['register_success'] = 'Account created. Activation email sent to email';
