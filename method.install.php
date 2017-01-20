@@ -31,6 +31,7 @@ context_address C(96),
 cookie_name C(32) DEFAULT \'CMSMSauthID\',
 cookie_forget C(16) DEFAULT \'30 minutes\',
 cookie_remember C(16) DEFAULT \'1 week\',
+name_required I(1) DEFAULT 0,
 login_max_length I(1) DEFAULT 48,
 login_min_length I(1) DEFAULT 5,
 forget_rescue I(1) DEFAULT 0,
@@ -89,11 +90,13 @@ $dict->ExecuteSQLArray($sql);
 $flds = '
 id I KEY,
 publicid C(48),
+name B,
 address B,
 passhash B,
 context I(2),
 addwhen I,
 lastuse I,
+nameswap I(1) DEFAULT 0,
 active I(1) DEFAULT 1
 ';
 $tblname = $pref.'module_auth_users';
@@ -149,6 +152,7 @@ $this->SetPreference('login_max_length', 48);
 $this->SetPreference('login_min_length', 5);
 
 $this->SetPreference('message_charset', 'UTF-8');
+$this->SetPreference('name_required', 0);
 //$this->SetPreference('password_max_length', 72); //for CRYPT_BLOWFISH
 $this->SetPreference('password_min_length', 8);
 $this->SetPreference('password_min_score', 4);
