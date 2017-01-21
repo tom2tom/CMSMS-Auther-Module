@@ -97,8 +97,9 @@ class Import
 				return [FALSE, $mod->Lang('err_file')];
 			}
 			$fh = fopen($file_data['tmp_name'],'r');
-			if (!$fh)
+			if (!$fh) {
 				return [FALSE, $mod->Lang('err_perm')];
+			}
 			//basic validation of file-content
 			$firstline = self::GetSplitLine($fh);
 			if ($firstline == FALSE) {
@@ -117,6 +118,7 @@ class Import
 			/* non-public
 				=>addwhen
 				=>lastuse
+				=>nameswap
 				=>active
 			*/
 			$t = count($firstline);
@@ -167,7 +169,7 @@ class Import
 								}
 								break;
 							 case 'publicid':
-//							 case 'passhash':
+							 case 'passhash':
 							 case 'name':
 							 case 'address':
  								$data[$k] = trim($one);
@@ -209,7 +211,7 @@ class Import
 					} elseif (array_key_exists('oopsanon', $cached)) {
 						$cid = $cached['oopsanon'];
 					} else {
-						$cid = $this->MakeContext($mod, $mod->Lang('missingname'), $db, $pref);
+						$cid = $this->MakeContext($mod, $mod->Lang('missing_name'), $db, $pref);
 						$cached['oopsanon'] = $cid;
 					}
 
