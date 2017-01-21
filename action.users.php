@@ -210,13 +210,15 @@ EOS;
 		$jsloads[] = <<<EOS
  $.SSsort.addParser({
   id: 'icon',
-  is: function(s) {
-   return /^\<img/.test(s);
+  is: function(s,node) {
+   var \$i = $(node).find('img');
+   return \$i.length > 0;
   },
-  format: function(s) {
-   var p = s.lastIndexOf('/') + 1;
-   return s.substring(p);
+  format: function(s,node) {
+   var \$i = $(node).find('img');
+   return \$i[0].src;
   },
+  watch: false,
   type: 'text'
  });
 

@@ -8,8 +8,8 @@
    <th>{$title_name}</th>
    <th>{$title_first}</th>
    <th>{$title_last}</th>
-   <th>{$title_addr}</th>
-   <th>{$title_active}</th>
+   <th class="{ldelim}sss:'icon'{rdelim}">{$title_addr}</th>
+   <th class="{ldelim}sss:'icon'{rdelim}">{$title_active}</th>
    <th class="pageicon {ldelim}sss:false{rdelim}"></th>
 {if $mod} <th class="pageicon {ldelim}sss:false{rdelim}"></th>
    <th class="pageicon {ldelim}sss:false{rdelim}"></th>
