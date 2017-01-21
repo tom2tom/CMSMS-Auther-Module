@@ -875,7 +875,7 @@ class Auth
 	{
 		$val = $this->getConfig('address_required');
 		if ($val && !$address) {
-			return [FALSE, $this->mod->Lang('missing_address')]; //TODO
+			return [FALSE, $this->mod->Lang('missing_address')];
 		}
 		$val = $this->getConfig('email_required');
 		if ($val) {
@@ -1345,7 +1345,7 @@ class Auth
 
 	Returns: (192 + 16*N)bytes|FALSE The hashed password, or empty string, or FALSE on error.
 	*/
-	protected function password_hash($passwd, $masterkey)
+	public function password_hash($passwd, $masterkey)
 	{
 		if ($passwd == FALSE && !is_numeric($passwd)) {
 			trigger_error('No password provided', E_USER_WARNING);
