@@ -82,8 +82,8 @@ if ($data) {
 	$tplvars['title_active'] = $this->Lang('title_active');
 
 	$icon_see = $theme->DisplayImage('icons/system/view.gif',$this->Lang('tip_view'),'','','systemicon');
-	$icon_yes = $theme->DisplayImage('icons/system/true.gif','','','','systemicon');
-	$icon_no = $theme->DisplayImage('icons/system/false.gif','','','','systemicon');
+	$icon_yes = $theme->DisplayImage('icons/system/true.gif',$this->Lang('yes'),'','','systemicon');
+	$icon_no = $theme->DisplayImage('icons/system/false.gif',$this->Lang('no'),'','','systemicon');
 	if ($pmod) {
 		$icon_edit = $theme->DisplayImage('icons/system/edit.gif',$this->Lang('tip_edit'),'','','systemicon');
 		$icon_delete = $theme->DisplayImage('icons/system/delete.gif',$this->Lang('tip_delete'),'','','systemicon');
