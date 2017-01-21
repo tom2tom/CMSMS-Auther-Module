@@ -90,9 +90,9 @@ $dict->ExecuteSQLArray($sql);
 $flds = '
 id I KEY,
 publicid C(48),
+passhash B,
 name B,
 address B,
-passhash B,
 context I(2),
 addwhen I,
 lastuse I,
