@@ -13,8 +13,8 @@ if (!($this->_CheckAccess('admin') || $this->_CheckAccess('user'))) {
 $utils = new Auther\Utils();
 
 if (isset($_FILES) && isset($_FILES[$id.'csvfile'])) {
-	if (isset($params['item_id'])) {
-		$which = $params['item_id'];
+	if (isset($params['ctx_id'])) {
+		$which = $params['ctx_id'];
 	} else {
 		$which = '*';
 	}
@@ -23,7 +23,7 @@ if (isset($_FILES) && isset($_FILES[$id.'csvfile'])) {
 	$msg = $utils->PrettyMessage($this, $res[1], $res[0], FALSE);
 	$newparms = ['message' => $msg];
 	if ($which != '*') {
-		$newparms['item_id'] = $which;
+		$newparms['ctx_id'] = $which;
 	}
 	$this->Redirect($id, $params['resume'], '', $newparms);
 }
@@ -31,8 +31,8 @@ if (isset($_FILES) && isset($_FILES[$id.'csvfile'])) {
 $tplvars = [];
 $tplvars['pagenav'] = $utils->BuildNav($this,$id,$returnid,$params);
 $hidden = ['resume'=>$params['resume']];
-if (isset($params['item_id'])) {
-	$hidden['item_id'] = $params['item_id'];
+if (isset($params['ctx_id'])) {
+	$hidden['ctx_id'] = $params['ctx_id'];
 }
 //TODO etc
 $tplvars['startform'] = $this->CreateFormStart($id,'import',$returnid,'POST',

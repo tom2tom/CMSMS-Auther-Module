@@ -6,29 +6,6 @@
 # More info at http://dev.cmsmadesimple.org/projects/auther
 #----------------------------------------------------------------------
 
-if (!function_exists('langhasval')) {
- function langhasval(&$mod, $key)
- {
-	static $cmsvers = 0;
-	static $trans;
-	static $realm;
-
-	if ($cmsvers == 0) {
-		$cmsvers = ($mod->before20) ? 1:2;
-		if ($cmsvers == 1) {
-			$var = cms_current_language(); //CMSMS 1.8+
-			$trans = $mod->langhash[$var];
-		} else {
-			$realm = $mod->GetName();
-		}
-	}
-	if ($cmsvers == 1) {
-		return (array_key_exists($key, $trans));
-	} else {
-		return (CmsLangOperations::key_exists($key, $realm));
-	}
- }
-}
 if (!function_exists('getModulePrefs')) {
  function getModulePrefs()
  {
@@ -46,7 +23,7 @@ if (!function_exists('getModulePrefs')) {
 	'password_min_score',		1, 3, 1,
 	'default_password',			4, 50, 1,
 
-	'name_required',			0, 0, 0,	
+	'name_required',			0, 0, 0,
 	'address_required',			0, 0, 0,
 	'email_required',			0, 0, 0,
 	'email_banlist',			0, 0, 0,
@@ -273,7 +250,7 @@ if ($data) {
 			$oneset = new stdClass();
 			if ($pmod) {
 				$oneset->name = $this->CreateLink($id,'opencontext','',$one['name'],
-					['item_id'=>$cid,'edit'=>1]);
+					['ctx_id'=>$cid,'edit'=>1]);
 			} else {
 				$oneset->name = $one['name'];
 			}
@@ -281,14 +258,14 @@ if ($data) {
 			$oneset->id = $cid;
 			$oneset->count = $one['users'];
 			$oneset->users = $this->CreateLink($id,'users','',$icon_user,
-				['item_id'=>$cid]);
+				['ctx_id'=>$cid]);
 			$oneset->see = $this->CreateLink($id,'opencontext','',$icon_see,
-				['item_id'=>$cid, 'edit'=>0]);
+				['ctx_id'=>$cid, 'edit'=>0]);
 			if ($pmod) {
 				$oneset->edit = $this->CreateLink($id,'opencontext','',$icon_edit,
-					['item_id'=>$cid,'edit'=>1]);
+					['ctx_id'=>$cid,'edit'=>1]);
 				$oneset->del = $this->CreateLink($id,'deletecontext','',$icon_delete,
-					['item_id'=>$cid]);
+					['ctx_id'=>$cid]);
 				$oneset->sel = $this->CreateInputCheckbox($id,'sel[]',$cid,-1);
 			}
 			$rows[] = $oneset;
@@ -354,9 +331,9 @@ if ($pmod) {
 	$t = $this->Lang('addcontext');
 	$icon_add = $theme->DisplayImage('icons/system/newobject.gif',$t,'','','systemicon');
 	$tplvars['iconlinkadd'] = $this->CreateLink($id,'opencontext','',$icon_add,
-		['item_id'=>-1,'edit'=>1]);
+		['ctx_id'=>-1,'edit'=>1]);
 	$tplvars['textlinkadd'] = $this->CreateLink($id,'opencontext','',$t,
-		['item_id'=>-1,'edit'=>1]);
+		['ctx_id'=>-1,'edit'=>1]);
 }
 
 //SETTINGS TAB
@@ -411,10 +388,16 @@ if ($pset) {
 			$one->must = ($props[$i+3] > 0);
 			break;
 		}
-		$kn = 'help_'.$kn;
-		if (langhasval($this, $kn)) {
-			$one->help = $this->Lang($kn);
+
+		if (!isset($one->help)) {
+			$t = $this->Lang('help_'.$kn);
+			if (strpos($t, 'Missing Languagestring') === FALSE) {
+				$one->help = $t;
+			} else {
+				$one->help = NULL;
+			}
 		}
+
 		$settings[] = $one;
 	}
 

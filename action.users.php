@@ -9,7 +9,7 @@
 $pmod = $this->_CheckAccess('admin') || $this->_CheckAccess('user');
 $psee = $this->_CheckAccess('view');
 
-$cid = $params['item_id'];
+$cid = $params['ctx_id'];
 
 if (!function_exists('displaywhen')) {
  function displaywhen($dt, $stamp)
@@ -31,7 +31,7 @@ if (isset($params['close'])) {
 	if (!$pmod) {
 		exit;
 	}
-	$this->Redirect($id, 'import', '', ['resume'=>'users', 'item_id'=>$cid]);
+	$this->Redirect($id, 'import', '', ['resume'=>'users', 'ctx_id'=>$cid]);
 } elseif (!($pmod || $psee)) {
 	exit;
 }
@@ -46,9 +46,9 @@ if (!isset($utils)) {
 }
 
 $tplvars['pagenav'] = $utils->BuildNav($this,$id,$returnid,$params);
-$hidden = ['item_id' => $cid]; //TODO etc
-$tplvars['startform'] = $this->CreateFormStart($id,'users',$returnid,'POST','multipart/form-data',
-	'','',$hidden);
+$hidden = ['ctx_id' => $cid]; //TODO etc
+$tplvars['startform'] = $this->CreateFormStart($id,'users',$returnid,'POST',
+	'','','',$hidden);
 //$tplvars['hidden'] = NULL; //TODO
 $tplvars['endform'] = $this->CreateFormEnd();
 
@@ -72,10 +72,9 @@ $theme = ($this->before20) ? cmsms()->get_variable('admintheme'):
 	cms_utils::get_theme_object();
 
 $pre = cms_db_prefix();
-$sql = "SELECT id,publicid,address,addwhen,lastuse,active FROM {$pre}module_auth_users WHERE context=? ORDER BY publicid";
+$sql = "SELECT id,publicid,name,address,addwhen,lastuse,active FROM {$pre}module_auth_users WHERE context=? ORDER BY publicid";
 $data = $db->GetArray($sql, [$cid]);
 if ($data) {
-	//TODO support sorting, ?paging
 	$tplvars['title_name'] = $this->Lang('title_name');
 	$tplvars['title_first'] = $this->Lang('title_register');
 	$tplvars['title_last'] = $this->Lang('title_lastuse');
@@ -101,15 +100,22 @@ if ($data) {
 	}
 	$dt = new DateTime('@0', NULL);
 
+	$funcs = new Auther\Crypter();
+
 	$rows = [];
 	foreach ($data as &$one) {
 		$uid = (int)$one['id'];
 		$oneset = new stdClass();
-		if ($pmod) {
-			$oneset->name = $this->CreateLink($id,'openuser','',$one['publicid'],
-			['item_id'=>$uid,'edit'=>1]);
+		if ($one['name']) {
+			$t = $funcs->decrypt_value($this, $one['name']);
 		} else {
-			$oneset->name = $one['publicid'];
+			$t = $one['publicid'];
+		}
+		if ($pmod) {
+			$oneset->name = $this->CreateLink($id, 'openuser', '', $t,
+				['ctx_id'=>$cid,'user_id'=>$uid,'edit'=>1]);
+		} else {
+			$oneset->name = $t;
 		}
 		if ($one['addwhen']) {
 			$oneset->reg = displaywhen($dt, $one['addwhen'] + $offset);
@@ -124,12 +130,12 @@ if ($data) {
 		$oneset->addr = ($one['address']) ? $icon_yes : $icon_no;
 		$oneset->active = ($one['active'] > 0) ? $icon_yes : $icon_no;
 		$oneset->see = $this->CreateLink($id,'openuser','',$icon_see,
-			['item_id'=>$uid, 'edit'=>0]);
+			['ctx_id'=>$cid,'user_id'=>$uid,'edit'=>0]);
 		if ($pmod) {
 			$oneset->edit = $this->CreateLink($id,'openuser','',$icon_edit,
-				['item_id'=>$uid,'edit'=>1]);
+				['ctx_id'=>$cid,'user_id'=>$uid,'edit'=>1]);
 			$oneset->del = $this->CreateLink($id,'deleteuser','',$icon_delete,
-				['item_id'=>$uid]);
+				['ctx_id'=>$cid,'user_id'=>$uid]);
 			$oneset->sel = $this->CreateInputCheckbox($id,'sel[]',$uid,-1);
 		}
 		$rows[] = $oneset;
@@ -284,9 +290,9 @@ if ($pmod) {
 	$t = $this->Lang('adduser');
 	$icon_add = $theme->DisplayImage('icons/system/newobject.gif',$t,'','','systemicon');
 	$tplvars['iconlinkadd'] = $this->CreateLink($id,'openuser','',$icon_add,
-		['item_id'=>-1,'edit'=>1]);
+		['ctx_id'=>$cid,'user_id'=>-1,'edit'=>1]);
 	$tplvars['textlinkadd'] = $this->CreateLink($id,'openuser','',$t,
-		['item_id'=>-1,'edit'=>1]);
+		['ctx_id'=>$cid,'user_id'=>-1,'edit'=>1]);
 	$tplvars['import'] = $this->CreateInputSubmit($id,'import',$this->Lang('import'),
 		'title="'.$this->Lang('tip_importuser').'"');
 }

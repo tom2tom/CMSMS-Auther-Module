@@ -115,7 +115,7 @@ class Utils
 		if ($params['action'] == 'openuser') {
 			$navstr .= ' '.$mod->CreateLink($id, 'users', $returnid,
 			'&#171; '.$mod->Lang('users'), [
-			'item_id'=>$params['item_id'],
+			'ctx_id'=>$params['ctx_id'],
 			'edit'=>$params['edit']]);
 		}
 		return $navstr;

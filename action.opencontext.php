@@ -6,7 +6,7 @@
 # More info at http://dev.cmsmadesimple.org/projects/auther
 #----------------------------------------------------------------------
 
-$cid = (int)$params['item_id']; //-1 for new context
+$cid = (int)$params['ctx_id']; //-1 for new context
 $mod = ($cid == -1 || !empty($params['edit']));
 $pmod = $this->_CheckAccess('admin');
 $pown = $this->_CheckAccess('context');
@@ -35,7 +35,7 @@ if (!function_exists('getContextProperties')) {
 	'password_min_score',	1, 3, 1,
 	'default_password',		4, 50, 1,
 
-	'name_required',		0, 0, 0,	
+	'name_required',		0, 0, 0,
 	'address_required',		0, 0, 0,
 	'email_required',		0, 0, 0,
 	'email_banlist',		0, 0, 0,
@@ -63,34 +63,13 @@ if (!function_exists('getContextProperties')) {
  }
 }
 
-if (!function_exists('langhasval')) {
- function langhasval(&$mod, $key) {
-	static $cmsvers = 0;
-	static $trans;
-	static $realm;
-
-	if ($cmsvers == 0) {
-		$cmsvers = ($mod->before20) ? 1:2;
-		if ($cmsvers == 1) {
-			$var = cms_current_language(); //CMSMS 1.8+
-			$trans = $mod->langhash[$var];
-		} else {
-			$realm = $mod->GetName();
-		}
-	}
-	if ($cmsvers == 1) {
-		return (array_key_exists($key, $trans));
-	} else {
-		return (CmsLangOperations::key_exists($key, $realm));
-	}
- }
-}
-
 if (isset($params['cancel'])) {
 	$this->Redirect($id, 'defaultadmin');
 } elseif (isset($params['submit'])) {
 	$keys = [];
 	$args = [];
+	$abort = FALSE;
+
 	$props = getContextProperties();
 	$c = count($props);
 	for ($i = 0; $i < $c; $i += 4) {
@@ -103,7 +82,9 @@ if (isset($params['cancel'])) {
 				$val = $params[$kn];
 				if ($props[$i+3] > 0) {
 					if (!($val || is_numeric($val))) {
-						//TODO abort, message
+						$abort = TRUE;
+						break;
+						//TODO message
 					}
 				}
 				if (is_numeric($val)) {
@@ -128,23 +109,31 @@ if (isset($params['cancel'])) {
 					$dt = $dt->modify('+'.$val);
 					error_reporting($lvl);
 					if (!$dt) {
-						//TODO abort, message
+						$abort = TRUE;
+						break 2;
+						//TODO message
 					}
 					break;
 				 case 'security_level':
 					if ($val < Auther::NOBOT || $val > Auther::HISEC) {
-						//TODO abort, message
+						$abort = TRUE;
+						break 2;
+						//TODO message
 					}
 					break;
 				 case 'password_min_score':
 					if ($val < 1 || $val > 5) {
-						//TODO abort, message
+						$abort = TRUE;
+						break 2;
+						//TODO message
 					}
 					break;
 				 case 'default_password':
 					$funcs = new Auther\Auth($this, $cid); //TODO if == -1
 					if (!$funcs->validatePassword($val)) {
-						//TODO abort, message
+						$abort = TRUE;
+						break 2;
+						//TODO message
 					} else {
 						$cfuncs = new Auther\Crypter();
 						$t = $cfuncs->decrypt_preference($this, 'masterpass');
@@ -162,22 +151,25 @@ if (isset($params['cancel'])) {
 			$args[] = 0;
 		}
 	}
-	$pre = cms_db_prefix();
-	if ($cid == -1) {
-		$cid = $db->GenID($pre.'module_auth_contexts_seq');
-		array_unshift($args, $cid);
-		array_unshift($keys, 'id');
-		$flds = implode(',',$keys);
-		$fillers = str_repeat('?,',count($keys)-1);
-		$sql = 'INSERT INTO '.$pre.'module_auth_contexts ('.$flds.') VALUES ('.$fillers.'?)';
-	} else {
-		$flds = implode('=?,',$keys);
-		$args[] = $cid;
-		$sql = 'UPDATE '.$pre.'module_auth_contexts SET '.$flds.'=? WHERE id=?';
-	}
-	$ares = $db->Execute($sql, $args);
 
-	$this->Redirect($id, 'defaultadmin');
+	if (!$abort) {
+		$pre = cms_db_prefix();
+		if ($cid == -1) {
+			$cid = $db->GenID($pre.'module_auth_contexts_seq');
+			array_unshift($args, $cid);
+			array_unshift($keys, 'id');
+			$flds = implode(',',$keys);
+			$fillers = str_repeat('?,',count($keys)-1);
+			$sql = 'INSERT INTO '.$pre.'module_auth_contexts ('.$flds.') VALUES ('.$fillers.'?)';
+		} else {
+			$flds = implode('=?,',$keys);
+			$args[] = $cid;
+			$sql = 'UPDATE '.$pre.'module_auth_contexts SET '.$flds.'=? WHERE id=?';
+		}
+		$ares = $db->Execute($sql, $args);
+
+		$this->Redirect($id, 'defaultadmin');
+	}
 }
 
 if ($cid > -1) { //existing data
@@ -193,7 +185,7 @@ if ($cid > -1) { //existing data
 		$data[$kn] = $this->GetPreference($kn);
 	}
 	if (!$data['name']) {
-		$data['name'] = $this->Lang('missingname');
+		$data['name'] = $this->Lang('missing_name');
 	}
 }
 
@@ -202,7 +194,7 @@ $utils = new Auther\Utils();
 $tplvars = ['mod' => $mod, 'own' => $pown];
 $tplvars['pagenav'] = $utils->BuildNav($this,$id,$returnid,$params);
 $hidden = [
-	'item_id'=>$cid,
+	'ctx_id'=>$cid,
 	'edit'=>!empty($params['edit'])
 ]; //TODO etc
 $tplvars['startform'] = $this->CreateFormStart($id,'opencontext',$returnid,'POST',
@@ -344,10 +336,16 @@ EOS;
 		} //switch($kn)
 		break;
 	}
-	$kn = 'help_'.$kn;
-	if (langhasval($this, $kn)) {
-		$one->help = $this->Lang($kn);
+
+	if (!isset($one->help)) {
+		$t = $this->Lang('help_'.$kn);
+		if (strpos($t, 'Missing Languagestring') === FALSE) {
+			$one->help = $t;
+		} else {
+			$one->help = NULL;
+		}
 	}
+
 	$options[] = $one;
 }
 
