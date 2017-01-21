@@ -323,17 +323,6 @@ class Auth
 	}
 
 	/**
-	* Hashes the provided password using Bcrypt
-	* @password: plaintext string
-	* @masterkey:
-	* Returns: hashed password string
-	*/
-	public function getHash($password, $masterkey)
-	{
-		return $this->password_hash($password, $masterkey);
-	}
-
-	/**
 	* Gets user-enumerator for @publicid
 	* @publicid: string user identifier
 	* Returns: user enumerator
@@ -479,12 +468,13 @@ class Auth
 	* Records a new user
 	* @publicid: string user identifier
 	* @password: plaintext string
+	* @name: string user name
 	* @address: email or other type of address for messages, possibly empty
 	* @sendmail:  reference to boolean whether to send confirmation email messages
 	* @params: array of additional params default = empty
 	* Returns: array 0=>T/F for success, 1=>message
 	*/
-	protected function addUser($publicid, $password, $address, &$sendmail, $params=[])
+	protected function addUser($publicid, $password, $name, $address, &$sendmail, $params=[])
 	{
 		$uid = $this->db->GenID($this->pref.'module_auth_users_seq');
 		$publicid = htmlentities($publicid); //TODO encoding management
@@ -501,17 +491,24 @@ class Auth
 			$isactive = 1;
 		}
 
-		$password = $this->getHash($password);
-		if (!$address) {
-			$address = NULL;
+		$funcs = new Auther\Crypter();
+		$t = $funcs->decrypt_preference($this->mod, 'masterpass');
+		$password = $this->password_hash($password, $t);
+
+		if ($name || is_numeric($name)) {
+			$name = $funcs->encrypt_value($this->mod, $name);
 		} else {
-			$funcs = new Auther\Crypter();
+			$name = NULL;
+		}
+		if ($address || is_numeric($address)) {
 			$address = $funcs->encrypt_value($this->mod, $address);
+		} else {
+			$address = NULL;
 		}
 
-		$sql = 'INSERT INTO '.$this->pref.'module_auth_users (id,publicid,passhash,address,active) VALUES (?,?,?,?,?)';
+		$sql = 'INSERT INTO '.$this->pref.'module_auth_users (id,publicid,passhash,name,address,active) VALUES (?,?,?,?,?,?)';
 
-		if (!$this->db->Execute($sql, [$uid, $publicid, $password, $address, $isactive])) {
+		if (!$this->db->Execute($sql, [$uid, $publicid, $password, $name, $address, $isactive])) {
 			$this->deleteRequest($status[$TODO]);
 			return [FALSE,$this->mod->Lang('system_error').' #03'];
 		}
@@ -525,14 +522,20 @@ class Auth
 	/**
 	* Gets basic user-data for the given UID
 	* @uid: int user enumerator
-	* Returns: array with members 'uid','publicid','password','active', or else FALSE
+	* @raw: whether to decrypt relevant values, default = FALSE
+	* Returns: array with members uid,publicid,passhash,active or else FALSE
 	*/
-	protected function getBaseUser($uid)
+	protected function getBaseUser($uid, $raw = FALSE)
 	{
 		$sql = 'SELECT publicid,passhash,active FROM '.$this->pref.'module_auth_users WHERE id=?';
 		$data = $this->db->GetRow($sql, [$uid]);
 
 		if ($data) {
+			if (!$raw) {
+				$funcs = new Auther\Crypter();
+				$t = $funcs->decrypt_preference($this->mod, 'masterpass');
+				$data['passhash'] = $this->password_retrieve($data['passhash'], $t);
+			}
 			$data['uid'] = $uid;
 			return $data;
 		}
@@ -540,21 +543,31 @@ class Auth
 	}
 
 	/**
-	* Gets all user-data except password,factor2 for the given UID
+	* Gets all user-data except password for the given UID
 	* @uid: int user enumerator
-	* Returns: array with members 'uid','address','publicid','active', or else FALSE
+	* @raw: whether to decrypt relevant values, default = FALSE
+	* Returns: array with members uid,publicid,name,address,context,addwhen,lastuse,nameswap,active or else FALSE
 	*/
-	public function getUser($uid)
+	public function getUser($uid, $raw = FALSE)
 	{
 		$sql = 'SELECT * FROM '.$this->pref.'module_auth_users WHERE id=?';
 		$data = $this->db->GetRow($sql, [$uid]);
 
 		if ($data) {
 			unset($data['id']);
-			unset($data['password']);
-
-			$funcs = new Auther\Crypter();
-			$data['address'] = $funcs->decrypt_value($this->mod, $data['address']);
+			unset($data['passhash']);
+			if (!$raw) {
+				$funcs = new Auther\Crypter();
+				$data['name'] = $funcs->decrypt_value($this->mod, $data['name']);
+				$data['address'] = $funcs->decrypt_value($this->mod, $data['address']);
+//TODO context
+//TODO zone offset
+				$dt = new \DateTime('@0',NULL);
+				$dt->setTimestamp($data['addwhen']);
+				$data['addwhen'] = $dt->format('Y-m-d H:i:s');
+				$dt->setTimestamp($data['lastuse']);
+				$data['lastuse'] = $dt->format('Y-m-d H:i:s');
+			}
 
 			$data['uid'] = $uid; //=data['id']
 			return $data;
@@ -566,11 +579,11 @@ class Auth
 	* Gets publicly-accessible user-data for @publicid
 	* @publicid: string user identifier
 	* @active: optional boolean whether the user is required to be active default = TRUE
-	* Returns: array with members 'publicid','address','addwhen','lastuse', or else FALSE
+	* Returns: array with members publicid,name,address,addwhen,lastuse or else FALSE
 	*/
-	public function getPublicUser($publicid, $ative=TRUE)
+	public function getPublicUser($publicid, $active=TRUE)
 	{
-		$sql = 'SELECT address,addwhen,lastuse FROM '.$this->pref.'module_auth_users WHERE comtext=? AND publicid=?';
+		$sql = 'SELECT name,address,addwhen,lastuse FROM '.$this->pref.'module_auth_users WHERE comtext=? AND publicid=?';
 		if ($active) {
 			$sql .= ' AND active>0';
 		}
@@ -578,7 +591,9 @@ class Auth
 
 		if ($data) {
 			$funcs = new Auther\Crypter();
+			$data['name'] = $funcs->decrypt_value($this->mod, $data['name']);
 			$data['address'] = $funcs->decrypt_value($this->mod, $data['address']);
+//TODO zone offset
 			$dt = new \DateTime('@0',NULL);
 			$dt->setTimestamp($data['addwhen']);
 			$data['addwhen'] = $dt->format('Y-m-d H:i:s');
@@ -987,7 +1002,7 @@ class Auth
 			return [FALSE,$this->mod->Lang('newpassword_match')];
 		}
 
-		$password = $this->getHash($password);
+		$password = $this->password_hash($password, $masterkey);
 		$sql = 'UPDATE '.$this->pref.'module_auth_users SET passhash=? WHERE id=?';
 		$res = $this->db->Execute($sql, [$password, $data['uid']]);
 
@@ -1046,7 +1061,7 @@ class Auth
 			return [FALSE,$this->mod->Lang('password_incorrect')];
 		}
 
-		$newpass = $this->getHash($newpass);
+		$newpass = $this->password_hash($newpass, $masterkey);
 
 		$sql = 'UPDATE '.$this->pref.'module_auth_users SET passhash=? WHERE id=?';
 		$this->db->Execute($sql, [$newpass, $uid]);
