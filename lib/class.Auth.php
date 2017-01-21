@@ -857,7 +857,7 @@ class Auth
 			if ($val) {
 				$parts = explode('@', $publicid);
 				$bannedDomains = json_decode(file_get_contents(__DIR__.DIRECTORY_SEPARATOR.'domains.json'));
-				if (in_array(strtolower($parts[1]), $bannedDomain)) {
+				if (in_array(strtolower($parts[1]), $bannedDomains)) {
 					return [FALSE,$this->mod->Lang('email_banned')];
 				}
 			}
