@@ -148,7 +148,7 @@ if (isset($params['cancel'])) {
 					} else {
 						$cfuncs = new Auther\Crypter();
 						$t = $cfuncs->decrypt_preference($this, 'masterpass');
-						$val = $funcs->getHash($val, $t);
+						$val = $funcs->password_hash($val, $t);
 					}
 					break;
 				 default:
