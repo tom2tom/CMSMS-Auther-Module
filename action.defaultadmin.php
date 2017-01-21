@@ -271,7 +271,12 @@ if ($data) {
 		if ($uid == 0 || $uid == $one['owner']) {
 			$cid = (int)$one['id'];
 			$oneset = new stdClass();
-			$oneset->name = $one['name'];
+			if ($pmod) {
+				$oneset->name = $this->CreateLink($id,'opencontext','',$one['name'],
+					['item_id'=>$cid,'edit'=>1]);
+			} else {
+				$oneset->name = $one['name'];
+			}
 			$oneset->alias = $one['alias'];
 			$oneset->id = $cid;
 			$oneset->count = $one['users'];
