@@ -87,7 +87,7 @@ $lang['help_login_min_length'] = 'Blank or 0 means no limit';
 $lang['help_nameswap'] = 'which means the last part is for personal/friendly addressing';
 //$lang['help_password_min_length'] = '';
 $lang['help_owner'] = 'Admin user assigned to manage this context';
-$lang['help_password_new'] = 'If provided, must have length &gt;= %d and complexity-score &gt= %d';
+$lang['help_password_new'] = 'When provided, must have length &gt;= %d and complexity-score &gt= %d';
 $lang['help_password_min_score'] = 'Number 1..5 broadly indicating the difficulty of cracking a password (1 is easiest)';
 $lang['help_request_key_expiration'] = 'Length of time before sent confirmation-requests expire, something like \'10 minutes\' or \'1 day\' (unquoted, in english that <a href="http://php.net/manual/en/datetime.formats.relative.php">PHP understands</a>)';
 $lang['help_security_level'] = 'Number 1..4 which determines the process for, and extent of security-checking during, logins (1 is lowest)';
@@ -133,6 +133,7 @@ $lang['nouser'] = 'No user has been registered for the \'%s\' context';
 
 $lang['pageof'] = 'Page %s of %s';
 $lang['pagerows'] = 'rows per page';
+$lang['password'] = 'Password';
 $lang['password_changed'] = 'Password changed successfully';
 $lang['password_incorrect'] = 'Password is wrong';
 $lang['password_nomatch'] = 'Passwords do not match';
