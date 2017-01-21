@@ -113,7 +113,7 @@ if ($data) {
 		}
 		if ($pmod) {
 			$oneset->name = $this->CreateLink($id, 'openuser', '', $t,
-				['ctx_id'=>$cid,'user_id'=>$uid,'edit'=>1]);
+				['ctx_id'=>$cid,'usr_id'=>$uid,'edit'=>1]);
 		} else {
 			$oneset->name = $t;
 		}
@@ -130,12 +130,12 @@ if ($data) {
 		$oneset->addr = ($one['address']) ? $icon_yes : $icon_no;
 		$oneset->active = ($one['active'] > 0) ? $icon_yes : $icon_no;
 		$oneset->see = $this->CreateLink($id,'openuser','',$icon_see,
-			['ctx_id'=>$cid,'user_id'=>$uid,'edit'=>0]);
+			['ctx_id'=>$cid,'usr_id'=>$uid,'edit'=>0]);
 		if ($pmod) {
 			$oneset->edit = $this->CreateLink($id,'openuser','',$icon_edit,
-				['ctx_id'=>$cid,'user_id'=>$uid,'edit'=>1]);
+				['ctx_id'=>$cid,'usr_id'=>$uid,'edit'=>1]);
 			$oneset->del = $this->CreateLink($id,'deleteuser','',$icon_delete,
-				['ctx_id'=>$cid,'user_id'=>$uid]);
+				['ctx_id'=>$cid,'usr_id'=>$uid]);
 			$oneset->sel = $this->CreateInputCheckbox($id,'sel[]',$uid,-1);
 		}
 		$rows[] = $oneset;
@@ -290,9 +290,9 @@ if ($pmod) {
 	$t = $this->Lang('adduser');
 	$icon_add = $theme->DisplayImage('icons/system/newobject.gif',$t,'','','systemicon');
 	$tplvars['iconlinkadd'] = $this->CreateLink($id,'openuser','',$icon_add,
-		['ctx_id'=>$cid,'user_id'=>-1,'edit'=>1]);
+		['ctx_id'=>$cid,'usr_id'=>-1,'edit'=>1]);
 	$tplvars['textlinkadd'] = $this->CreateLink($id,'openuser','',$t,
-		['ctx_id'=>$cid,'user_id'=>-1,'edit'=>1]);
+		['ctx_id'=>$cid,'usr_id'=>-1,'edit'=>1]);
 	$tplvars['import'] = $this->CreateInputSubmit($id,'import',$this->Lang('import'),
 		'title="'.$this->Lang('tip_importuser').'"');
 }

@@ -11,8 +11,8 @@ if (!($this->_CheckAccess('admin') || $this->_CheckAccess('user'))) {
 }
 
 $utils = new Auther\Utils();
-$utils->DeleteUser($params['user_id']);
+$utils->DeleteUser($params['usr_id']);
 
 $this->Crash();
 
-$this->Redirect($id, 'users', '', ['ctx_id'=>$params['ctx_id']]); //TODO parms
+$this->Redirect($id, 'users', '', ['ctx_id'=>$params['ctx_id'],'edit'->1]); //TODO parms
