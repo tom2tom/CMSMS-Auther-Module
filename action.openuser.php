@@ -6,78 +6,169 @@
 # More info at http://dev.cmsmadesimple.org/projects/auther
 #----------------------------------------------------------------------
 
-$uid = (int)$params['item_id']; //-1 for new user
+$uid = (int)$params['usr_id']; //-1 for new user
 $pmod = ($uid == -1 || !empty($params['edit']));
 if ($pmod && !($this->_CheckAccess('admin') || $this->_CheckAccess('user'))) {
 	exit;
 }
 
-if (!function_exists('langhasval')) {
- function langhasval(&$mod, $key) {
-	static $cmsvers = 0;
-	static $trans;
-	static $realm;
-
-	if ($cmsvers == 0) {
-		$cmsvers = ($mod->before20) ? 1:2;
-		if ($cmsvers == 1) {
-			$var = cms_current_language(); //CMSMS 1.8+
-			$trans = $mod->langhash[$var];
-		} else {
-			$realm = $mod->GetName();
-		}
-	}
-	if ($cmsvers == 1) {
-		return (array_key_exists($key, $trans));
-	} else {
-		return (CmsLangOperations::key_exists($key, $realm));
-	}
+if (!function_exists('GetUserProperties')) {
+ function GetUserProperties () {
+ 	//each: tablefield, langsuffix, type, textlen, maxtextlen, compulsory
+	return [
+	'name',		'name',		2, 40, 48, 0,
+	'nameswap',	'nameswap',	0, 0,  0,  0,
+	'address',	'contact',	2, 40, 96, 0,
+	'publicid',	'identifier',	1, 40, 96, 1,
+	'passhash',	'password_new', 2, 40, 72, 0, //fake
+	'active',	'active',	0, 0,  0,  0,
+	];
+	//unused: id, context, addwhen, lastuse
  }
 }
 
 if (isset($params['cancel'])) {
-	$this->Redirect($id, 'users', '', ['item_id'=>$params['context']]); //TODO parms
+	$this->Redirect($id, 'users', '', ['ctx_id'=>$params['ctx_id']]); //TODO parms
 } elseif (isset($params['submit'])) {
-//TODO verify & save stuff
-//TODO encrypt address,passhash
-	$this->Redirect($id, 'users', '', ['item_id'=>$params['context']]);
+	$funcs = new Auther\Auth($this, $params['ctx_id']);
+	$cfuncs = new Auther\Crypter();
+	$t = $cfuncs->decrypt_preference($this, 'masterpass');
+	$abort = FALSE;
+	$skip = FALSE;
+
+	$props = GetUserProperties ();
+	$c = count($props);
+	for ($i = 0; $i < $c; $i += 6) {
+		$kf = $props[$i];
+		if (isset($params[$kf])) {
+			if ($props[$i+2] === 0) { //boolean property
+				$keys[] = $kf;
+				$args[] = 1;
+			} else {
+				$val = $params[$kf];
+				if ($props[$i+5] > 0) { //TODO condiion maybe func(context), changed at runtime
+					if (!($val || is_numeric($val))) {
+						$abort = TRUE;
+						break;
+						//TODO message
+					}
+				}
+				if (is_numeric($val)) {
+					$val += 0;
+				} else {
+					$val = trim($val);
+				}
+
+				switch ($kf) {
+				 case 'name':
+					if (0) {
+						$abort = TRUE;
+						break 2;
+						//TODO message
+					} else {
+						$val = $cfuncs->encrypt_value($this, $val, $t);
+					}
+					break;
+				 case 'address':
+					if (!$funcs->validateAddress($val)) {
+						$abort = TRUE;
+						break 2;
+						//TODO message
+					} else {
+						$val = $cfuncs->encrypt_value($this, $val, $t);
+					}
+					break;
+				 case 'publicid':
+					if (!$funcs->validateLogin($val)) {
+						$abort = TRUE;
+						break 2;
+						//TODO message
+					}
+					break;
+				 case 'passhash':
+					if (!$val) {
+						$skip = TRUE;
+						break; //no replacement password
+					} elseif (!$funcs->validatePassword($val)) {
+						$abort = TRUE;
+						break 2;
+						//TODO message
+					} else {
+						$val = $funcs->password_hash($val, $t);
+					}
+					break;
+				 default:
+					break;
+				}
+				if (!$skip) {
+					$keys[] = $kf;
+					$args[] = $val;
+				} else {
+					$skip = FALSE;
+				}
+			}
+		} elseif ($props[$i+2] === 0) {
+			$keys[] = $kf;
+			$args[] = 0;
+		}
+	}
+
+	if (!$abort) {
+		$pre = cms_db_prefix();
+		if ($uid == -1) {
+			$uid = $db->GenID($pre.'module_auth_users_seq');
+			array_unshift($args, $uid);
+			array_push($args, (int)$params['ctx_id'], time());
+			array_unshift($keys, 'id');
+			array_push($keys, 'context', 'addwhen');
+
+			$flds = implode(',',$keys);
+			$fillers = str_repeat('?,',count($keys)-1);
+			$sql = 'INSERT INTO '.$pre.'module_auth_users ('.$flds.') VALUES ('.$fillers.'?)';
+		} else {
+			$flds = implode('=?,',$keys);
+			$args[] = $uid;
+			$sql = 'UPDATE '.$pre.'module_auth_users SET '.$flds.'=? WHERE id=?';
+		}
+		$ares = $db->Execute($sql, $args);
+
+		$this->Redirect($id, 'users', '', ['ctx_id'=>$params['ctx_id']]);
+	}
+}
+
+$utils = new Auther\Utils();
+
+if (!is_numeric($params['ctx_id'])) {
+	$params['ctx_id'] = $utils->ContextID($params['ctx_id']);
 }
 
 $cfuncs = new Auther\Crypter();
+$pre = cms_db_prefix();
+
 if ($uid > -1) { //existing data
-/*
-id I KEY,
-publicid C(48),
-address B,
-passhash B,
-context I,
-lastuse I,
-active I(1) DEFAULT 1
-*/
-	$pre = cms_db_prefix();
 	$sql = "SELECT * FROM {$pre}module_auth_users WHERE id=?";
 	$data = $db->GetRow($sql,[$uid]);
-	unset($data['lastuse']);
-//TODO decrypt address,passhash
+//	unset($data['lastuse']);
 } else {
 	$data = [
-	'publicid' => $this->Lang('missingname'),
-	'context' => $params['context'], //TODO if not numeric
-	'passhash' => '',
+	'id' => -1,
+	'name' => '',
+	'nameswap' => 0,
 	'address' => '',
-	'active' => 1
+	'publicid' => $this->Lang('missing_name'),
+	'context' => $params['ctx_id'],
+	'passhash' => '',
+	'active' => 1,
 	];
 }
 
-$cdata = $db->GetRow('SELECT name,password_min_length,password_min_score,address_required,email_required FROM '.$pre.'module_auth_contexts WHERE id=?', [$data['context']]);
-
-$utils = new Auther\Utils();
+$cdata = $db->GetRow('SELECT name,password_min_length,password_min_score,address_required,email_required,name_required FROM '.$pre.'module_auth_contexts WHERE id=?', [$data['context']]);
 
 $tplvars = ['mod' => $pmod];
 $tplvars['pagenav'] = $utils->BuildNav($this,$id,$returnid,$params);
 $hidden = [
-	'context'=>$data['context'],
-	'user_id'=>$data['id'],
+	'ctx_id'=>$data['context'],
+	'usr_id'=>$data['id'],
 	'edit'=>!empty($params['edit'])
 ]; //TODO etc
 $tplvars['startform'] = $this->CreateFormStart($id,'openuser',$returnid,'POST',
@@ -103,37 +194,82 @@ if (!$pmod) {
 }
 
 $options = [];
-$one = new stdClass();
-$kn = 'identifier';
-$val = $data['publicid'];
-$one->title = $this->Lang('title_'.$kn);
-if ($pmod) {
-	$one->input = $this->CreateInputText($id, $kn, $val, 48);
-} else {
-	$one->input = $val;
-}
-$one->must = 1;
-$kn = 'help_'.$kn;
-if (langhasval($this, $kn)) {
-	$one->help = $this->Lang($kn);
-}
-$options[] = $one;
 
-$one = new stdClass();
-$kn = 'contact';
-$val = $cfuncs->decrypt_value ($this, $data['address']);
-$one->title = $this->Lang('title_'.$kn);
-if ($pmod) {
-	$one->input = $this->CreateInputText($id, $kn, $val, 48, 96);
-} else {
-	$one->input = $val;
+$props = getUserProperties();
+$c = count($props);
+for ($i = 0; $i < $c; $i += 6) {
+	$kf = $props[$i];
+	$val = $data[$kf];
+
+	$kl = $props[$i+1];
+	$one = new stdClass();
+	$one->title = $this->Lang('title_'.$kl);
+	if (!$pmod || $props[$i+2] == 0) {
+		$one->must = 0;
+	} else {
+		$one->must = ($props[$i+5] > 0);
+	}
+	switch ($props[$i+2]) {
+	 case 0:
+		if ($pmod) {
+			$one->input = $this->CreateInputCheckbox($id, $kf, 1, $val);
+		} else {
+			$one->input = ($val) ? $yes:$no;
+		}
+		break;
+	 case 1:
+		if ($pmod) {
+			$one->input = $this->CreateInputText($id, $kf, $val, $props[$i+3], $props[$i+4]);
+		} else {
+			$one->input = $val;
+		}
+		break;
+	 case 2:
+		switch ($kf) {
+		 case 'name':
+		 case 'address':
+			$val = $cfuncs->decrypt_value($this, $val);
+			if ($pmod) {
+				$one->input = $this->CreateInputText($id, $kf, $val, $props[$i+3], $props[$i+4]);
+			} else {
+				$one->input = $val;
+			}
+			break;
+		 case 'passhash':
+			if ($uid == -1) {
+				$one->title = $this->Lang('password');
+				$one->must = 1;
+			}
+			if ($pmod) {
+				$one->input = $this->CreateInputText($id, $kf, '', $props[$i+3], $props[$i+4]);
+				$short = (int)$cdata['password_min_length'];
+				$score = (int)$cdata['password_min_score'];
+				$one->help = $this->Lang('help_'.$kl, $short, $score);
+				break;
+			} else {
+				break 3;
+			}
+		}
+		break;
+	}
+
+	if (!isset($one->help)) {
+		$t = $this->Lang('help_'.$kl);
+		if (strpos($t, 'Missing Languagestring') === FALSE) {
+			$one->help = $t;
+		} else {
+			$one->help = NULL;
+		}
+	}
+
+	$options[$kf] = $one;
 }
-$one->must = ($cdata['address_required'] > 0 || $cdata['email_required'] > 0);
-if ($cdata['email_required']) {
-	$kn = 'help_'.$kn;
-	$one->help = $this->Lang($kn);
-	if ($pmod) {
-		$jsincs[] = <<<EOS
+
+$options['name']->must = ($cdata['name_required'] > 0);
+$options['publicid']->must = ($cdata['address_required'] > 0 || $cdata['email_required'] > 0);
+
+if ($pmod) {
+	$jsincs[] = <<<EOS
 <script type="text/javascript" src="{$baseurl}/include/mailcheck.js"></script>
 <script type="text/javascript" src="{$baseurl}/include/levenshtein.min.js"></script>
 <script type="text/javascript" src="{$baseurl}/include/jquery.alertable.min.js"></script>
@@ -142,55 +278,46 @@ EOS;
 	function ConvertDomains($pref)
 	{
 		if (!$pref)
-			return FALSE; //'""';
+			return '';
 		$parts = explode(',',$pref);
-		if (isset($parts[1])) { //>1 array-member
-			$parts = array_unique($parts);
-			ksort($parts);
-		}
 		foreach ($parts as &$one) {
 			$one = '\''.trim($one).'\'';
 		}
 		unset($one);
+		if (count($parts) > 1) {
+			$parts = array_unique($parts);
+			sort($parts, SORT_STRING);
+		}
 		return implode(',',$parts);
 	}
 
-		$pref = $this->GetPreference('email_topdomains');
-		$topdomains = ConvertDomains($pref);
-		if ($topdomains) {
-			$topdomains = <<<EOS
+	$pref = $this->GetPreference('email_topdomains');
+	$topdomains = ConvertDomains($pref);
+	if ($topdomains) {
+		$topdomains = <<<EOS
 
    topLevelDomains: [$topdomains],
 EOS;
-		} else {
-			$topdomains = '';
-		}
-		$pref = $this->GetPreference('email_domains');
-		$domains = ConvertDomains($pref);
-		if ($domains) {
-			$domains = <<<EOS
+	}
+	$pref = $this->GetPreference('email_domains');
+	$domains = ConvertDomains($pref);
+	if ($domains) {
+		$domains = <<<EOS
 
    domains: [$domains],
 EOS;
-		} else {
-			$domains = '';
-		}
-		$pref = $this->GetPreference('email_subdomains');
-		$l2domains = ConvertDomains($pref);
-		if ($l2domains) {
-			$l2domains = <<<EOS
+	}
+	$pref = $this->GetPreference('email_subdomains');
+	$l2domains = ConvertDomains($pref);
+	if ($l2domains) {
+		$l2domains = <<<EOS
 
    secondLevelDomains: [$l2domains],
 EOS;
-		} else {
-			$l2domains = '';
-		}
+	}
 
-		$jsincs[] = <<<EOS
-EOS;
-
-		$jsloads[] = <<<EOS
- $('#{$id}contact').blur(function() {
+	$jsloads[] = <<<EOS
+ $('#{$id}address,#{$id}publicid').blur(function() {
   $(this).mailcheck({{$domains}{$l2domains}{$topdomains}
    distanceFunction: function(string1,string2) {
     var lv = Levenshtein;
@@ -209,29 +336,16 @@ EOS;
 	});
    },
    empty: function(element) {
-    $.alertable.prompt('{$this->Lang('missing_contact')}').then(function() {
-     element.focus();
-    });
+    var dbg = 1;
+//TODO    $.alertable.prompt('{$this->Lang('missing_contact')}').then(function() {
+//     element.focus();
+//    });
    }
   });
  });
 EOS;
-	} //$pmod
-} //require email
 
-$options[] = $one;
-
-if ($pmod) {
-	$one = new stdClass();
-	$one->title = $this->Lang('title_password_new');
-	$one->input = $this->CreateInputText($id, 'password_new', '', 48, 72);
-	$one->must = 0;
-	$short = (int)$cdata['password_min_length'];
-	$score = (int)$cdata['password_min_score'];
-	$one->help = $this->Lang('help_password_new', $short, $score);
-	$options[] = $one;
-
-/* NB cloaking not compatible with strengthify
+/* NB cloaking not compatible with strengthify, cuz the former hides original & works with duplicate object, same id
 <script type="text/javascript" src="{$baseurl}/include/jquery-inputCloak.min.js"></script>
 .inputCloak({
   type:'see4',
@@ -256,27 +370,11 @@ strengthify unused opts
 EOS;
 
 	$jsloads[] = <<<EOS
- $('#{$id}password_new').strengthify({
+ $('#{$id}passhash').strengthify({
   zxcvbn: '{$baseurl}/include/zxcvbn/zxcvbn.js'
  });
 EOS;
 } //$pmod
-
-$one = new stdClass();
-$kn = 'active';
-$val = $data[$kn];
-$one->title = $this->Lang('title_'.$kn);
-if ($pmod) {
-	$one->input = $this->CreateInputCheckbox($id, $kn, 1, $val);
-} else {
-	$one->input = ($val) ? $yes : $no;
-}
-$one->must = 0;
-$kn = 'help_'.$kn;
-if (langhasval($this, $kn)) {
-	$one->help = $this->Lang($kn);
-}
-$options[] = $one;
 
 $tplvars['options'] = $options;
 if ($pmod) {
