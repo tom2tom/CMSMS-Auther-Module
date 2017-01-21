@@ -261,7 +261,7 @@ Each line in the file (except the header line, discussed below) represents one u
 <h4>Header line</h4>
 <p>The first line of the file names the fields in the file, as follows.
 The supplied names may be in any order. Those prefixed by a '#' represent compulsory values.<br />
-<code>#Context,#Login,Password,MessageTo,Update</code></p>
+<code>#Context,#Login,Password,Name,MessageTo,Update</code></p>
 <h4>Other lines</h4>
 <p>The data in each line must conform to the header columns, of course. Any non-compulsory field, or entire line, may be empty.<br />
 Context may be a numeric identifier or alias string, representing a login-context (which will be created if not already present).<br />
