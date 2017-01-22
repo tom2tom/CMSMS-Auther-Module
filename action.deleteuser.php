@@ -15,4 +15,4 @@ $utils->DeleteUser($params['usr_id']);
 
 $this->Crash();
 
-$this->Redirect($id, 'users', '', ['ctx_id'=>$params['ctx_id'],'edit'->1]); //TODO parms
+$this->Redirect($id, 'users', '', ['ctx_id'=>$params['ctx_id'],'edit'=>1]); //TODO parms
