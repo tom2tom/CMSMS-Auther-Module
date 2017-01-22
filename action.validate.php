@@ -13,19 +13,19 @@ $tplvars = [
 	'mod' => $mod,
 ];
 
+$utils = new Auther\Utils();
+
 $baseurl = $this->GetModuleURLPath();
 $jsfuncs = []; //script accumulators
 $jsloads = [];
 $jsincs = [];
 
-$jsall = NULL;
-$utils->MergeJS($jsincs, $jsfuncs, $jsloads, $jsall);
+$jsall = $utils->MergeJS($jsincs, $jsfuncs, $jsloads);
 unset($jsincs);
 unset($jsfuncs);
 unset($jsloads);
 
-echo Auther\Utils::ProcessTemplate($this, 'validate.tpl', $tplvars);
-//inject constructed js after other content (pity we can't get to </body> or </html> from here)
+echo $utils->ProcessTemplate($this, 'validate.tpl', $tplvars);
 if ($jsall) {
-	echo $jsall;
+	echo $jsall; //inject constructed js after other content
 }
