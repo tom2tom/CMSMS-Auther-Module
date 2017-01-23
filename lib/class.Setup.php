@@ -62,9 +62,65 @@ $lang['err_] = 'The login is not available';
 $lang['err_] = 'The email address is not valid';
 */
 
-class Setup
+final class Setup
 {
-	private function _Hash($num)
+	//returns enum or FALSE
+	private static function CheckHandler($handler)
+	{
+		$type = FALSE;
+		if (is_callable($handler)) { //BUT the class may have a __call() method
+			if (is_array($handler && count($handler) == 2)) {
+				$method = new \ReflectionMethod($handler);
+				if ($method && $method->isStatic()) {
+					$type = 1;
+				}
+			} elseif (is_string($handler) && strpos($handler,'::') !== FALSE) {
+				//PHP 5.2.3+, supports passing 'ClassName::methodName'
+				$method = new \ReflectionMethod($handler);
+				if ($method && $method->isStatic()) {
+					$type = 1;
+				}
+			} /* elseif (is_object($handler) && ($handler instanceof Closure)) {
+				if ($this->isStatic($handler)) {
+					$type = 2;
+				}
+			}
+*/
+		} elseif (is_array($handler) && count($handler) == 2) {
+			$ob = \cms_utils::get_module($handler[0]);
+			if ($ob) {
+				$dir = $ob->GetModulePath();
+				unset($ob);
+				$fp = $dir.DIRECTORY_SEPARATOR.'action.'.$handler[1].'.php';
+				if (@is_file($fp)) {
+					$type = 3;
+				} elseif (strpos($handler[1],'method.') === 0) {
+					$fp = $dir.DIRECTORY_SEPARATOR.$handler[1].'.php';
+					if (@is_file($fp)) {
+						$type = 4;
+					}
+				}
+			}
+		} elseif (is_string($handler)) {
+			if (@is_file($handler)) {
+				if (substr_compare($handler,'.php',-4,4,TRUE) === 0) {
+					$type = 5;
+				}
+			} elseif ($this->workermod->havecurl) { //curl is installed
+				$config = cmsms()->GetConfig();
+				$u = (empty($_SERVER['HTTPS'])) ? $config['root_url'] : $config['ssl_url'];
+				$u .= '/index.php?mact=';
+				$len = strlen($u);
+				if (strncasecmp($u,$handler,$len) == 0) {
+					$type = 6;
+				}
+			}
+		}
+		return $type;
+	}
+
+	//returns 3-byte token
+	private static function Hash($num)
 	{
 		//djb2 hash : see http://www.cse.yorku.ca/~oz/hash.html
 		$n = ''.$num;
@@ -76,7 +132,8 @@ class Setup
 		return substr($hash, -3);
 	}
 
-	protected function LoginData(&$mod, $id, $cdata, &$hidden, &$tplvars, &$jsincs, &$jsfuncs, &$jsloads)
+	private static function LoginData(&$mod, $id, $cdata, $withcancel, $token,
+		&$data, &$hidden, &$tplvars, &$jsincs, &$jsfuncs, &$jsloads)
 	{
 		$components = [];
 
@@ -152,19 +209,22 @@ EOS;
 		return $components;
 	}
 
-	protected function RegisterData(&$mod, $id, $cdata, &$hidden, &$tplvars, &$jsincs, &$jsfuncs, &$jsloads)
+	private static function RegisterData(&$mod, $id, $cdata, $withcancel, $token,
+		&$data, &$hidden, &$tplvars, &$jsincs, &$jsfuncs, &$jsloads)
 	{
 		$components = [];
 		return $components;
 	}
 
-	protected function ResetData(&$mod, $id, $cdata, &$hidden, &$tplvars, &$jsincs, &$jsfuncs, &$jsloads)
+	private static function ResetData(&$mod, $id, $cdata, $withcancel, $token,
+		&$data, &$hidden, &$tplvars, &$jsincs, &$jsfuncs, &$jsloads)
 	{
 		$components = [];
 		return $components;
 	}
 
-	protected function ChangeData(&$mod, $id, $cdata, &$hidden, &$tplvars, &$jsincs, &$jsfuncs, &$jsloads)
+	private static function ChangeData(&$mod, $id, $cdata, $withcancel, $token,
+		&$data, &$hidden, &$tplvars, &$jsincs, &$jsfuncs, &$jsloads)
 	{
 		$components = [];
 		return $components;
@@ -194,7 +254,7 @@ EOS;
 	[0] = FALSE
 	[1] = error message for internal use (untranslated)
 	*/
-	public function Get($context, $task, $handler, $withcancel=FALSE, $token=FALSE)
+	public static function Get($context, $task, $handler, $withcancel=FALSE, $token=FALSE)
 	{
 		$utils = new Utils();
 		$cid = $utils->ContextID($context);
@@ -212,7 +272,10 @@ EOS;
 			return [FALSE,'UNKNOWN TASK'];
 		}
 
-		//TODO check $handler c.f. StripeGate::Payer
+		$htype = self::CheckHandler($handler);
+		if ($htype === FALSE) {
+			return [FALSE,'UNKNOWN PROCESSOR'];
+		}
 
 		$mod = \cms_utils::get_module('Auther');
 		$baseurl = $mod->GetModuleURLPath();
@@ -220,7 +283,6 @@ EOS;
 		$jsfuncs = [];
 		$jsloads = [];
 
-		$hidden = [];
 		$tplvars = [];
 
 		$config = \cmsms()->GetConfig();
@@ -240,23 +302,29 @@ EOS;
 		$now = time();
 		$base = floor($now / (84600 * 1800)) * 1800; //start of current 30-mins
 		$day = date('j',$now);
-		$id = $utils->RandomAlnum(3).$this->_Hash($base+$day).'_';
+		$id = $utils->RandomAlnum(3).self::Hash($base+$day).'_';
 
+		$cfuncs = new Crypter();
+
+		$data = [];
+		$hidden = [];
+		$hidden[] = $mod->CreateInputHidden($id, 'context', $cid);
+		$hidden[] = $mod->CreateInputHidden($id, 'handler', $cfuncs->fusc($id.'|'.$htype.'|'.json_encode($handler)));
 		$hidden[] = $mod->CreateInputHidden($id, 'identity', $id);
-		$hidden[] = $mod->CreateInputHidden($id, 'handler', json_encode($handler));
+		$hidden[] = $mod->CreateInputHidden($id, 'token', '');
 
 		switch ($task) {
-		 case 'login';
-			$data = $this->LoginData($mod,$id,$cdata,$hidden,$tplvars,$jsincs,$jsfuncs,$jsloads);
+		 case 'login':
+			self::LoginData($mod,$id,$cdata,$withcancel,$token,$data,$hidden,$tplvars,$jsincs,$jsfuncs,$jsloads);
 			break;
-		 case 'register';
-			$data = $this->RegisterData($mod,$id,$cdata,$hidden,$tplvars,$jsincs,$jsfuncs,$jsloads);
+		 case 'register':
+			self::RegisterData($mod,$id,$cdata,$withcancel,$token,$data,$hidden,$tplvars,$jsincs,$jsfuncs,$jsloads);
 			break;
-		 case 'reset';
-			$data = $this->ResetData($mod,$id,$cdata,$hidden,$tplvars,$jsincs,$jsfuncs,$jsloads);
+		 case 'reset':
+			self::ResetData($mod,$id,$cdata,$withcancel,$token,$data,$hidden,$tplvars,$jsincs,$jsfuncs,$jsloads);
 			break;
-		 case 'change';
-			$data = $this->ChangeData($mod,$id,$cdata,$hidden,$tplvars,$jsincs,$jsfuncs,$jsloads);
+		 case 'change':
+			self::ChangeData($mod,$id,$cdata,$withcancel,$token,$data,$hidden,$tplvars,$jsincs,$jsfuncs,$jsloads);
 			break;
 		}
 
