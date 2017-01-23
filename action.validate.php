@@ -6,26 +6,56 @@
 # More info at http://dev.cmsmadesimple.org/projects/auther
 #----------------------------------------------------------------------
 
-$tplvars = [
-//	'see' => $psee,
-	'add' => $padd,
-	'del' => $pdel,
-	'mod' => $mod,
-];
-
-$utils = new Auther\Utils();
-
-$baseurl = $this->GetModuleURLPath();
-$jsfuncs = []; //script accumulators
-$jsloads = [];
-$jsincs = [];
-
-$jsall = $utils->MergeJS($jsincs, $jsfuncs, $jsloads);
-unset($jsincs);
-unset($jsfuncs);
-unset($jsloads);
-
-echo $utils->ProcessTemplate($this, 'validate.tpl', $tplvars);
-if ($jsall) {
-	echo $jsall; //inject constructed js after other content
+//clear all page-content echoed before now
+$handlers = ob_list_handlers();
+if ($handlers) {
+	$l = count($handlers);
+	for ($c=0; $c<$l; $c++)
+		ob_end_clean();
 }
+
+$avars = $_POST;
+$this->Crash();
+
+$scan = [];
+$keys = array_keys($_POST);
+foreach ($keys as $kn) {
+	$p = substr($kn, 0, 7);
+	if (array_key_exists($p, $scan)) {
+		$scan[$p]++;
+	} else {
+		$scan[$p] = 1;
+	}
+}
+
+$c = max($scan);
+$id = array_search($c, $scan);
+$kn = $id.'data';
+
+if (empty($_POST[$kn])) {
+	exit;
+}
+
+$mod = cms_utils::get_module('Auther');
+$cfuncs = new Auther\Crypter();
+
+$params = json_decode($cfuncs->decrypt_value($mod, base64_decode($_POST[$kn])));
+if (empty($params) || $params['identity'] !== substr($id, 3, 3)) {
+	exit;
+}
+
+$db = cmsms()->GetDb();
+$pre = cms_db_prefix();
+$cdata = $db->GetRow('SELECT * FROM '.$pre.'module_auth_contexts WHERE id=?', [$params['context']]);
+
+$afuncs = new Auther\Auth($mod, $params['context']);
+
+//TODO get & process other $_POST values
+
+if ($_POST[$id.'jsok'] === 'OK') { //TODO && not-finished-now
+//send stuff via ajax to user
+} else {
+//send stuff to $params['handler']
+}
+
+exit;
