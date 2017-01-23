@@ -65,7 +65,7 @@ $lang['err_] = 'The email address is not valid';
 final class Setup
 {
 	//returns enum or FALSE
-	private static function CheckHandler($handler)
+	private function CheckHandler($handler)
 	{
 		$type = FALSE;
 		if (is_callable($handler)) { //BUT the class may have a __call() method
@@ -119,21 +119,8 @@ final class Setup
 		return $type;
 	}
 
-	//returns 3-byte token
-	private static function Hash($num)
-	{
-		//djb2 hash : see http://www.cse.yorku.ca/~oz/hash.html
-		$n = ''.$num;
-		$l = strlen($n);
-		$hash = 5381;
-		for ($i = 0; $i < $l; $i++) {
-			$hash += $hash + ($hash << 5) + $n[$i]; //aka $hash = $hash*33 + $n[$i]
-		}
-		return substr($hash, -3);
-	}
-
-	private static function LoginData(&$mod, $id, $cdata, $withcancel, $token,
-		&$data, &$hidden, &$tplvars, &$jsincs, &$jsfuncs, &$jsloads)
+	private function LoginData(&$mod, $id, $cdata, $withcancel, $token,
+		&$tplary, &$hidden, &$tplvars, &$jsincs, &$jsfuncs, &$jsloads)
 	{
 		$components = [];
 
@@ -209,22 +196,22 @@ EOS;
 		return $components;
 	}
 
-	private static function RegisterData(&$mod, $id, $cdata, $withcancel, $token,
-		&$data, &$hidden, &$tplvars, &$jsincs, &$jsfuncs, &$jsloads)
+	private function RegisterData(&$mod, $id, $cdata, $withcancel, $token,
+		&$tplary, &$hidden, &$tplvars, &$jsincs, &$jsfuncs, &$jsloads)
 	{
 		$components = [];
 		return $components;
 	}
 
-	private static function ResetData(&$mod, $id, $cdata, $withcancel, $token,
-		&$data, &$hidden, &$tplvars, &$jsincs, &$jsfuncs, &$jsloads)
+	private function ResetData(&$mod, $id, $cdata, $withcancel, $token,
+		&$tplary, &$hidden, &$tplvars, &$jsincs, &$jsfuncs, &$jsloads)
 	{
 		$components = [];
 		return $components;
 	}
 
-	private static function ChangeData(&$mod, $id, $cdata, $withcancel, $token,
-		&$data, &$hidden, &$tplvars, &$jsincs, &$jsfuncs, &$jsloads)
+	private function ChangeData(&$mod, $id, $cdata, $withcancel, $token,
+		&$tplary, &$hidden, &$tplvars, &$jsincs, &$jsfuncs, &$jsloads)
 	{
 		$components = [];
 		return $components;
@@ -235,13 +222,13 @@ EOS;
 	@context: number or alias, login-context identifier
 	@task: string one of 'login','register','reset','change'
 	@handler: mixed, one of
-	 an array [classname,methodname] where methodname is static and the method returns boolean for success
+	 an array [classname,methodname] where methodname is and the method returns boolean for success
 	 a string 'classname::methodname' where the method returns boolean for success
 	 an array [modulename,actionname] AND the action should be a 'doer', not a 'shower', returns HTML code
 	 an array [modulename,'method.whatever'] to be included, the code must conclude with variable $res = T/F indicating success
 	 an URL like <server-root-url>/index.php?mact=<modulename>,cntnt01,<actionname>,0
 	 	- provided the PHP curl extension is available
-	 NOT a closure in a static context (PHP 5.3+) OR static closure (PHP 5.4+)
+	 NOT a closure in a context (PHP 5.3+) OR closure (PHP 5.4+)
 	 cuz those aren't transferrable between requests
 	See action.TODO.php for example of a hander-action fed by a HTTP request
 	 In this case too, the action should be a 'doer', and return code 200 or 400+
@@ -254,7 +241,7 @@ EOS;
 	[0] = FALSE
 	[1] = error message for internal use (untranslated)
 	*/
-	public static function Get($context, $task, $handler, $withcancel=FALSE, $token=FALSE)
+	public function Get($context, $task, $handler, $withcancel=FALSE, $token=FALSE)
 	{
 		$utils = new Utils();
 		$cid = $utils->ContextID($context);
@@ -288,7 +275,7 @@ EOS;
 		$config = \cmsms()->GetConfig();
 		$t = (empty($_SERVER['HTTPS'])) ? $config['root_url'] : $config['ssl_url'];
 		$url = substr($baseurl,strlen($t)+1).'/validate.php';
-		$tplvars['startform'] = '<form action="'.$url.'" method="POST">';
+		$tplvars['startform'] = '<form action="'.$url.'" method="POST" enctype="multipart/form-data">';
 
 		$tplvars['wantjs'] = $mod->Lang('wantjs');
 
@@ -302,34 +289,45 @@ EOS;
 		$now = time();
 		$base = floor($now / (84600 * 1800)) * 1800; //start of current 30-mins
 		$day = date('j',$now);
-		$id = $utils->RandomAlnum(3).self::Hash($base+$day).'_';
+		$id = $utils->RandomAlnum(3).$utils->Tokenise($base+$day).'_'; //7-bytes
 
-		$cfuncs = new Crypter();
-
-		$data = [];
 		$hidden = [];
-		$hidden[] = $mod->CreateInputHidden($id, 'context', $cid);
-		$hidden[] = $mod->CreateInputHidden($id, 'handler', $cfuncs->fusc($id.'|'.$htype.'|'.json_encode($handler)));
-		$hidden[] = $mod->CreateInputHidden($id, 'identity', $id);
-		$hidden[] = $mod->CreateInputHidden($id, 'token', '');
+
+		$params = [
+		'context' => $cid,
+		'handler' => $handler,
+		'handlertype' => $htype,
+		'identity' => substr($id, 3, 3),
+		'task' => $task,
+		'token' => $token,
+		];
+		$cfuncs = new Crypter();
+		$hidden[] = $mod->CreateInputHidden($id, 'data', base64_encode($cfuncs->encrypt_value($this, json_encode($params))));
+		$hidden[] = $mod->CreateInputHidden($id, 'jsok', '');
+
+		$jsloads[] = <<<EOS
+ $('#{$id}jsok').val('OK');
+EOS;
+
+		$tplary = [];
 
 		switch ($task) {
 		 case 'login':
-			self::LoginData($mod,$id,$cdata,$withcancel,$token,$data,$hidden,$tplvars,$jsincs,$jsfuncs,$jsloads);
+			self::LoginData($mod,$id,$cdata,$withcancel,$token,$tplary,$hidden,$tplvars,$jsincs,$jsfuncs,$jsloads);
 			break;
 		 case 'register':
-			self::RegisterData($mod,$id,$cdata,$withcancel,$token,$data,$hidden,$tplvars,$jsincs,$jsfuncs,$jsloads);
+			self::RegisterData($mod,$id,$cdata,$withcancel,$token,$tplary,$hidden,$tplvars,$jsincs,$jsfuncs,$jsloads);
 			break;
 		 case 'reset':
-			self::ResetData($mod,$id,$cdata,$withcancel,$token,$data,$hidden,$tplvars,$jsincs,$jsfuncs,$jsloads);
+			self::ResetData($mod,$id,$cdata,$withcancel,$token,$tplary,$hidden,$tplvars,$jsincs,$jsfuncs,$jsloads);
 			break;
 		 case 'change':
-			self::ChangeData($mod,$id,$cdata,$withcancel,$token,$data,$hidden,$tplvars,$jsincs,$jsfuncs,$jsloads);
+			self::ChangeData($mod,$id,$cdata,$withcancel,$token,$tplary,$hidden,$tplvars,$jsincs,$jsfuncs,$jsloads);
 			break;
 		}
 
 		$tlpvars['hidden'] = implode(PHP_EOL,$hidden);
-		$tplvars['components'] = $data;
+		$tplvars['components'] = $tplary;
 
 		$tplvars['submitbtn'] =
 '<input type="submit" id="authsend" name="'.$id.'send" value="'.$mod->Lang('submit').'" />';
