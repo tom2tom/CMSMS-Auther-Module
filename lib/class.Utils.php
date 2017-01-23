@@ -83,6 +83,23 @@ class Utils
 	}
 
 	/**
+	Tokenise:
+	@$num: integer
+	Returns: 3-byte token derived from @num
+	*/
+	public function Tokenise($num)
+	{
+		//djb2 hash : see http://www.cse.yorku.ca/~oz/hash.html
+		$n = ''.$num;
+		$l = strlen($n);
+		$hash = 5381;
+		for ($i = 0; $i < $l; $i++) {
+			$hash += $hash + ($hash << 5) + $n[$i]; //aka $hash = $hash*33 + $n[$i]
+		}
+		return substr($hash, -3);
+	}
+
+	/**
 	RandomAlnum:
 	Generate a random alphanumeric string of the specified length
 	@length int wanted byte-count
