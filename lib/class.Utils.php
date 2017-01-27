@@ -89,28 +89,28 @@ class Utils
 	*/
 	public function Tokenise($num)
 	{
-		//djb2 hash : see http://www.cse.yorku.ca/~oz/hash.html
+		//djb2a hash : see http://www.cse.yorku.ca/~oz/hash.html
 		$n = ''.$num;
 		$l = strlen($n);
 		$hash = 5381;
 		for ($i = 0; $i < $l; $i++) {
-			$hash += $hash + ($hash << 5) + $n[$i]; //aka $hash = $hash*33 + $n[$i]
+			$hash = ($hash + ($hash << 5)) ^ $n[$i]; //aka $hash = $hash*33 ^ $n[$i]
 		}
 		return substr($hash, -3);
 	}
 
 	/**
 	RandomAlnum:
-	Generate a random alphanumeric string of the specified length
+	Generate a pseudo-random alphanumeric string of the specified length
 	@length int wanted byte-count
 	Returns: string
 	*/
 	public function RandomAlnum($length)
 	{
-		$chars = '01234567890123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+		$chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz';
 		$ret = str_repeat('0', $length);
 		for ($i = 0; $i < $length; $i++) {
-			$ret[$i] = $chars[mt_rand(0, 81)];
+			$ret[$i] = $chars[mt_rand(0, 71)];
 		}
 		return $ret;
 	}
