@@ -1,0 +1,29 @@
+#authcontainer {
+ margin:1em auto 0 auto;
+}
+
+#authelements {
+}
+
+#authactions {
+ text-align:left;
+}
+
+.authtext {
+}
+
+.authtitle {
+ font-weight:bold;
+ margin-bottom:5px;
+ padding-bottom:0;
+}
+
+.authinput {
+ margin-top:0;
+ margin-bottom:1em;
+}
+
+.hidejs {
+ color:red;
+ text-align:center;
+}
