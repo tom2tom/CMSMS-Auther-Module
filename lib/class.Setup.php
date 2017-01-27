@@ -64,6 +64,22 @@ $lang['err_] = 'The email address is not valid';
 
 final class Setup
 {
+	//security-levels (TODO were in Auther.module)
+	const NOBOT = 1; //captcha only
+	const LOSEC = 2; //conventional login + passwd
+	const NONCED = 3; //login + passwd + sync nonce
+	const CHALLENGED = 4; //login + passwd + async challenge
+	const HISEC = 5; //TBA non-keyed INHERENCE
+	//NB in several places, NOBOT is treated as min. enum value, and HISEC as max. value
+	//security-levels (per Firehed)
+//    const ANONYMOUS = 0;
+//    const LOGIN = 1;
+//    const HISEC = 2;
+	//factor-types (per Firehed)
+	const KNOWLEDGE = 1; //aka KNOWN
+	const POSSESSION = 2; //HELD
+	const INHERENCE = 3; //BELONG ??
+
 	//returns enum or FALSE
 	private function CheckHandler($handler)
 	{
@@ -119,10 +135,84 @@ final class Setup
 		return $type;
 	}
 
-	private function LoginData(&$mod, $id, $cdata, $withcancel, $token,
-		&$tplary, &$hidden, &$tplvars, &$jsincs, &$jsfuncs, &$jsloads)
+	//$elid may be FALSE
+	private function GetInputText($id, $name, $elid, $size, $maxsize=FALSE)
+	{
+		$out = '<input type="text"';
+		if ($elid) {
+			$out .= ' id="'.$elid.'"';
+		}
+		if (!$maxsize || $maxsize < $size) {
+			$maxsize = $size;
+		}
+		return $out.' value="" size="'.$size.'" maxlength="'.$maxsize.'" name="'.$id.$name.'" />';
+	}
+
+	//$elid may be FALSE
+	private function GetInputPasswd($id, $name, $elid, $size, $maxsize=FALSE)
+	{
+		$out = '<input type="password" name="'.$id.$name.'"';
+		if ($elid) {
+			$out .= ' id="'.$elid.'"';
+		}
+		if (!$maxsize || $maxsize < $size) {
+			$maxsize = $size;
+		}
+		return $out.' value="" size="'.$size.'" maxlength="'.$maxsize.'" />';
+	}
+
+	//$elid may be FALSE
+	private function GetInputCheck($id, $name, $elid, $checked, $mirrored=FALSE)
+	{
+		if ($mirrored) {
+			$out = '<input type="hidden" name="'.$id.$name.'" value="0" />'.PHP_EOL;
+		} else {
+			$out = '';
+		}
+		$out .= '<input type="checkbox" name="'.$id.$name.'"';
+		if ($elid) {
+			$out .= ' id="'.$elid.'"';
+		}
+		$out .= ' value="1"';
+		if ($checked) {
+			$out .= ' checked="checked"';
+		}
+		return $out .= ' />';
+	}
+/*
+	private function GetInputRadio($id, $name, $elid, $choices, $labels, $first)
+	{
+		$out = '';
+		foreach ($choices as $i=>$val) {
+		}
+/ *  <input type="radio" name="sex" id="radio_female" value="female" checked="checked" />
+    <label for="radio_female">female</label>
+    <br />
+    <input type="radio" name="sex" id="radio_male" value="male" />
+    <label for="radio_male">male</label>
+    <br />
+* /
+		return $out;
+	}
+
+	private function GetInputLink($id, $name, $elid, $args)
+	{
+		$out = '<a></a>';
+		return $out;
+	}
+*/
+	private function LoginData(&$mod, $id, $cdata, $sdata, &$cache, &$hidden,
+		&$tplary, &$jsincs, &$jsfuncs, &$jsloads)
 	{
 		$components = [];
+
+		$oneset = new \stdClass();
+		$oneset->title = 'GET my title';
+        $oneset->input = $this->GetInputText($id, 'titler', 'custid', 32, 40);
+		$components[] = $oneset;
+
+		$tplary += $components;
+		return;
 
 		if (0) {
 			$tplvars['intro'] = $mod->Lang('');
@@ -143,7 +233,7 @@ final class Setup
 		$oneset = new \stdClass();
 		$oneset->title = $mod->Lang('TODO');
 		$t = $mod->CreateInputText($id,'TODO',$val,$len);
-		$oneset->input = str_replace('id="'.$id,'id="',$t);
+		$oneset->input = strtr($t, 'id="'.$id, 'id="');
 		if (0) {
 //			$onset->extra = ;
 		}
@@ -151,8 +241,111 @@ final class Setup
 
 //		repeat ...
 
+		$jsincs[] = <<<EOS
+<script type="text/javascript" src="{$baseurl}/include/sjcl.min.js"></script>
+EOS;
+			//TODO
+		$jsfuncs[] = <<<EOS
+ sjcl.encrypt("password","data");
+EOS;
+		 $jsfuncs[] = <<<EOS
+// disable form buttons
+function onsubmit (ev) {
+ $('#authsend,#authcancel').each(function(){
+  var btn = this;
+  setTimeout(function() {
+   btn.disabled = true;
+  },10);
+ });
+// some local validation
+ if (0) { //failure
+// change object styles per error
+// popup alert then
+//	focus 1st error
+  $('#authsend,#authcancel').each(function(){
+   var btn = this;
+   setTimeout(function() {
+    btn.disabled = false;
+   },20);
+  });
+ } else {
+  var far = $('#nearn').val(),
+    near = $('#farn').val(),
+    key = stringXor(far, near),
+    hash = sjcl.func(key, near + far + $('#password').val()); //TODO AS BITS
+  $('#jsworks').val(near);
+  $('#hash').val(sjcl.codec.base64.fromBits(hash,false,false));
+  $('#nearn,#farn,#password').val('');
+//  $('#authform1').trigger('submit.deferred'); NO
+  $.ajax({
+   stuff
+  });
+ }
+ return false;
+}
+EOS;
 
-		if (0) { //per $mode
+/*
+iv [-1759984183, 221357109, 480513022, -482356771]
+password "Suckitup,crackers"
+key []
+adata "EXTRA DATA"
+aes undefined
+plaintext "Hello there, pirates"
+rp Object {}
+ct undefined
+p Object { adata="EXTRA DATA",  iter=1000,  mode="gcm",  more...}
+ adata "EXTRA DATA"
+ iter 1000
+ mode "gcm"
+ ts  64
+ ks 	128
+ iv 	[-1759984183, 221357109, 480513022, -482356771]
+ salt 	[1195984120, 1407048864]
+}
+AFTER ct = sjcl.encrypt(password || key, plaintext, p, rp).replace(/,/g,",\n");
+
+rp Object { iv=[4],  v=1,  iter=1000,  more...}
+ iv [-1759984183, 221357109, 480513022, -482356771]
+ v 1
+ iter 1000
+ ks 128
+ ts 64
+ mode"gcm"
+ adata [1163416658, 1092633665, 17593599590400]
+ cipher "aes"
+ salt [1195984120, 1407048864]
+ key	[863892850, 979149439, 285901955, 1290596378]
+
+ct = STRING '{"iv":"lxjFyQ0xpDUcpAv+4z/R3Q==",
+ "v":1,
+ "iter":1000,
+ "ks":128,
+ "ts":64,
+ "mode":"gcm",
+ "adata":"RVhUUkEgREFUQQ==",
+ "cipher":"aes",
+ "salt":"R0lE+FPd3KA=",
+ "ct":"kDDBsShv382GtyIvmYj2wNuKLDXD8h9+/LAhmQ=="}'
+
+
+*/
+
+$ct = '{
+ "iv":"lxjFyQ0xpDUcpAv+4z/R3Q==",
+ "v":1,
+ "iter":1000,
+ "ks":128,
+ "ts":64,
+ "mode":"gcm",
+ "adata":"RVhUUkEgREFUQQ==",
+ "cipher":"aes",
+ "salt":"R0lE+FPd3KA=",
+ "ct":"kDDBsShv382GtyIvmYj2wNuKLDXD8h9+/LAhmQ=="
+ }';
+
+
+		 if (0) { //per $mode
 
 			$jsincs[] = $baseurl.'/include/autho.min.js';
 			//TODO local data validation js if relevant
@@ -193,28 +386,28 @@ EOS;
  });
 EOS;
 		}
-		return $components;
+		$tplary += $components;
 	}
 
-	private function RegisterData(&$mod, $id, $cdata, $withcancel, $token,
-		&$tplary, &$hidden, &$tplvars, &$jsincs, &$jsfuncs, &$jsloads)
+	private function RegisterData(&$mod, $id, $cdata, $sdata, &$cache, &$hidden,
+		&$tplary, &$jsincs, &$jsfuncs, &$jsloads)
 	{
 		$components = [];
-		return $components;
+		$tplary += $components;
 	}
 
-	private function ResetData(&$mod, $id, $cdata, $withcancel, $token,
-		&$tplary, &$hidden, &$tplvars, &$jsincs, &$jsfuncs, &$jsloads)
+	private function ResetData(&$mod, $id, $cdata, $sdata, &$cache, &$hidden,
+		&$tplary, &$jsincs, &$jsfuncs, &$jsloads)
 	{
 		$components = [];
-		return $components;
+		$tplary += $components;
 	}
 
-	private function ChangeData(&$mod, $id, $cdata, $withcancel, $token,
-		&$tplary, &$hidden, &$tplvars, &$jsincs, &$jsfuncs, &$jsloads)
+	private function ChangeData(&$mod, $id, $cdata, $sdata, &$cache, &$hidden,
+		&$tplary, &$jsincs, &$jsfuncs, &$jsloads)
 	{
 		$components = [];
-		return $components;
+		$tplary += $components;
 	}
 
 	/**
@@ -273,9 +466,15 @@ EOS;
 		$tplvars = [];
 
 		$config = \cmsms()->GetConfig();
-		$t = (empty($_SERVER['HTTPS'])) ? $config['root_url'] : $config['ssl_url'];
-		$url = substr($baseurl,strlen($t)+1).'/validate.php';
-		$tplvars['startform'] = '<form action="'.$url.'" method="POST" enctype="multipart/form-data">';
+
+		$t = $_SERVER['PHP_SELF'];
+		if (strpos($t,'moduleinterface') !== FALSE) {
+			$url = $baseurl.'/action.validate.php';
+		} else {
+			$t = (empty($_SERVER['HTTPS'])) ? $config['root_url'] : $config['ssl_url'];
+			$url = substr($baseurl, strlen($t) + 1).'/action.validate.php';
+		}
+		$tplvars['url'] = $url;
 
 		$tplvars['wantjs'] = $mod->Lang('wantjs');
 
@@ -286,51 +485,65 @@ EOS;
 		$pre = \cms_db_prefix();
 		$cdata = $db->GetRow('SELECT * FROM '.$pre.'module_auth_contexts WHERE id=?', [$cid]);
 
+		if ($token) {
+			$sdata = []; //TODO cached sessiondata
+		} else {
+			$sdata = FALSE;
+		}
+
+		$iv = $utils->RandomAlnum(8); //sized for Blowfish in openssl
 		$now = time();
 		$base = floor($now / (84600 * 1800)) * 1800; //start of current 30-mins
 		$day = date('j',$now);
-		$id = $utils->RandomAlnum(3).$utils->Tokenise($base+$day).'_'; //7-bytes
+		$id = $iv[2].$iv[3].$utils->Tokenise($base+$day).'_'; //6-bytes
 
-		$hidden = [];
+		$hidden = [
+		$mod->CreateInputHidden($id, 'jsworks', ''),
+		$mod->CreateInputHidden($id, 'IV', $iv)
+		];
 
-		$params = [
+		$cache = [
 		'context' => $cid,
 		'handler' => $handler,
 		'handlertype' => $htype,
-		'identity' => substr($id, 3, 3),
+		'identity' => substr($id, 2, 3),
 		'task' => $task,
 		'token' => $token,
 		];
-		$cfuncs = new Crypter();
-		$hidden[] = $mod->CreateInputHidden($id, 'data', base64_encode($cfuncs->encrypt_value($this, json_encode($params))));
-		$hidden[] = $mod->CreateInputHidden($id, 'jsok', '');
 
 		$jsloads[] = <<<EOS
- $('#{$id}jsok').val('OK');
+ $('#{$id}jsworks').val('OK');
 EOS;
 
 		$tplary = [];
 
 		switch ($task) {
 		 case 'login':
-			self::LoginData($mod,$id,$cdata,$withcancel,$token,$tplary,$hidden,$tplvars,$jsincs,$jsfuncs,$jsloads);
+			self::LoginData   ($mod,$id,$cdata,$sdata,$cache,$hidden,$tplary,$jsincs,$jsfuncs,$jsloads);
 			break;
 		 case 'register':
-			self::RegisterData($mod,$id,$cdata,$withcancel,$token,$tplary,$hidden,$tplvars,$jsincs,$jsfuncs,$jsloads);
+			self::RegisterData($mod,$id,$cdata,$sdata,$cache,$hidden,$tplary,$jsincs,$jsfuncs,$jsloads);
 			break;
 		 case 'reset':
-			self::ResetData($mod,$id,$cdata,$withcancel,$token,$tplary,$hidden,$tplvars,$jsincs,$jsfuncs,$jsloads);
+			self::ResetData   ($mod,$id,$cdata,$sdata,$cache,$hidden,$tplary,$jsincs,$jsfuncs,$jsloads);
 			break;
 		 case 'change':
-			self::ChangeData($mod,$id,$cdata,$withcancel,$token,$tplary,$hidden,$tplvars,$jsincs,$jsfuncs,$jsloads);
+			self::ChangeData  ($mod,$id,$cdata,$sdata,$cache,$hidden,$tplary,$jsincs,$jsfuncs,$jsloads);
 			break;
 		}
 
-		$tlpvars['hidden'] = implode(PHP_EOL,$hidden);
-		$tplvars['components'] = $tplary;
+		$cfuncs = new Crypter();
+		$pw = $cfuncs->decrypt_preference($mod, 'masterpass');
+		$t = openssl_encrypt(json_encode($cache), 'BF-CBC', $pw, 0, $iv); //low security
+		$hidden[] = $mod->CreateInputHidden($id, 'data', $t);
 
+		$tplvars['hidden'] = implode(PHP_EOL,$hidden);
+		$tplvars['components'] = $tplary;
 		$tplvars['submitbtn'] =
 '<input type="submit" id="authsend" name="'.$id.'send" value="'.$mod->Lang('submit').'" />';
+		if ($withcancel && 0) { //TODO special-cases
+			$withcancel = FALSE;
+		}
 		if ($withcancel) {
 			$tplvars['cancelbtn'] =
 '<input type="submit" id="authcancel" name="'.$id.'cancel" value="'.$mod->Lang('cancel').'" />';
@@ -347,16 +560,16 @@ EOS;
   <br />
  </div>
 {if (!empty($intro))}<p class="authtext">{$intro}</p><br />{/if}
- {$startform}
+ <form action="{$url}" method="POST" enctype="multipart/form-data">
   <div style="display:none;">
 {$hidden}
   </div>
   <div id="authelements">
 {foreach from=$components item='elem' name='opts'}
 {if !empty($elem->title)}<p class="authtitle">{$elem->title}</p>{/if}
-{if !empty($elem->input)}<p class="authinput">{$elem->input}</p>{/if}
-{if !empty($elem->extra)}<div class="authtext">{$elem->>extra}</div>{/if}
-{if !smarty.foreach.opts.last}<br />{/if}
+{if !empty($elem->input)}<div class="authinput">{$elem->input}</div>{/if}
+{if !empty($elem->extra)}<div class="authtext">{$elem->extra}</div>{/if}
+{if !$smarty.foreach.opts.last}<br />{/if}
 {/foreach}
   </div>
   <div id="authactions">
@@ -367,7 +580,7 @@ EOS;
 </div>
 EOS;
 		$out = $utils->ProcessTemplateFromData($mod,$tplstr,$tplvars);
-		$jsall = $utils->JSMerge($jsincs,$jsfuncs,$jsloads);
+		$jsall = $utils->MergeJS($jsincs,$jsfuncs,$jsloads);
 		return [$out,$jsall];
 	}
 }
