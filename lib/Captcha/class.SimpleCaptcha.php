@@ -105,11 +105,11 @@ class SimpleCaptcha
 
 	protected function hash($str)
 	{
-		//djb2 hash : see http://www.cse.yorku.ca/~oz/hash.html
+		//djb2a hash : see http://www.cse.yorku.ca/~oz/hash.html
 		$l = strlen($str);
 		$num = 5381;
 		for ($i = 0; $i < $l; $i++) {
-			$num += ($num << 5) + $str[$i]; //$num = $num*33 + $str[$i]
+			$num = ($num + ($num << 5)) ^ $str[$i]; //$num = $num*33 ^ $str[$i]
 		}
 		return $num;
 	}
