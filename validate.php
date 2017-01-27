@@ -35,7 +35,7 @@ if (empty($_POST[$kn])) {
 //grab stuff cuz' we've bypassed a normal session-start
 $fp = __DIR__;
 $c = strpos($fp, '/modules');
-$inc = substr($fp, 0, $c+1).'include.php'; 
+$inc = substr($fp, 0, $c+1).'include.php';
 require $inc;
 
 $mod = cms_utils::get_module('Auther');
@@ -51,7 +51,7 @@ if (empty($params) || $params['identity'] !== substr($id, 2, 3)) {
 	exit;
 }
 
-$db = cmsms()->GetDb();
+$db = $gCms->GetDb(); //var defined by inclusion
 $pre = cms_db_prefix();
 $cdata = $db->GetRow('SELECT * FROM '.$pre.'module_auth_contexts WHERE id=?', [$params['context']]);
 
