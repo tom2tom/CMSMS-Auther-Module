@@ -22,7 +22,7 @@ class Auth
 {
 	const EMAILPATN = '/^.+@.+\..+$/';
 	const KEYSALT = 19; //prefix-length 19 + uniqid() 13, hence 32-byte session-key
-	const STRETCHES = 10000;
+	const STRETCHES = 12; //hence 2**12
 
 	protected $mod;
 	protected $db;
@@ -35,6 +35,8 @@ class Auth
 		$this->db = \cmsms()->GetDb();
 		$this->pref = \cms_db_prefix();
 		$this->context = $context;
+
+		include __DIR__.DIRECTORY_SEPARATOR.'password.php';
 	}
 
 	/**
@@ -492,8 +494,7 @@ class Auth
 		}
 
 		$funcs = new Auther\Crypter();
-		$t = $funcs->decrypt_preference($this->mod, 'masterpass');
-		$password = $this->password_hash($password, $t);
+		$password = password_hash($password, PASSWORD_DEFAULT);
 
 		if ($name || is_numeric($name)) {
 			$name = $funcs->encrypt_value($this->mod, $name);
@@ -531,11 +532,12 @@ class Auth
 		$data = $this->db->GetRow($sql, [$uid]);
 
 		if ($data) {
-			if (!$raw) {
+/*			if (!$raw) {
 				$funcs = new Auther\Crypter();
 				$t = $funcs->decrypt_preference($this->mod, 'masterpass');
 				$data['passhash'] = $this->password_retrieve($data['passhash'], $t);
 			}
+*/
 			$data['uid'] = $uid;
 			return $data;
 		}
@@ -609,10 +611,9 @@ class Auth
 	* Deletes a user's data (aka account)
 	* @uid: int user enumerator
 	* @password: string plaintext
-	* @masterkey:
 	* Returns: array 0=>T/F for success, 1=>message
 	*/
-	public function deleteUser($uid, $password, $masterkey)
+	public function deleteUser($uid, $password)
 	{
 		$block_status = $this->isBlocked();
 
@@ -638,7 +639,7 @@ class Auth
 			return [FALSE,$this->mod->Lang(TODO)];
 		}
 
-		if (!$this->password_verify($password, $userdata['password'], $masterkey/*, $tries TODO*/)) {
+		if (!$this->password_check($password, $userdata['password']/*, $tries TODO*/)) {
 			$this->addAttempt();
 			return [FALSE,$this->mod->Lang('password_incorrect')];
 		}
@@ -776,7 +777,7 @@ class Auth
 		$u = $this->mod->create_url('cntnt01', 'validate', '', [
 				'cauthc'=>$key,
 				'rauthr'=>$request_id]);
-		$url = str_replace('&amp;', '&', $u);
+		$url = strtr($u, '&amp;', '&');
 
 		if ($type == 'activate') {
 			$mlr->SetSubject($this->mod->Lang('email_activation_subject', $site_name));
@@ -907,10 +908,9 @@ class Auth
 	* Verifies that @password is valid
 	* @uid: int user enumerator
 	* @password: plaintext string
-	* @masterkey:
 	* Returns: array 0=>T/F for success, 1=>message
 	*/
-	protected function matchPassword($uid, $password, $masterkey)
+	protected function matchPassword($uid, $password)
 	{
 		$userdata = $this->getBaseUser($uid);
 
@@ -918,7 +918,7 @@ class Auth
 			return [FALSE,$this->mod->Lang('system_error').' #11'];
 		}
 
-		if (!$this->password_verify($password, $userdata['password'], $masterkey/*, $tries TODO*/)) {
+		if (!$this->password_check($password, $userdata['password']/*, $tries TODO*/)) {
 			return [FALSE,$this->mod->Lang('password_notvalid')];
 		}
 		return [TRUE,''];
@@ -953,10 +953,9 @@ class Auth
 	* @key: string
 	* @password: plaintext string
 	* @repeatpassword: plaintext string
-	* @masterkey:
 	* Returns: array 0=>T/F for success, 1=>message
 	*/
-	public function resetPassword($key, $password, $repeatpassword, $masterkey)
+	public function resetPassword($key, $password, $repeatpassword)
 	{
 		$block_status = $this->isBlocked();
 
@@ -997,12 +996,12 @@ class Auth
 			return [FALSE,$this->mod->Lang('system_error').' #11'];
 		}
 
-		if ($this->password_verify($password, $userdata['password'], $masterkey/*, $tries TODO*/)) {
+		if ($this->password_check($password, $userdata['password']/*, $tries TODO*/)) {
 			$this->addAttempt();
 			return [FALSE,$this->mod->Lang('newpassword_match')];
 		}
 
-		$password = $this->password_hash($password, $masterkey);
+		$password = password_hash($password, PASSWORD_DEFAULT);
 		$sql = 'UPDATE '.$this->pref.'module_auth_users SET passhash=? WHERE id=?';
 		$res = $this->db->Execute($sql, [$password, $data['uid']]);
 
@@ -1019,10 +1018,9 @@ class Auth
 	* @currpass: plaintext string
 	* @newpass: plaintext string
 	* @repeatnewpass: plaintext string
-	* @masterkey:
 	* Returns: array 0->T/F, 1=>message
 	*/
-	public function changePassword($uid, $currpass, $newpass, $repeatnewpass, $masterkey)
+	public function changePassword($uid, $currpass, $newpass, $repeatnewpass)
 	{
 		$block_status = $this->isBlocked();
 
@@ -1056,12 +1054,12 @@ class Auth
 			return [FALSE,$this->mod->Lang('system_error').' #13'];
 		}
 
-		if (!$this->password_verify($currpass, $userdata['password'], $masterkey/*, $tries TODO*/)) {
+		if (!$this->password_check($currpass, $userdata['password']/*, $tries TODO*/)) {
 			$this->addAttempt();
 			return [FALSE,$this->mod->Lang('password_incorrect')];
 		}
 
-		$newpass = $this->password_hash($newpass, $masterkey);
+		$newpass = password_hash($newpass, PASSWORD_DEFAULT);
 
 		$sql = 'UPDATE '.$this->pref.'module_auth_users SET passhash=? WHERE id=?';
 		$this->db->Execute($sql, [$newpass, $uid]);
@@ -1072,16 +1070,15 @@ class Auth
 	* Compare user's password with given password
 	* @uid: int user enumerator
 	* @password_for_check: string
-	* @masterkey:
 	* Returns: boolean indicating match
 	*/
-	public function comparePasswords($uid, $password_for_check, $masterkey)
+	public function comparePasswords($uid, $password_for_check)
 	{
 		$sql = 'SELECT passhash FROM '.$this->pref.'module_auth_users WHERE id=?';
 		$password = $this->db->GetOne($sql, [$uid]);
 
 		if ($password) {
-			return $this->password_verify($password_for_check, $password, $masterkey, 0);
+			return $this->password_check($password_for_check, $password, 0);
 		}
 		return FALSE;
 	}
@@ -1091,10 +1088,9 @@ class Auth
 	* @uid: int user enumerator
 	* @publicid: string user identifier
 	* @password: plaintext string
-	* @masterkey:
 	* Returns: array 0=>T/F, 1=>message
 	*/
-	public function changelogin($uid, $publicid, $password, $masterkey)
+	public function changelogin($uid, $publicid, $password)
 	{
 		$block_status = $this->isBlocked();
 
@@ -1126,7 +1122,7 @@ class Auth
 			return [FALSE,$this->mod->Lang('system_error').' #14'];
 		}
 
-		if (!$this->password_verify($password, $userdata['password'], $masterkey/*, $tries TODO*/)) {
+		if (!$this->password_check($password, $userdata['password']/*, $tries TODO*/)) {
 			$this->addAttempt();
 			return [FALSE,$this->mod->Lang('password_incorrect')];
 		}
@@ -1329,83 +1325,28 @@ class Auth
 		]);
 
 		$rooturl = (empty($_SERVER['HTTPS'])) ? $config['root_url'] : $config['ssl_url'];
-		$url = str_replace([$config['root_path'], DIRECTORY_SEPARATOR], [$rooturl, '/'], $tmpdir);
+		$url = strtr($tmpdir, [$config['root_path']=>$rooturl, DIRECTORY_SEPARATOR=>'/']);
 		$url .= '/'.$data['file'];
 		return ['code' => $data['code'], 'image_src' => $url];
 	}
 
-	// the following are enhanced replacements for some PHP 5.5+ methods
-
 	/**
-	password_hash:
-	Hash @password
-
-	@passwd: string The password to hash
-	@masterkey: string Persistent key for password en/decoding
-
-	Returns: (192 + 16*N)bytes|FALSE The hashed password, or empty string, or FALSE on error.
-	*/
-	public function password_hash($passwd, $masterkey)
-	{
-		if ($passwd == FALSE && !is_numeric($passwd)) {
-			trigger_error('No password provided', E_USER_WARNING);
-			return '';
-		}
-
-		//obfuscate short passwords (other than time-wasting, useless, really)
-		$t = 1;
-		while (($len = $this->bytelen($passwd)) < 32) {
-			$passwd .= str_shuffle($passwd);
-			$t += $t;
-		}
-		$passwd .= chr($t);
-
-		$e = new Encryption(\MCRYPT_TWOFISH, \MCRYPT_MODE_CBC, self::STRETCHES);
-		return $e->encrypt($passwd, $masterkey);
-	}
-
-	/**
-	password_verify:
-	Verify @password against @hash
+	password_check:
+	Verify @passwd against @hash
 
 	@passwd: string The password to verify
 	@hash: string The hash to verify against
-	@masterkey: string Persistent key for password en/decoding
 	@tries: no. of verification attempts
 
 	Returns: boolean Whether @passwd matches @hash
 	*/
-	protected function password_verify($passwd, $hash, $masterkey, $tries=1)
+	protected function password_check($passwd, $hash, $tries=1)
 	{
-		if ($this->password_hash($passwd, $masterkey) === $hash) {
+		if (password_verify($passwd, $hash)) {
 			return TRUE;
 		}
 		$t = min(2000, $tries * 500);
 		usleep($t * 1000);
-		return FALSE;
-	}
-
-	/**
-	password_retrieve:
-	Unhash @hash
-
-	@hash: string a hashed password
-	@masterkey: string Persistent key for password en/decoding
-
-	Returns: plaintext string, or FALSE
-	*/
-	public function password_retrieve($hash, $masterkey)
-	{
-		$e = new Encryption(\MCRYPT_TWOFISH, \MCRYPT_MODE_CBC, self::STRETCHES);
-		$plain = $e->decrypt($hash, $masterkey);
-		if ($plain) {
-			$len = $this->bytelen($plain) - 1;
-			$t = ord(substr($plain, -1));
-			if ($t > 1) {
-				$len /= $t;
-			}
-			return substr($plain, 0, $len);
-		}
 		return FALSE;
 	}
 
