@@ -23,22 +23,6 @@ if (!extension_loaded('mcrypt')) return;
 
 class Auther extends CMSModule
 {
-	//security-levels
-	const NOBOT = 1; //captcha only
-	const LOSEC = 2; //conventional login + passwd
-	const NONCED = 3; //login + passwd + sync nonce
-	const CHALLENGED = 4; //login + passwd + async challenge
-	const HISEC = 5; //TBA non-keyed INHERENCE
-	//NB in several places, NOBOT is treated as min. enum value, and HISEC as max. value
-	//security-levels (per Firehed)
-//    const ANONYMOUS = 0;
-//    const LOGIN = 1;
-//    const HISEC = 2;
-	//factor-types (per Firehed)
-	const KNOWLEDGE = 1; //aka KNOWN
-	const POSSESSION = 2; //HELD
-	const INHERENCE = 3; //BELONG ??
-
 	public $before20;
 
 	public function __construct()
@@ -76,7 +60,7 @@ class Auther extends CMSModule
 			$relative_class = trim($class, '\\');
 		}
 		if (($p = strrpos($relative_class, '\\', -1)) !== FALSE) {
-			$relative_dir = str_replace('\\', DIRECTORY_SEPARATOR, $relative_class);
+			$relative_dir = strtr ($relative_class, '\\', DIRECTORY_SEPARATOR);
 			$base = substr($relative_dir, $p+1);
 			$relative_dir = substr($relative_dir, 0, $p).DIRECTORY_SEPARATOR;
 		} else {
