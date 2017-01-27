@@ -80,7 +80,16 @@ final class Setup
 	const POSSESSION = 2; //HELD
 	const INHERENCE = 3; //BELONG ??
 
-	//returns enum or FALSE
+	protected function ErrorString(&$mod, $suffix)
+	{
+		$str = $mod->Lang('err_system');
+		if ($suffix) {
+			$str .= ': '.$suffix;
+		}
+		return '<p style="font-weight:bold;color:red;">'.$str.'</p>';
+	}
+
+//returns enum or FALSE
 	private function CheckHandler($handler)
 	{
 		$type = FALSE;
@@ -431,15 +440,16 @@ EOS;
 	[0] = XHTML for inclusion in page/template, or direct echo
 	[1] = js related to [0] for inclusion in page/template, or direct echo
 	or upon error
-	[0] = FALSE
-	[1] = error message for internal use (untranslated)
+	[0] = html to display an error message (partly-untranslated)
+	[1] = FALSE
 	*/
 	public function Get($context, $task, $handler, $withcancel=FALSE, $token=FALSE)
 	{
+		$mod = \cms_utils::get_module('Auther');
 		$utils = new Utils();
 		$cid = $utils->ContextID($context);
 		if ($cid === FALSE) {
-			return [FALSE,'UNKNOWN CONTEXT'];
+			return [$this->ErrorString($mod, 'UNKNOWN CONTEXT'), FALSE];
 		}
 
 		switch ($task) {
@@ -449,15 +459,14 @@ EOS;
 		 case 'change':
 			break;
 		 default:
-			return [FALSE,'UNKNOWN TASK'];
+			return [$this->ErrorString($mod, 'UNKNOWN TASK'), FALSE];
 		}
 
 		$htype = self::CheckHandler($handler);
 		if ($htype === FALSE) {
-			return [FALSE,'UNKNOWN PROCESSOR'];
+			return [$this->ErrorString($mod, 'UNKNOWN PROCESSOR'), FALSE];
 		}
 
-		$mod = \cms_utils::get_module('Auther');
 		$baseurl = $mod->GetModuleURLPath();
 		$jsincs = []; //script accumulators
 		$jsfuncs = [];
@@ -469,10 +478,10 @@ EOS;
 
 		$t = $_SERVER['PHP_SELF'];
 		if (strpos($t,'moduleinterface') !== FALSE) {
-			$url = $baseurl.'/action.validate.php';
+			$url = $baseurl.'/validate.php';
 		} else {
 			$t = (empty($_SERVER['HTTPS'])) ? $config['root_url'] : $config['ssl_url'];
-			$url = substr($baseurl, strlen($t) + 1).'/action.validate.php';
+			$url = substr($baseurl, strlen($t) + 1).'/validate.php';
 		}
 		$tplvars['url'] = $url;
 
