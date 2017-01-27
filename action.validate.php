@@ -14,33 +14,40 @@ if ($handlers) {
 		ob_end_clean();
 }
 
-$avars = $_POST;
-$this->Crash();
-
 $scan = [];
 $keys = array_keys($_POST);
 foreach ($keys as $kn) {
-	$p = substr($kn, 0, 7);
-	if (array_key_exists($p, $scan)) {
-		$scan[$p]++;
+	$t = substr($kn, 0, 6);
+	if (array_key_exists($t, $scan)) {
+		$scan[$t]++;
 	} else {
-		$scan[$p] = 1;
+		$scan[$t] = 1;
 	}
 }
-
 $c = max($scan);
 $id = array_search($c, $scan);
-$kn = $id.'data';
 
+$kn = $id.'data';
 if (empty($_POST[$kn])) {
 	exit;
 }
 
-$mod = cms_utils::get_module('Auther');
-$cfuncs = new Auther\Crypter();
+//grab stuff cuz' we've bypassed a normal session-start
+$fp = __DIR__;
+$c = strpos($fp, '/modules');
+$inc = substr($fp, 0, $c+1).'include.php'; 
+require $inc;
 
-$params = json_decode($cfuncs->decrypt_value($mod, base64_decode($_POST[$kn])));
-if (empty($params) || $params['identity'] !== substr($id, 3, 3)) {
+$mod = cms_utils::get_module('Auther');
+
+$cfuncs = new Auther\Crypter();
+$pw = $cfuncs->decrypt_preference($mod, 'masterpass');
+$t = openssl_decrypt($_POST[$kn], 'BF-CBC', $pw, 0, $_POST[$id.'IV']);
+if (!$t) {
+	exit;
+}
+$params = (array)json_decode($t);
+if (empty($params) || $params['identity'] !== substr($id, 2, 3)) {
 	exit;
 }
 
@@ -52,7 +59,39 @@ $afuncs = new Auther\Auth($mod, $params['context']);
 
 //TODO get & process other $_POST values
 
-if ($_POST[$id.'jsok'] === 'OK') { //TODO && not-finished-now
+$adbg = json_decode(
+'{"iv":"wvdG7+KjzXKRWuDPgHhfig==",
+"v":1,
+"iter":1000,
+"ks":128,
+"ts":64,
+"mode":"ccm",
+"adata":"This%20is%20my%20nonce",
+"cipher":"aes",
+"salt":"7LAtmkELhSc=",
+"ct":"w1wAR4pw1/v25GXqPWb1BuRIF9B+jImzoNBnqUlKPEnQEZlB4iG57UxaiwuOfq3m1/i7eRGBWBhy"}'
+);
+$adbg2 = $adbg->iv;
+
+$avars = $_POST;
+$X = $Y;
+
+/* sjcl output = string
+{
+"iv":"wvdG7+KjzXKRWuDPgHhfig==",
+"v":1,
+"iter":1000,
+"ks":128,
+"ts":64,
+"mode":"ccm",
+"adata":"This%20is%20my%20nonce",
+"cipher":"aes",
+"salt":"7LAtmkELhSc=",
+"ct":"w1wAR4pw1/v25GXqPWb1BuRIF9B+jImzoNBnqUlKPEnQEZlB4iG57UxaiwuOfq3m1/i7eRGBWBhy"
+}
+*/
+
+if ($_POST[$id.'jsworks'] !== '') { //TODO && not-finished-now
 //send stuff via ajax to user
 } else {
 //send stuff to $params['handler']
