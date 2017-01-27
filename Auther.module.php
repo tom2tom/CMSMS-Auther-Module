@@ -183,7 +183,12 @@ class Auther extends CMSModule
 
 	public function GetHeaderHTML()
 	{
-		return '<link rel="stylesheet" type="text/css" id="adminstyler" href="'.$this->GetModuleURLPath().'/css/admin.css" />';
+		$baseurl = $this->GetModuleURLPath();
+		//authpanel included for debugging
+		return <<<EOS
+<link rel="stylesheet" type="text/css" id="adminstyler" href="{$baseurl}/css/admin.css" />';
+<link rel="stylesheet" type="text/css" href="{$baseurl}/css/authpanel.css" />';
+EOS;
 	}
 
 	public function SetParameters()
