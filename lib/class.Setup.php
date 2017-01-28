@@ -8,60 +8,6 @@
 #----------------------------------------------------------------------
 namespace Auther;
 
-/* template classes
-div#authcontainer
-div#authelements
-div#authactions
-.hidejs
-.authtitle
-.authtext
-.authinput
-input#authsend
-input#authcancel
-#focus
-
-.hidecaptcha ?
-.passwd ?
-*/
-
-/*
-<form action="login.php" method="post">
-<p>
-<input id="lbusername" class="defaultfocus" type="text" value="" size="15" name="username">
-<br>
-<input id="lbpassword" type="password" size="15" name="password">
-<br>
-<input class="loginsubmit" type="submit" value="Submit" name="loginsubmit">
-<input class="loginsubmit" type="submit" value="Cancel" name="logincancel">
-</p>
-</form>
-<div class="forgot-pw">
-<a href="login.php?forgotpw=1">Forgot your password?</a>
-</div>
-</div>
-*/
-
-/*
-$lang['wantjs'] = 'Enable javascript in your browser, so this will work more smoothly!';
-$lang['title_login'] = 'Login/identifier';
-$lang['title_email'] = 'Email address';
-//$lang['password'] = 'Password'; EXISTS
-$lang['title_passagain'] = 'Password (again)';
-$lang['_opt'] = 'Name (optional)';
-//$lang['title_name'] = 'Name'; EXISTS
-$lang['_opt'] = 'Contact (optional)';
-//$lang['title_contact'] = 'Contact'; EXISTS
-$lang['help_contact'] = 'Typically an email address or cell/mobile phone number';
-$lang[''] = 'Lost password';
-$lang['title_enterdetails'] = 'Enter your details';
-$lang['title_entertyped'] = 'Enter %s';
-
-$lang['err_] = 'The password entries are not the same';
-$lang['err_] = 'The password is too easy to crack';
-$lang['err_] = 'The login is not available';
-$lang['err_] = 'The email address is not valid';
-*/
-
 final class Setup
 {
 	//security-levels (TODO were in Auther.module)
@@ -80,7 +26,7 @@ final class Setup
 	const POSSESSION = 2; //HELD
 	const INHERENCE = 3; //BELONG ??
 
-	protected function ErrorString(&$mod, $suffix)
+	private function ErrorString(&$mod, $suffix)
 	{
 		$str = $mod->Lang('err_system');
 		if ($suffix) {
@@ -89,7 +35,7 @@ final class Setup
 		return '<p style="font-weight:bold;color:red;">'.$str.'</p>';
 	}
 
-//returns enum or FALSE
+	//Returns: enum or FALSE
 	private function CheckHandler($handler)
 	{
 		$type = FALSE;
@@ -144,8 +90,8 @@ final class Setup
 		return $type;
 	}
 
-	//$elid may be FALSE
-	private function GetInputText($id, $name, $elid, $size, $maxsize=FALSE)
+	//$elid, $value may be FALSE
+	private function GetInputText($id, $name, $elid, $value, $size, $maxsize=FALSE)
 	{
 		$out = '<input type="text"';
 		if ($elid) {
@@ -154,31 +100,31 @@ final class Setup
 		if (!$maxsize || $maxsize < $size) {
 			$maxsize = $size;
 		}
-		return $out.' value="" size="'.$size.'" maxlength="'.$maxsize.'" name="'.$id.$name.'" />';
+		return $out.' value="'.$value.'" size="'.$size.'" maxlength="'.$maxsize.'" name="'.$id.$name.'" />';
 	}
 
-	//$elid may be FALSE
-	private function GetInputPasswd($id, $name, $elid, $size, $maxsize=FALSE)
+	//$elid, $value may be FALSE
+	private function GetInputPasswd($id, $name, $elid, $value, $size, $maxsize=FALSE)
 	{
-		$out = '<input type="password" name="'.$id.$name.'"';
+		$out = '<input type="password"';
 		if ($elid) {
 			$out .= ' id="'.$elid.'"';
 		}
 		if (!$maxsize || $maxsize < $size) {
 			$maxsize = $size;
 		}
-		return $out.' value="" size="'.$size.'" maxlength="'.$maxsize.'" />';
+		return $out.' value="'.$value.'" size="'.$size.'" maxlength="'.$maxsize.'" name="'.$id.$name.'" />';
 	}
 
 	//$elid may be FALSE
 	private function GetInputCheck($id, $name, $elid, $checked, $mirrored=FALSE)
 	{
 		if ($mirrored) {
-			$out = '<input type="hidden" name="'.$id.$name.'" value="0" />'.PHP_EOL;
+			$out = '<input type="hidden" value="0" name="'.$id.$name.'" />'.PHP_EOL;
 		} else {
 			$out = '';
 		}
-		$out .= '<input type="checkbox" name="'.$id.$name.'"';
+		$out .= '<input type="checkbox"';
 		if ($elid) {
 			$out .= ' id="'.$elid.'"';
 		}
@@ -186,10 +132,10 @@ final class Setup
 		if ($checked) {
 			$out .= ' checked="checked"';
 		}
-		return $out .= ' />';
+		return $out .= ' name="'.$id.$name.'" />';
 	}
-/*
-	private function GetInputRadio($id, $name, $elid, $choices, $labels, $first)
+
+/*	private function GetInputRadio($id, $name, $elid, $choices, $labels, $first)
 	{
 		$out = '';
 		foreach ($choices as $i=>$val) {
@@ -210,214 +156,6 @@ final class Setup
 		return $out;
 	}
 */
-	private function LoginData(&$mod, $id, $cdata, $sdata, &$cache, &$hidden,
-		&$tplary, &$jsincs, &$jsfuncs, &$jsloads)
-	{
-		$components = [];
-
-		$oneset = new \stdClass();
-		$oneset->title = 'GET my title';
-        $oneset->input = $this->GetInputText($id, 'titler', 'custid', 32, 40);
-		$components[] = $oneset;
-
-		$tplary += $components;
-		return;
-
-		if (0) {
-			$tplvars['intro'] = $mod->Lang('');
-		}
-		if (0) {
-			$tplvars['after'] = $mod->Lang('');
-		}
-
-		if (0) {
-			//TODO captcha stuff for nearnonce
-		}
-
-		$t = $utils->RandomAlnum(24);
-		$hidden[] = $mod->CreateInputHidden($id,'farnonce',$t);
-		$hidden[] = $mod->CreateInputHidden($id,'nearnonce','captcha');
-		$hidden[] = $mod->CreateInputHidden($id,'hash','');
-
-		$oneset = new \stdClass();
-		$oneset->title = $mod->Lang('TODO');
-		$t = $mod->CreateInputText($id,'TODO',$val,$len);
-		$oneset->input = strtr($t, 'id="'.$id, 'id="');
-		if (0) {
-//			$onset->extra = ;
-		}
-		$components[] = $oneset;
-
-//		repeat ...
-
-		$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/sjcl.min.js"></script>
-EOS;
-			//TODO
-		$jsfuncs[] = <<<EOS
- sjcl.encrypt("password","data");
-EOS;
-		 $jsfuncs[] = <<<EOS
-// disable form buttons
-function onsubmit (ev) {
- $('#authsend,#authcancel').each(function(){
-  var btn = this;
-  setTimeout(function() {
-   btn.disabled = true;
-  },10);
- });
-// some local validation
- if (0) { //failure
-// change object styles per error
-// popup alert then
-//	focus 1st error
-  $('#authsend,#authcancel').each(function(){
-   var btn = this;
-   setTimeout(function() {
-    btn.disabled = false;
-   },20);
-  });
- } else {
-  var far = $('#nearn').val(),
-    near = $('#farn').val(),
-    key = stringXor(far, near),
-    hash = sjcl.func(key, near + far + $('#password').val()); //TODO AS BITS
-  $('#jsworks').val(near);
-  $('#hash').val(sjcl.codec.base64.fromBits(hash,false,false));
-  $('#nearn,#farn,#password').val('');
-//  $('#authform1').trigger('submit.deferred'); NO
-  $.ajax({
-   stuff
-  });
- }
- return false;
-}
-EOS;
-
-/*
-iv [-1759984183, 221357109, 480513022, -482356771]
-password "Suckitup,crackers"
-key []
-adata "EXTRA DATA"
-aes undefined
-plaintext "Hello there, pirates"
-rp Object {}
-ct undefined
-p Object { adata="EXTRA DATA",  iter=1000,  mode="gcm",  more...}
- adata "EXTRA DATA"
- iter 1000
- mode "gcm"
- ts  64
- ks 	128
- iv 	[-1759984183, 221357109, 480513022, -482356771]
- salt 	[1195984120, 1407048864]
-}
-AFTER ct = sjcl.encrypt(password || key, plaintext, p, rp).replace(/,/g,",\n");
-
-rp Object { iv=[4],  v=1,  iter=1000,  more...}
- iv [-1759984183, 221357109, 480513022, -482356771]
- v 1
- iter 1000
- ks 128
- ts 64
- mode"gcm"
- adata [1163416658, 1092633665, 17593599590400]
- cipher "aes"
- salt [1195984120, 1407048864]
- key	[863892850, 979149439, 285901955, 1290596378]
-
-ct = STRING '{"iv":"lxjFyQ0xpDUcpAv+4z/R3Q==",
- "v":1,
- "iter":1000,
- "ks":128,
- "ts":64,
- "mode":"gcm",
- "adata":"RVhUUkEgREFUQQ==",
- "cipher":"aes",
- "salt":"R0lE+FPd3KA=",
- "ct":"kDDBsShv382GtyIvmYj2wNuKLDXD8h9+/LAhmQ=="}'
-
-
-*/
-
-$ct = '{
- "iv":"lxjFyQ0xpDUcpAv+4z/R3Q==",
- "v":1,
- "iter":1000,
- "ks":128,
- "ts":64,
- "mode":"gcm",
- "adata":"RVhUUkEgREFUQQ==",
- "cipher":"aes",
- "salt":"R0lE+FPd3KA=",
- "ct":"kDDBsShv382GtyIvmYj2wNuKLDXD8h9+/LAhmQ=="
- }';
-
-
-		 if (0) { //per $mode
-
-			$jsincs[] = $baseurl.'/include/autho.min.js';
-			//TODO local data validation js if relevant
-			//TODO $jsincs[] = $baseurl.'/include/zxcvbn/zxcvbn.js if relevant
-
-			$jsloads[] = <<<EOS
-$('#authsend').click.function() {
- var n1 = $('#{$id}farnonce').val();
- var n2 = randomAlnum(24);
- $('#{$id}hash').val(sha1(n1 + n2 + $('#passwd').val()));
- $('#{$id}nearnonce').val(n2);
- $('#passwd').val('');
- var btn = this;
- setTimeout(function() {
-  btn.disabled = true;
- },10);
-}
-EOS;
-			if ($withcancel) {
-				$jsloads[] = <<<EOS
-$('#authcancel').click.function() {
- $('#{$id}farnonce').val('');
- $('#{$id}nearnonce').val('');
- $('#passwd').val('');
-}
-EOS;
-			}
-		}
-
-		if (0) {
-//			TODO strengthify styles needed - HOW?
-			$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/jquery.strengthify.js"></script>
-EOS;
-			$jsloads[] = <<<EOS
- $('#authelements .passwd').strengthify({
-
- });
-EOS;
-		}
-		$tplary += $components;
-	}
-
-	private function RegisterData(&$mod, $id, $cdata, $sdata, &$cache, &$hidden,
-		&$tplary, &$jsincs, &$jsfuncs, &$jsloads)
-	{
-		$components = [];
-		$tplary += $components;
-	}
-
-	private function ResetData(&$mod, $id, $cdata, $sdata, &$cache, &$hidden,
-		&$tplary, &$jsincs, &$jsfuncs, &$jsloads)
-	{
-		$components = [];
-		$tplary += $components;
-	}
-
-	private function ChangeData(&$mod, $id, $cdata, $sdata, &$cache, &$hidden,
-		&$tplary, &$jsincs, &$jsfuncs, &$jsloads)
-	{
-		$components = [];
-		$tplary += $components;
-	}
 
 	/**
 	Get:
@@ -489,6 +227,10 @@ EOS;
 
 		$jsloads[] = <<<EOS
  $('.hidejs').css('display','none');
+ var el = $('#focus');
+ if (el.length) {
+   el[0].focus();
+ }
 EOS;
 		$db = \cmsms()->GetDb();
 		$pre = \cms_db_prefix();
@@ -506,11 +248,6 @@ EOS;
 		$day = date('j',$now);
 		$id = $iv[2].$iv[3].$utils->Tokenise($base+$day).'_'; //6-bytes
 
-		$hidden = [
-		$mod->CreateInputHidden($id, 'jsworks', ''),
-		$mod->CreateInputHidden($id, 'IV', $iv)
-		];
-
 		$cache = [
 		'context' => $cid,
 		'handler' => $handler,
@@ -520,34 +257,23 @@ EOS;
 		'token' => $token,
 		];
 
+		$hidden = [$mod->CreateInputHidden($id, 'jsworks', '')];
 		$jsloads[] = <<<EOS
- $('#{$id}jsworks').val('OK');
+ $('#{$id}jsworks').val('$iv');
 EOS;
 
-		$tplary = [];
-
-		switch ($task) {
-		 case 'login':
-			self::LoginData   ($mod,$id,$cdata,$sdata,$cache,$hidden,$tplary,$jsincs,$jsfuncs,$jsloads);
-			break;
-		 case 'register':
-			self::RegisterData($mod,$id,$cdata,$sdata,$cache,$hidden,$tplary,$jsincs,$jsfuncs,$jsloads);
-			break;
-		 case 'reset':
-			self::ResetData   ($mod,$id,$cdata,$sdata,$cache,$hidden,$tplary,$jsincs,$jsfuncs,$jsloads);
-			break;
-		 case 'change':
-			self::ChangeData  ($mod,$id,$cdata,$sdata,$cache,$hidden,$tplary,$jsincs,$jsfuncs,$jsloads);
-			break;
-		}
+		$elements = [];
+		//append as appropriate to arrays: $cache, $hidden, $elements, $tplvars, $jsincs, $jsfuncs, $jsloads
+		require __DIR__.DIRECTORY_SEPARATOR.'method.'.$task.'.php';
 
 		$cfuncs = new Crypter();
 		$pw = $cfuncs->decrypt_preference($mod, 'masterpass');
 		$t = openssl_encrypt(json_encode($cache), 'BF-CBC', $pw, 0, $iv); //low security
+		$hidden[] = $mod->CreateInputHidden($id, 'IV', $iv);
 		$hidden[] = $mod->CreateInputHidden($id, 'data', $t);
 
 		$tplvars['hidden'] = implode(PHP_EOL,$hidden);
-		$tplvars['components'] = $tplary;
+		$tplvars['components'] = $elements;
 		$tplvars['submitbtn'] =
 '<input type="submit" id="authsend" name="'.$id.'send" value="'.$mod->Lang('submit').'" />';
 		if ($withcancel && 0) { //TODO special-cases
@@ -557,10 +283,6 @@ EOS;
 			$tplvars['cancelbtn'] =
 '<input type="submit" id="authcancel" name="'.$id.'cancel" value="'.$mod->Lang('cancel').'" />';
 		}
-
-		$jsloads[] = <<<'EOS'
- $('#focus')[0].focus();
-EOS;
 
 		$tplstr = <<<'EOS'
 <div id="authcontainer">
@@ -574,11 +296,10 @@ EOS;
 {$hidden}
   </div>
   <div id="authelements">
-{foreach from=$components item='elem' name='opts'}
+{foreach from=$components item='elem'}
 {if !empty($elem->title)}<p class="authtitle">{$elem->title}</p>{/if}
 {if !empty($elem->input)}<div class="authinput">{$elem->input}</div>{/if}
 {if !empty($elem->extra)}<div class="authtext">{$elem->extra}</div>{/if}
-{if !$smarty.foreach.opts.last}<br />{/if}
 {/foreach}
   </div>
   <div id="authactions">
