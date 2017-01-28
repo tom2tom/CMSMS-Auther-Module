@@ -6,21 +6,22 @@
 }
 
 #authactions {
+ margin-top:1em;
  text-align:left;
 }
 
 .authtext {
 }
 
-.authtitle {
+div#authelements .authtitle {
  font-weight:bold;
- margin-bottom:5px;
+ margin-top:1em;
+ margin-bottom:0;
  padding-bottom:0;
 }
 
-.authinput {
- margin-top:0;
- margin-bottom:1em;
+div#authelements .authinput {
+ margin-top:2px;
 }
 
 .hidejs {
