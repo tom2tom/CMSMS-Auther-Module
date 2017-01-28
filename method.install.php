@@ -34,7 +34,7 @@ cookie_remember C(16) DEFAULT \'1 week\',
 name_required I(1) DEFAULT 0,
 login_max_length I(1) DEFAULT 48,
 login_min_length I(1) DEFAULT 5,
-forget_rescue I(1) DEFAULT 0,
+forget_rescue I(1) DEFAULT 1,
 address_required I(1) DEFAULT 1,
 email_required I(1) DEFAULT 1,
 email_banlist I(1) DEFAULT 1,
@@ -146,7 +146,7 @@ $this->SetPreference('email_domains', ''); //specific/complete domains for initi
 $this->SetPreference('email_subdomains', ''); //partial domains for secondary check
 $this->SetPreference('email_topdomains', 'biz,co,com,edu,gov,info,mil,name,net,org'); //for final check
 $this->SetPreference('email_required', 1);
-$this->SetPreference('forget_rescue', 0);
+$this->SetPreference('forget_rescue', 1);
 
 $this->SetPreference('login_max_length', 48);
 $this->SetPreference('login_min_length', 5);
