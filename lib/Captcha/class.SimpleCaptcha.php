@@ -12,13 +12,13 @@ class SimpleCaptcha
 	Constructs text string, and an image file showing that text in specified directory
 	@params: array with members:
 	'code' = optional captcha text to be displayed
-	'background' = absolute filepath .ttf font file
-	'font' = absolute filepath .png image file
-	'size' = displed font-size in points
+	'background' = absolute filepath .png image file
+	'font' = absolute filepath .ttf font file
+	'size' = displayed font-size in points
 	'color' = displayed text color 3- or 6-byte hexadecimal string, leading '#' optional
-	'length' = captcha text byte-size
+	'length' = captcha-text byte-size
 	'path' = absolute filepath for cacheing image file
-	Returns: text string of specified length
+	Returns: 2-member array 'code'=>captcha-text, 'file'=>.png-file-path (NOT URL)
 	*/
 	public function generate($params)
 	{
