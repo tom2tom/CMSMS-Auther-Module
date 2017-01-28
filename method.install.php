@@ -124,6 +124,8 @@ $db->CreateSequence($pref.'module_auth_userprops_seq');
 $funcs = new Auther\Crypter();
 $funcs->encrypt_preference($this, 'masterpass', base64_decode('U3VjayBpdCB1cCwgY3JhY2tlcnMh'));
 $funcs->encrypt_preference($this, 'default_password', base64_decode('Y2hhbmdlfCMkIyR8QVNBUA==')); //score 4
+$this->SetPreference('recaptcha_key','');
+$this->SetPreference('recaptcha_secret','');
 
 $this->SetPreference('address_required', 1);
 $this->SetPreference('attack_mitigation_span', '30 minutes');
