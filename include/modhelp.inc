@@ -24,7 +24,7 @@ admin interface, and keep note of that context's identifier.<br /><br />
 Into your php code, add something like the following:
 <pre>
 $somevar = new Auther\Setup();
-list($xhtml,$js) = $somevar->Get($context,$mode,$handler,$id[,$token]);
+list($xhtml,$js) = $somevar->GetPanel($context,$mode,$handler,$id[[,$cancellable],$token]);
 </pre>
 where:<br />
 $context = identifier (number or alias) for the relevant recorded context<br />
@@ -86,6 +86,7 @@ The module must not be used otherwise than in acccordance with that license.</p>
 <h3>Requirements</h3>
 <ul>
 <li>PHP 5.4+</li>
+<li>PHP GD extension</li>
 <li>PHP Mcrypt extension</li>
 <li>PHP Openssl extension (for multi-factor authorisation)</li>
 </ul>
