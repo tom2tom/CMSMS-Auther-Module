@@ -24,12 +24,12 @@ class SimpleCaptcha
 	{
 		// Check for GD library
 		if (!function_exists('gd_info')) {
-			throw new \Exception('Required GD library is missing');
+			throw new \Exception('Required GD extension is missing');
 		}
 
 		// Generate CAPTCHA code if not set by upstream
 		if (empty($params['code'])) {
-			$chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789abcdefghjkmnpqrstuvwxyz';
+			$chars = 'ABCDEFGHJKLMNPQRTWXYZ2346789#^*abcdefghkpqrstwxyz';
 			$cl = strlen($chars) - 1;
 			$len = $params['length'];
 			$code = str_repeat('0', $len);
@@ -86,7 +86,7 @@ class SimpleCaptcha
 	*/
 	protected function hex2rgb($hex_str, $as_string = FALSE, $separator = ',')
 	{
-		$hex_str = preg_replace("/[^0-9A-Fa-f]/", '', $hex_str); // Ensure a proper hex string
+		$hex_str = preg_replace('/[^0-9A-Fa-f]/', '', $hex_str); // Ensure a proper hex string
 		$rgb_array = [];
 		if (strlen($hex_str) == 6 ) {
 			$color_val = hexdec($hex_str);
