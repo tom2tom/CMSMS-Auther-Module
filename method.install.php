@@ -39,6 +39,7 @@ address_required I(1) DEFAULT 1,
 email_required I(1) DEFAULT 1,
 email_banlist I(1) DEFAULT 1,
 message_charset C(16),
+password_forget C(16),
 password_min_length I(1) DEFAULT 8,
 password_min_score I(1) DEFAULT 4,
 security_level I(1) DEFAULT '.Auther::LOSEC.',
@@ -97,6 +98,7 @@ context I(2),
 addwhen I,
 lastuse I,
 nameswap I(1) DEFAULT 0,
+passreset I(1) DEFAULT 0,
 active I(1) DEFAULT 1
 ';
 $tblname = $pref.'module_auth_users';
@@ -155,6 +157,7 @@ $this->SetPreference('login_min_length', 5);
 
 $this->SetPreference('message_charset', 'UTF-8');
 $this->SetPreference('name_required', 0);
+$this->SetPreference('password_forget', '');
 //$this->SetPreference('password_max_length', 72); //for CRYPT_BLOWFISH
 $this->SetPreference('password_min_length', 8);
 $this->SetPreference('password_min_score', 4);
