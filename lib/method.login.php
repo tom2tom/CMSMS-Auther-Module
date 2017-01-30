@@ -32,18 +32,28 @@ switch ($cdata['security_level']) {
  case self::NOBOT:
 //	$pubkey = $mod->GetPreference('recaptcha_key');
 	$pubkey = '6LfgfxMUAAAAALXMQlujx_YF3p3fkv6pjmWwVdaI';
-	$one = new \stdClass();
-	$one->input = '<div id="g-recaptcha"></div>';
-	$elements[] = $one;
-	//fallback if no js
- 	$one = new \stdClass();
-	$one->title = $mod->Lang('title_captcha');
-	$one->subtitle = $mod->Lang('title_captcha2');
-	list($t,$img) = $this->CaptchaImage($mod);
+	if ($pubkey) {
+		$one = new \stdClass();
+		$one->input = '<div id="g-recaptcha"></div>';
+		$elements[] = $one;
+		//fallback if no js
+		$one = new \stdClass();
+		$one->title = $mod->Lang('title_captcha');
+		$one->subtitle = $mod->Lang('title_captcha2');
+		list($t,$img) = $this->CaptchaImage($mod);
+		$one->img = $img;
+		$one->input = $this->GetInputText($id, 'captcha', 'captcha', $tabindex++, '', 8, 8);
+		$tplvars['captcha'] = $one;
+	} else {
+		//TODO present captcha in conventional layout
+		$one = new \stdClass();
+		$one->title = $mod->Lang('title_captcha2');
+		$one->input = $this->GetInputText($id, 'captcha', 'captcha', $tabindex++, '', 8, 8);
+		list($t,$img) = $this->CaptchaImage($mod);
+		$one->xtra = $img;
+		$elements[] = $one;
+	}
 	//TODO record $t code for later use
-	$one->img = $img;
-	$one->input = $this->GetInputText($id, 'captcha', 'auth5', $tabindex++, '', 8, 8);
-	$tplvars['captcha'] = $one;
 	//TODO backend for captcha processing
 	//TODO captcha encoding per $config['locale'] if that exists or else Lang setting?
 	// add to URL &hl=whatever with 'en' for 'en_US' etc
@@ -68,20 +78,20 @@ EOS;
 	$one = new \stdClass();
 	if ($cdata['email_required']) {
 		$one->title = $mod->Lang('title_email');
-		$one->input = $this->GetInputText($id, 'login', 'auth1', $tabindex++, '', 32, 96);
+		$one->input = $this->GetInputText($id, 'login', 'login', $tabindex++, '', 32, 96);
         $logtype = 0;
 	} else {
 		$one->title = $mod->Lang('title_login');
-		$one->input = $this->GetInputText($id, 'login', 'auth1', $tabindex++, '', 20, 32);
+		$one->input = $this->GetInputText($id, 'login', 'login', $tabindex++, '', 20, 32);
         $logtype = 1;
 	}
 	$elements[] = $one;
 
 	$one = new \stdClass();
 	$one->title = $mod->Lang('password');
-	$one->input = $this->GetInputPasswd($id, 'passwd', 'auth2', $tabindex++, '', 20, 72);
+	$one->input = $this->GetInputPasswd($id, 'passwd', 'passwd', $tabindex++, '', 20, 72);
 	if ($cdata['forget_rescue']) {
-		$one->extra = '<span style="vertical-align:30%;">'.$mod->Lang('lostpass').'</span>&nbsp;&nbsp;'.$this->GetInputCheck($id, 'recover', 'auth3', $tabindex++, FALSE);
+		$one->extra = '<span style="vertical-align:30%;">'.$mod->Lang('lostpass').'</span>&nbsp;&nbsp;'.$this->GetInputCheck($id, 'recover', 'recover', $tabindex++, FALSE);
 	}
 	$elements[] = $one;
 
@@ -97,7 +107,7 @@ EOS;
 		list($t,$img) = $this->CaptchaImage($mod);
 	//TODO record $t code for later use
 		$one->img = $img;
-		$one->input = $this->GetInputText($id, 'captcha', 'auth4', $tabindex++, '', 8, 8);
+		$one->input = $this->GetInputText($id, 'captcha', 'captcha', $tabindex++, '', 8, 8);
 		$tplvars['captcha'] = $one;
 	//TODO js for captcha processing ETC
 		$jsincs[] = <<<EOS
@@ -109,10 +119,10 @@ function whatever() {
  var far = $('#farn').val(),
     near = randomBytes(24),
     key = stringXor(far, near),
-    hash = encryptVal(key, near + far + $('#auth2').val());
+    hash = encryptVal(key, near + far + $('#passwd').val());
  $('#nearn').val(base64encode(near));
  $('#hash').val(base64encode(hash));
- $('#farn,#auth2').val('');
+ $('#farn,#passwd').val('');
 /* $.ajax({
   //stuff
  });
@@ -159,7 +169,7 @@ EOS;
 	}
 
 	$jsloads[] = <<<EOS
- $('#auth1').blur(function() {
+ $('#login').blur(function() {
   $(this).mailcheck({{$domains}{$l2domains}{$topdomains}
    distanceFunction: function(string1,string2) {
     var lv = Levenshtein;
@@ -182,16 +192,17 @@ EOS;
    btn.disabled = true;
   },10);
   $('#authelements input').each(function() {
-   var \$el = $(this);
-   if (\$el.val() == '') {
-    var id = \$el.attr('id'),
-     type;
+   var \$el = $(this),
+     id = \$el.attr('id'),
+    val = \$el.val();
+   if (val == '') {
+    var type;
     switch (id) {
-     case 'auth1':
+     case 'login':
       type = ({$logtype}) ? '{$mod->Lang('title_login')}':'{$mod->Lang('title_email')}';
       break;
-     case 'auth2':
-      var \$cb = $('#auth3');
+     case 'passwd':
+      var \$cb = $('#recover');
       if (\$cb.length > 0 && \$cb.val() > 0) { return; }
       type = '{$mod->Lang('password')}';
       break;
@@ -199,15 +210,26 @@ EOS;
     var msg = '{$mod->Lang('missing_type','%s')}'.replace('%s',type);
     doerror(\$el,msg);
     valid = false;
-    setTimeout(function() {
-     btn.disabled = false;
-    },10);
     return false;
+   } else {
+    if (id == 'login') {
+     if (!{$logtype}) {
+      if (val.search(/^.+@.+\..+$/) == -1) {
+       doerror(\$el,'{$mod->Lang('email_invalid')}');
+       valid = false;
+       return false;
+      }
+     }
+    }
    }
   });
   if (valid) {
 //TODO encryption
 //TODO ajax stuff
+  } else {
+    setTimeout(function() {
+     btn.disabled = false;
+    },10);
   }
   return false;
  });

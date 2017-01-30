@@ -25,15 +25,15 @@ switch ($cdata['security_level']) {
  case self::CHALLENGED:
 	$one = new \stdClass();
 	$one->title = $mod->Lang('current_typed', $mod->Lang('password'));
-	$one->input = $this->GetInputPasswd($id, 'passwd', 'auth1', $tabindex++, '', 20, 72);
+	$one->input = $this->GetInputPasswd($id, 'passwd', 'passwd', $tabindex++, '', 20, 72);
 	$elements[] = $one;
 	$one = new \stdClass();
 	$one->title = $mod->Lang('new_typed', $mod->Lang('password'));
-	$one->input = $this->GetInputPasswd($id, 'passwd', 'auth2', $tabindex++, '', 20, 72);
+	$one->input = $this->GetInputPasswd($id, 'passwd2', 'passwd2', $tabindex++, '', 20, 72);
 	$elements[] = $one;
 	$one = new \stdClass();
 	$one->title = $mod->Lang('new_typed', $mod->Lang('title_passagain'));
-	$one->input = $this->GetInputPasswd($id, 'passwd', 'auth3', $tabindex++, '', 20, 72);
+	$one->input = $this->GetInputPasswd($id, 'passwd3', 'passwd3', $tabindex++, '', 20, 72);
 	$elements[] = $one;
 
 	switch ($cdata['security_level']) {
@@ -48,7 +48,7 @@ switch ($cdata['security_level']) {
 		list($t,$img) = $this->CaptchaImage($mod);
 	//TODO record $t code for later use
 		$one->img = $img;
-		$one->input = $this->GetInputText($id, 'captcha', 'auth5', $tabindex++, '', 8, 8);
+		$one->input = $this->GetInputText($id, 'captcha', 'captcha', $tabindex++, '', 8, 8);
 		$tplvars['captcha'] = $one;
 	//TODO js for captcha processing ETC
 		$jsincs[] = <<<EOS
@@ -60,10 +60,10 @@ function whatever() {
  var far = $('#farn').val(),
     near = randomBytes(24),
     key = stringXor(far, near),
-    hash = encryptVal(key, near + far + $('#auth2').val());
+    hash = encryptVal(key, near + far + $('#passwd2').val());
  $('#nearn').val(base64encode(near));
  $('#hash').val(base64encode(hash));
- $('#farn,#auth2').val('');
+ $('#farn,#passwd2').val('');
 /* $.ajax({
   //stuff
  });
@@ -90,39 +90,42 @@ EOS;
    btn.disabled = true;
   },10);
   $('#authelements input').each(function() {
-   var \$el = $(this);
-   if (\$el.val() == '') {
-    var id = \$el.attr('id'),
-     type;
+   var \$el = $(this),
+     id = \$el.attr('id'),
+    val = \$el.val();
+   if (val == '') {
+    var type;
     switch (id) {
-     case 'auth1':
+     case 'passwd':
       type = '{$mod->Lang('current_typed',$mod->Lang('password'))}';
       break;
-     case 'auth2':
+     case 'passwd2':
       type = '{$mod->Lang('new_typed',$mod->Lang('password'))}';
-     case 'auth3':
+     case 'passwd3':
       type = '{$mod->Lang('title_passagain')}';
       break;
     }
     var msg = '{$mod->Lang('missing_type','%s')}'.replace('%s',type);
     doerror(\$el,msg);
     valid = false;
-    setTimeout(function() {
-     btn.disabled = false;
-    },10);
     return false;
+   } else {
+    if (id == 'passwd3') {
+     if (val !== $('#passwd2').val() {
+      doerror(\$el,'{$mod->Lang('password_nomatch')}');
+      valid = false;
+      return false;
+     }
+    }
    }
   });
-  if ($('#auth2').val() !== $('#auth3').val()) {
-   doerror($('#auth3'),'{$mod->Lang('password_nomatch')}');
-   valid = false;
-   setTimeout(function() {
-    btn.disabled = false;
-   },10);
-  }
   if (valid) {
 //TODO encryption
 //TODO ajax stuff
+  } else {
+    setTimeout(function() {
+     btn.disabled = false;
+    },10);
   }
   return false;
  });
