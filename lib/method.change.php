@@ -43,40 +43,43 @@ switch ($cdata['security_level']) {
 	}
 	$elements[] = $one;
 
+	$same = $mod->Lang('blank_same');
+
 	$one = new \stdClass();
 	if ($logtype == 0) {
 		$one->title = $mod->Lang('new_typed', $mod->Lang('title_email'));
 		$one->input = $this->GetInputText($id, 'login', 'auth4', $tabindex++, '', 32, 96);
+		$one->extra = $same;
 	} else {
 		$one->title = $mod->Lang('new_typed', $mod->Lang('title_login'));
 		$one->input = $this->GetInputText($id, 'login', 'auth4', $tabindex++, '', 20, 32);
-		$one->extra = $mod->Lang('help_login');
+		$one->extra = $mod->Lang('help_login').'<br />'.$same;
 	}
 	$elements[] = $one;
 
  	$one = new \stdClass();
 	if($cdata['name_required']) {
-		$one->title = $mod->Lang('name');
+		$one->title = $mod->Lang('new_typed', $mod->Lang('name'));
 		$optname = 0;
 	} else {
-		$one->title = $mod->Lang('name_opt');
+		$one->title = $mod->Lang('new_typed', $mod->Lang('name_opt'));
 		$optname = 1;
 	}
 	$one->input = $this->GetInputText($id, 'name', 'auth5', $tabindex++, '', 20, 32);
-	$one->extra = $mod->Lang('blank_same');
+	$one->extra = $same;
 	$elements[] = $one;
 
 	if ($logtype == 1) {
 	 	$one = new \stdClass();
 		if ($cdata['address_required']) {
-			$one->title = $mod->Lang('title_contact');
+			$one->title = $mod->Lang('new_typed', $mod->Lang('title_contact'));
 			$optcontact = 0;
 		} else {
-			$one->title = $mod->Lang('contact_opt');
+			$one->title = $mod->Lang('new_typed', $mod->Lang('contact_opt'));
 			$optcontact = 1;
 		}
 		$one->input = $this->GetInputText($id, 'contact', 'auth6', $tabindex++, '', 32, 96);
-		$one->extra = $mod->Lang('help_contact').'<br />'.$mod->Lang('blank_same');
+		$one->extra = $mod->Lang('help_contact').'<br />'.$same;
 		$elements[] = $one;
 	} else {
 		$optcontact = 1;
