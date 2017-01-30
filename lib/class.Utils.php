@@ -103,14 +103,20 @@ class Utils
 	RandomAlnum:
 	Generate a pseudo-random alphanumeric string of the specified length
 	@length int wanted byte-count
+	@firstletter optional boolean, whether to force the first char to be a letter, default FALSE
 	Returns: string
 	*/
-	public function RandomAlnum($length)
+	public function RandomAlnum($length, $firstletter=FALSE)
 	{
 		$chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz';
 		$ret = str_repeat('0', $length);
 		for ($i = 0; $i < $length; $i++) {
 			$ret[$i] = $chars[mt_rand(0, 71)];
+			if ($i == 0 && $firstletter) {
+				if (!preg_match('/[A-Za-z]/',$ret[$i])) {
+					$i--; //start again
+				}
+			}
 		}
 		return $ret;
 	}
