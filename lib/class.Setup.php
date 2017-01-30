@@ -353,7 +353,7 @@ EOS;
 			$jsloads[] = <<<EOS
  $('#authcancel').click(function() {
   $('#authcontainer input[type=="hidden"]').val('');
-  $('#authelements :input')).val('');
+  $('#authelements input')).val('');
  });
 EOS;
 		}

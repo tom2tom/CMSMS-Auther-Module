@@ -168,7 +168,7 @@ EOS;
   setTimeout(function() {
    btn.disabled = true;
   },10);
-  $('#authelements :input').each(function() {
+  $('#authelements input').each(function() {
    var \$el = $(this);
    if (\$el.val() == '') {
     var id = \$el.attr('id'),
@@ -202,7 +202,7 @@ EOS;
    }
   });
   if ($('#auth2').val() !== $('#auth3').val()) {
-   doerror($('#auth3'),'$mod->Lang('password_nomatch)}');
+   doerror($('#auth3'),'{$mod->Lang('password_nomatch')}');
    valid = false;
    setTimeout(function() {
     btn.disabled = false;

@@ -178,7 +178,7 @@ EOS;
   setTimeout(function() {
    btn.disabled = true;
   },10);
-  $('#authelements :input').each(function() {
+  $('#authelements input').each(function() {
    var \$el = $(this);
    if (\$el.val() == '') {
     var id = \$el.attr('id'),
