@@ -1,8 +1,28 @@
+.hidejs {
+ color:#e83544;
+}
+
 #authcontainer {
  margin:1em auto 0 auto;
 }
 
+#authcontainer .autherror {
+ border:2px solid #e83544 !important;
+ border-color:#e83544 !important;
+}
+
 #authelements {
+}
+
+#authelements .authtitle {
+ font-weight:bold;
+ margin-top:1em;
+ margin-bottom:0;
+ padding-bottom:0;
+}
+
+#authelements .authinput {
+ margin-top:2px;
 }
 
 #authactions {
@@ -11,20 +31,4 @@
 }
 
 .authtext {
-}
-
-div#authelements .authtitle {
- font-weight:bold;
- margin-top:1em;
- margin-bottom:0;
- padding-bottom:0;
-}
-
-div#authelements .authinput {
- margin-top:2px;
-}
-
-.hidejs {
- color:red;
- text-align:center;
 }
