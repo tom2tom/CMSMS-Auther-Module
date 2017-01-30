@@ -837,7 +837,7 @@ class Auth
 	}
 
 	/**
-	* Verifies that @publicid is a valid publicid indentifier
+	* Verifies that @publicid is an acceptable login identifier
 	* @publicid: string user identifier
 	* Returns: array 0=>T/F for success, 1=>message
 	*/
@@ -863,7 +863,7 @@ class Auth
 				}
 			}
 		}
-
+		//TODO duplication check
 		return [TRUE,''];
 	}
 
