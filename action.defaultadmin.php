@@ -21,6 +21,7 @@ if (!function_exists('getModulePrefs')) {
 
 	'password_min_length',		1, 3, 1,
 	'password_min_score',		1, 3, 1,
+	'password_forget',			1, 16, 0,
 	'default_password',			4, 50, 1,
 
 	'name_required',			0, 0, 0,
@@ -43,6 +44,9 @@ if (!function_exists('getModulePrefs')) {
 	'context_sender',			1, 50, 0,
 	'context_address',			1, 50, 0,
 	'message_charset',			1, 16, 0,
+
+	'recaptcha_key',			1, 40, 0,
+	'recaptcha_secret',			4, 40, 0,
 
 	'cookie_name',				1, 32, 1,
 //	'cookie_domain',			1, 48, 1,
@@ -86,6 +90,10 @@ if (isset($params['submit'])) {
 				}
 //TODO validate, process
 				switch ($kn) {
+				 case 'password_forget':
+					if (empty($val)) {
+						break;
+					}
 				 case 'attack_mitigation_span':
 				 case 'request_key_expiration':
 				 case 'cookie_remember':
@@ -136,6 +144,9 @@ if (isset($params['submit'])) {
 							break 2;
 						}
 					}
+					$cfuncs->encrypt_preference($this, $kn, $val);
+					break 2;
+				 case 'recaptcha_secret':
 					$cfuncs->encrypt_preference($this, $kn, $val);
 					break 2;
 				 default:
@@ -300,7 +311,7 @@ EOS;
     okName: '{$this->Lang('proceed')}',
     cancelName: '{$this->Lang('cancel')}'
    }).then(function() {
-    $(tg).trigger('click.deferreed');
+    $(tg).trigger('click.deferred');
    });
   }
   return false;
@@ -316,7 +327,7 @@ EOS;
     okName: '{$this->Lang('proceed')}',
     cancelName: '{$this->Lang('cancel')}'
   }).then(function() {
-   $(tg).trigger('click.deferreed');
+   $(tg).trigger('click.deferred');
   });
   return false;
  });
@@ -379,10 +390,11 @@ if ($pset) {
 					'', '', '', 40, $props[$i+2]);
 				break;
 			 case 'default_password':
+			 case 'recaptcha_secret':
 				$t = $cfuncs->decrypt_preference($this, $kn);
 				$l = $props[$i+2];
 				$t = $this->CreateInputText($id, $kn, $t, $l, $l);
-				$one->input = str_replace('class="', 'class="cloaked ', $t);
+				$one->input = strtr($t, 'class="', 'class="cloaked ');
 				break;
 			}
 			$one->must = ($props[$i+3] > 0);
