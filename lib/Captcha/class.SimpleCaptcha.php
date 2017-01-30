@@ -27,17 +27,19 @@ class SimpleCaptcha
 			throw new \Exception('Required GD extension is missing');
 		}
 
-		// Generate CAPTCHA code if not set by upstream
+		// Generate CAPTCHA text if not set by upstream
 		if (empty($params['code'])) {
-			$chars = 'ABCDEFGHJKLMNPQRTWXYZ2346789#^*abcdefghkpqrstwxyz';
+			$chars = 'ACDHJKLMNTVXY3479#%^*+abcdefhkprstwxyz';
 			$cl = strlen($chars) - 1;
 			$len = $params['length'];
-			$code = str_repeat('0', $len);
+			$code = str_repeat('A', $len);
+			$display = str_repeat(' ', $len + $len - 1);
 			for ($i = 0; $i < $len; $i++) {
-				$code[$i] = $chars[mt_rand(0, $cl)];
+				$ch = $chars[mt_rand(0, $cl)];
+				$code[$i] = $ch;
+				$display[$i+$i] = $ch;
 			}
-			$params['code'] = $code;
-
+			$params['code'] = $display;
 		} else {
 			$code = $params['code'];
 		}
