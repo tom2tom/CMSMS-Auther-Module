@@ -223,23 +223,34 @@ final class Encryption
 		return $this->byte_substr($res, 0, $length);
 	}
 
-	//TODO support 2048-bit blocksize (1-more-byte)
+	/*
+	padding is mostly bytes that will look to a cracker sort-of random
+	c.f. (abandoned) ISO 10126
+	NOT like the more-common PKCS7 style
+	block-size <= 255 bytes/2040 bits TODO support 2048-bit blocksize
+	*/
 	protected function pad($data)
 	{
-		$length = openssl_cipher_iv_length($this->method); //== block-size (can record <= 255 bytes/2040 bits)
+		$length = openssl_cipher_iv_length($this->method);
 		if ($length > 0) {
 			//CBC-mode (at least) requires data to be a multiple of block length
 			$datalen = $this->bytelen($data);
 			$padAmount = $length - $datalen % $length;
-		} else {
-			$padAmount = 0;
-		}
-		if ($padAmount > 0) {
+			if ($padAmount == 0) {
+				$padAmount = $length;
+			}
 			$n = ord($data[$datalen - 1]);
 			$pad = str_repeat(chr($padAmount), $padAmount);
 			$padAmount--;
-			for ($i = 0; $i < $padAmount; $i++) {
-				$pad[$i] = $n++;
+			for ($i = 0; $i < $padAmount; $i++,$n++) {
+				if ($n > 255) {
+					$n -= 256;
+				}
+				if ($i % 2) {
+					$pad[$i] = $pad[$i]+$n+2;
+				} else {
+					$pad[$i] = $pad[$i]-$n-3;
+				}
 			}
 		} else {
 			$pad = '\0';
