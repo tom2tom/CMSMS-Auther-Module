@@ -32,7 +32,53 @@ final class Setup
 		if ($suffix) {
 			$str .= ': '.$suffix;
 		}
-		return '<p style="font-weight:bold;color:red;">'.$str.'</p>';
+		return '<p class="error" style="font-weight:bold;">'.$str.'</p>';
+	}
+
+	private function ConvertDomains($pref)
+	{
+		if (!$pref)
+			return '';
+		$parts = explode(',',$pref);
+		foreach ($parts as &$one) {
+			$one = '\''.trim($one).'\'';
+		}
+		unset($one);
+		if (count($parts) > 1) {
+			$parts = array_unique($parts);
+			sort($parts, SORT_STRING);
+		}
+		return implode(',',$parts);
+	}
+
+	private function CaptchaImage(&$mod, $text='', $length=8)
+	{
+		$fp = __DIR__.DIRECTORY_SEPARATOR.'Captcha'.DIRECTORY_SEPARATOR;
+		//TODO generalise these e.g. module preference
+		$config = \cmsms()->GetConfig();
+		$cache = $config['root_path'].DIRECTORY_SEPARATOR.'tmp'.DIRECTORY_SEPARATOR.'cache';
+
+		$parms = [
+		 'code' => $text,
+		 'length' => $length,
+		 'size' => 16,
+		 'color' => '#000',
+		 'font' => $fp.'Roboto-Regular.ttf',
+		 'background' => $fp.'plain.png',
+		 'path' => $cache
+		];
+
+		$funcs = new Captcha\SimpleCaptcha();
+		try {
+			$res = $funcs->generate($parms);
+		} catch (\Exception $e) {
+			return ['ERROR', $mod->Lang('err_system')];
+		}
+
+		$fp = (empty($_SERVER['HTTPS'])) ? $config['root_url'] : $config['ssl_url'];
+		$fp .= '/tmp/cache/'.$res['file'];
+		list($w, $h, $t, $attr) = getimagesize($cache.DIRECTORY_SEPARATOR.$res['file']);
+		return [$res['code'], '<img src="'.$fp.'" '.$attr.' alt="CAPTCHA" />'];
 	}
 
 	//Returns: enum or FALSE
@@ -78,7 +124,7 @@ final class Setup
 					$type = 5;
 				}
 			} elseif ($this->workermod->havecurl) { //curl is installed
-				$config = cmsms()->GetConfig();
+				$config = \cmsms()->GetConfig();
 				$u = (empty($_SERVER['HTTPS'])) ? $config['root_url'] : $config['ssl_url'];
 				$u .= '/index.php?mact=';
 				$len = strlen($u);
@@ -91,7 +137,7 @@ final class Setup
 	}
 
 	//$elid, $value may be FALSE
-	private function GetInputText($id, $name, $elid, $value, $size, $maxsize=FALSE)
+	private function GetInputText($id, $name, $elid, $idx, $value, $size, $maxsize=FALSE)
 	{
 		$out = '<input type="text"';
 		if ($elid) {
@@ -100,11 +146,11 @@ final class Setup
 		if (!$maxsize || $maxsize < $size) {
 			$maxsize = $size;
 		}
-		return $out.' value="'.$value.'" size="'.$size.'" maxlength="'.$maxsize.'" name="'.$id.$name.'" />';
+		return $out.' value="'.$value.'" size="'.$size.'" maxlength="'.$maxsize.'" name="'.$id.$name.'" tabindex="'.$idx.'" />';
 	}
 
 	//$elid, $value may be FALSE
-	private function GetInputPasswd($id, $name, $elid, $value, $size, $maxsize=FALSE)
+	private function GetInputPasswd($id, $name, $elid, $idx, $value, $size, $maxsize=FALSE)
 	{
 		$out = '<input type="password"';
 		if ($elid) {
@@ -113,11 +159,11 @@ final class Setup
 		if (!$maxsize || $maxsize < $size) {
 			$maxsize = $size;
 		}
-		return $out.' value="'.$value.'" size="'.$size.'" maxlength="'.$maxsize.'" name="'.$id.$name.'" />';
+		return $out.' value="'.$value.'" size="'.$size.'" maxlength="'.$maxsize.'" name="'.$id.$name.'" tabindex="'.$idx.'" />';
 	}
 
 	//$elid may be FALSE
-	private function GetInputCheck($id, $name, $elid, $checked, $mirrored=FALSE)
+	private function GetInputCheck($id, $name, $elid, $idx, $checked, $mirrored=FALSE)
 	{
 		if ($mirrored) {
 			$out = '<input type="hidden" value="0" name="'.$id.$name.'" />'.PHP_EOL;
@@ -132,10 +178,10 @@ final class Setup
 		if ($checked) {
 			$out .= ' checked="checked"';
 		}
-		return $out .= ' name="'.$id.$name.'" />';
+		return $out .= ' name="'.$id.$name.'" tabindex="'.$idx.'" />';
 	}
 
-/*	private function GetInputRadio($id, $name, $elid, $choices, $labels, $first)
+/*	private function GetInputRadio($id, $name, $elid, $idx, $choices, $labels, $first)
 	{
 		$out = '';
 		foreach ($choices as $i=>$val) {
@@ -150,7 +196,7 @@ final class Setup
 		return $out;
 	}
 
-	private function GetInputLink($id, $name, $elid, $args)
+	private function GetInputLink($id, $name, $elid, $idx, $args)
 	{
 		$out = '<a></a>';
 		return $out;
@@ -158,7 +204,7 @@ final class Setup
 */
 
 	/**
-	Get:
+	GetPanel:
 	@context: number or alias, login-context identifier
 	@task: string one of 'login','register','reset','change'
 	@handler: mixed, one of
@@ -181,7 +227,7 @@ final class Setup
 	[0] = html to display an error message (partly-untranslated)
 	[1] = FALSE
 	*/
-	public function Get($context, $task, $handler, $withcancel=FALSE, $token=FALSE)
+	public function GetPanel($context, $task, $handler, $withcancel=FALSE, $token=FALSE)
 	{
 		$mod = \cms_utils::get_module('Auther');
 		$utils = new Utils();
@@ -227,14 +273,15 @@ final class Setup
 
 		$jsloads[] = <<<EOS
  $('.hidejs').css('display','none');
- var el = $('#focus');
- if (el.length) {
-   el[0].focus();
+ var \$el = $('#focus');
+ if (\$el.length) {
+   \$el[0].focus();
  }
 EOS;
 		$db = \cmsms()->GetDb();
 		$pre = \cms_db_prefix();
 		$cdata = $db->GetRow('SELECT * FROM '.$pre.'module_auth_contexts WHERE id=?', [$cid]);
+//$cdata['security_level'] = 1; //DEBUG
 
 		if ($token) {
 			$sdata = []; //TODO cached sessiondata
@@ -242,11 +289,11 @@ EOS;
 			$sdata = FALSE;
 		}
 
-		$iv = $utils->RandomAlnum(8); //sized for Blowfish in openssl
+		$iv = $utils->RandomAlnum(8, TRUE); //sized for Blowfish in openssl
 		$now = time();
 		$base = floor($now / (84600 * 1800)) * 1800; //start of current 30-mins
 		$day = date('j',$now);
-		$id = $iv[2].$iv[3].$utils->Tokenise($base+$day).'_'; //6-bytes
+		$id = $iv[0].$iv[1].$utils->Tokenise($base+$day).'_'; //6-bytes
 
 		$cache = [
 		'context' => $cid,
@@ -260,8 +307,28 @@ EOS;
 		$hidden = [$mod->CreateInputHidden($id, 'jsworks', '')];
 		$jsloads[] = <<<EOS
  $('#{$id}jsworks').val('$iv');
+ $('#authelements input').bind('keypress',function(ev) {
+  ev = ev || window.event;
+  if (ev.keyCode == 13) {
+   var nxtid = parseInt($(this).attr('tabindex'),10) + 1,
+    nob = $('[tabindex=' + nxtid + ']');
+   if (nob.length > 0) {
+    $(nob)[0].focus();
+   }
+   return false;
+  }
+ });
 EOS;
-
+		$jsfuncs[] = <<<EOS
+function doerror(\$el,msg) {
+ alert(msg);
+ \$el.addClass('autherror').blur(function() {
+  $(this).removeClass('autherror');
+ });
+ \$el[0].focus();
+}
+EOS;
+		$tabindex = 1;
 		$elements = [];
 		//append as appropriate to arrays: $cache, $hidden, $elements, $tplvars, $jsincs, $jsfuncs, $jsloads
 		require __DIR__.DIRECTORY_SEPARATOR.'method.'.$task.'.php';
@@ -275,19 +342,26 @@ EOS;
 		$tplvars['hidden'] = implode(PHP_EOL,$hidden);
 		$tplvars['components'] = $elements;
 		$tplvars['submitbtn'] =
-'<input type="submit" id="authsend" name="'.$id.'send" value="'.$mod->Lang('submit').'" />';
+'<input type="submit" id="authsend" name="'.$id.'send" value="'.$mod->Lang('submit').'"  tabindex="'.$tabindex++.'" />';
 		if ($withcancel && 0) { //TODO special-cases
 			$withcancel = FALSE;
 		}
 		if ($withcancel) {
 			$tplvars['cancelbtn'] =
-'<input type="submit" id="authcancel" name="'.$id.'cancel" value="'.$mod->Lang('cancel').'" />';
+'<input type="submit" id="authcancel" name="'.$id.'cancel" value="'.$mod->Lang('cancel').'" tabindex="'.$tabindex.'" />';
+
+			$jsloads[] = <<<EOS
+ $('#authcancel').click(function() {
+  $('#authcontainer input[type=="hidden"]').val('');
+  $('#authelements :input')).val('');
+ });
+EOS;
 		}
 
 		$tplstr = <<<'EOS'
 <div id="authcontainer">
  <div class="hidejs">
-  <p class="authtitle" style="color:red;">{$wantjs}</p>
+  <p class="authtitle error">{$wantjs}</p>
   <br />
  </div>
 {if (!empty($intro))}<p class="authtext">{$intro}</p><br />{/if}
@@ -301,6 +375,17 @@ EOS;
 {if !empty($elem->input)}<div class="authinput">{$elem->input}</div>{/if}
 {if !empty($elem->extra)}<div class="authtext">{$elem->extra}</div>{/if}
 {/foreach}
+{if !empty($captcha)}
+<div class="hidejs">
+<p class="authtitle">{$captcha->title}</p>
+<div class="authinput">
+<table><tbody><tr>
+<td>{$captcha->subtitle}<br />{$captcha->input}</td>
+<td>{$captcha->img}</td>
+</tr></tbody></table>
+</div>
+</div>
+{/if}
   </div>
   <div id="authactions">
  {$submitbtn}{if !empty($cancelbtn)} {$cancelbtn}{/if}

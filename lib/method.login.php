@@ -6,269 +6,124 @@
 # More info at http://dev.cmsmadesimple.org/projects/auther
 #----------------------------------------------------------------------
 
-/* template classes
-div#authcontainer
-div#authelements
-div#authactions
-.hidejs
-.authtitle
-.authtext
-.authinput
-input#authsend
-input#authcancel
-#focus
+if (0) {
+	$tplvars['intro'] = $mod->Lang('TODO');
+}
+if (0) {
+	$tplvars['after'] = $mod->Lang('TODO');
+}
 
-.hidecaptcha ?
-.passwd ?
+/*
+parameters @ https://developers.google.com/recaptcha/docs/display#render_param
+ When the form is submitted, part of the payload will be a string with the name
+"g-recaptcha-response". In order to check whether Google has verified that user,
+send a POST request with these parameters:
+URL: https://www.google.com/recaptcha/api/siteverify
+secret (required)	the secret key
+from $cfuncs->decrypt_preference($mod,'recaptcha_secret'); //6LfgfxMUAAAAAEmGmfYe5gL_kBTq2bs82dGVcEVQ
+response (required)	The value of 'g-recaptcha-response' $_POST['g-recaptcha-response']
+remoteip	The end-user's ip address $_SERVER['REMOTE_ADDR']
+
+see https://developers.google.com/recaptcha/docs/display
+ requires handler function to be defined before the include
+ render parameters @ https://developers.google.com/recaptcha/docs/display#render_param
 */
-
-/*
-<form action="login.php" method="post">
-<p>
-<input id="lbusername" class="defaultfocus" type="text" value="" size="15" name="username">
-<br>
-<input id="lbpassword" type="password" size="15" name="password">
-<br>
-<input class="loginsubmit" type="submit" value="Submit" name="loginsubmit">
-<input class="loginsubmit" type="submit" value="Cancel" name="logincancel">
-</p>
-</form>
-<div class="forgot-pw">
-<a href="login.php?forgotpw=1">Forgot your password?</a>
-</div>
-</div>
-*/
-/*
-	private function LoginData(&$mod, $id, $cdata, $sdata, &$cache, &$hidden,
-		&$tplary, &$jsincs, &$jsfuncs, &$jsloads)
-	{
-		$components = [];
-
-		$oneset = new \stdClass();
-		$oneset->title = 'GET my title';
-        $oneset->input = $this->GetInputText($id, 'titler', 'custid', 32, 40);
-		$components[] = $oneset;
-
-		$tplary += $components;
-		return;
-
-		if (0) {
-			$tplvars['intro'] = $mod->Lang('');
-		}
-		if (0) {
-			$tplvars['after'] = $mod->Lang('');
-		}
-
-		if (0) {
-			//TODO captcha stuff for nearnonce
-		}
-
-		$t = $utils->RandomAlnum(24);
-		$hidden[] = $mod->CreateInputHidden($id,'farnonce',$t);
-		$hidden[] = $mod->CreateInputHidden($id,'nearnonce','captcha');
-		$hidden[] = $mod->CreateInputHidden($id,'hash','');
-
-		$oneset = new \stdClass();
-		$oneset->title = $mod->Lang('TODO');
-		$t = $mod->CreateInputText($id,'TODO',$val,$len);
-		$oneset->input = strtr($t, 'id="'.$id, 'id="');
-		if (0) {
-//			$onset->extra = ;
-		}
-		$components[] = $oneset;
-
-//		repeat ...
-
-		$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/sjcl.min.js"></script>
-EOS;
-			//TODO
-		$jsfuncs[] = <<<EOS
- sjcl.encrypt("password","data");
-EOS;
-		 $jsfuncs[] = <<<EOS
-// disable form buttons
-function onsubmit (ev) {
- $('#authsend,#authcancel').each(function(){
-  var btn = this;
-  setTimeout(function() {
-   btn.disabled = true;
-  },10);
- });
-// some local validation
- if (0) { //failure
-// change object styles per error
-// popup alert then
-//	focus 1st error
-  $('#authsend,#authcancel').each(function(){
-   var btn = this;
-   setTimeout(function() {
-    btn.disabled = false;
-   },20);
-  });
- } else {
-  var far = $('#nearn').val(),
-    near = $('#farn').val(),
-    key = stringXor(far, near),
-    hash = sjcl.func(key, near + far + $('#password').val()); //TODO AS BITS
-  $('#jsworks').val(near);
-  $('#hash').val(sjcl.codec.base64.fromBits(hash,false,false));
-  $('#nearn,#farn,#password').val('');
-//  $('#authform1').trigger('submit.deferred'); NO
-  $.ajax({
-   stuff
-  });
- }
- return false;
-}
-EOS;
-
-/*
-iv [-1759984183, 221357109, 480513022, -482356771]
-password "Suckitup,crackers"
-key []
-adata "EXTRA DATA"
-aes undefined
-plaintext "Hello there, pirates"
-rp Object {}
-ct undefined
-p Object { adata="EXTRA DATA",  iter=1000,  mode="gcm",  more...}
- adata "EXTRA DATA"
- iter 1000
- mode "gcm"
- ts  64
- ks 	128
- iv 	[-1759984183, 221357109, 480513022, -482356771]
- salt 	[1195984120, 1407048864]
-}
-AFTER ct = sjcl.encrypt(password || key, plaintext, p, rp).replace(/,/g,",\n");
-
-rp Object { iv=[4],  v=1,  iter=1000,  more...}
- iv [-1759984183, 221357109, 480513022, -482356771]
- v 1
- iter 1000
- ks 128
- ts 64
- mode"gcm"
- adata [1163416658, 1092633665, 17593599590400]
- cipher "aes"
- salt [1195984120, 1407048864]
- key	[863892850, 979149439, 285901955, 1290596378]
-
-ct = STRING '{"iv":"lxjFyQ0xpDUcpAv+4z/R3Q==",
- "v":1,
- "iter":1000,
- "ks":128,
- "ts":64,
- "mode":"gcm",
- "adata":"RVhUUkEgREFUQQ==",
- "cipher":"aes",
- "salt":"R0lE+FPd3KA=",
- "ct":"kDDBsShv382GtyIvmYj2wNuKLDXD8h9+/LAhmQ=="}'
-
-$ct = '{
- "iv":"lxjFyQ0xpDUcpAv+4z/R3Q==",
- "v":1,
- "iter":1000,
- "ks":128,
- "ts":64,
- "mode":"gcm",
- "adata":"RVhUUkEgREFUQQ==",
- "cipher":"aes",
- "salt":"R0lE+FPd3KA=",
- "ct":"kDDBsShv382GtyIvmYj2wNuKLDXD8h9+/LAhmQ=="
- }';
-
-
-		 if (0) { //per $mode
-
-			$jsincs[] = $baseurl.'/include/autho.min.js';
-			//TODO local data validation js if relevant
-			//TODO $jsincs[] = $baseurl.'/include/zxcvbn/zxcvbn.js if relevant
-
-			$jsloads[] = <<<EOS
-$('#authsend').click.function() {
- var n1 = $('#{$id}farnonce').val();
- var n2 = randomAlnum(24);
- $('#{$id}hash').val(sha1(n1 + n2 + $('#passwd').val()));
- $('#{$id}nearnonce').val(n2);
- $('#passwd').val('');
- var btn = this;
- setTimeout(function() {
-  btn.disabled = true;
- },10);
-}
-EOS;
-			if ($withcancel) {
-				$jsloads[] = <<<EOS
-$('#authcancel').click.function() {
- $('#{$id}farnonce').val('');
- $('#{$id}nearnonce').val('');
- $('#passwd').val('');
-}
-EOS;
-			}
-		}
-
-		if (0) {
-//			TODO strengthify styles needed - HOW?
-			$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/jquery.strengthify.js"></script>
-EOS;
-			$jsloads[] = <<<EOS
- $('#authelements .passwd').strengthify({
-
- });
-EOS;
-		}
-		$tplary += $components;
-	}
- */
-
-function ConvertDomains($pref)
-{
-	if (!$pref)
-		return '';
-	$parts = explode(',',$pref);
-	foreach ($parts as &$one) {
-		$one = '\''.trim($one).'\'';
-	}
-	unset($one);
-	if (count($parts) > 1) {
-		$parts = array_unique($parts);
-		sort($parts, SORT_STRING);
-	}
-	return implode(',',$parts);
-}
-
-//append as appropriate to arrays: $cache, $hidden, $elements, $tplvars, $jsincs, $jsfuncs, $jsloads
 switch ($cdata['security_level']) {
  case self::NOBOT:
-	//setup for reCaptcha
+//	$pubkey = $mod->GetPreference('recaptcha_key');
+	$pubkey = '6LfgfxMUAAAAALXMQlujx_YF3p3fkv6pjmWwVdaI';
+	$one = new \stdClass();
+	$one->input = '<div id="g-recaptcha"></div>';
+	$elements[] = $one;
+	//fallback if no js
+ 	$one = new \stdClass();
+	$one->title = $mod->Lang('title_captcha');
+	$one->subtitle = $mod->Lang('title_captcha2');
+	list($t,$img) = $this->CaptchaImage($mod);
+	//TODO record $t code for later use
+	$one->img = $img;
+	$one->input = $this->GetInputText($id, 'captcha', 'auth5', $tabindex++, '', 8, 8);
+	$tplvars['captcha'] = $one;
+	//TODO backend for captcha processing
+	//TODO captcha encoding per $config['locale'] if that exists or else Lang setting?
+	// add to URL &hl=whatever with 'en' for 'en_US' etc
+	//this hack forced by mandatory ordering of recaptcha js
+	$jsincs[] = <<<EOS
+<script type="text/javascript">
+//<![CDATA[
+function onloadCallback() {
+ var widgetID = grecaptcha.render('g-recaptcha',{
+  'sitekey': '$pubkey'
+ });
+}
+//]]>
+</script>
+<script src="https://www.google.com/recaptcha/api.js?onload=onloadCallback&render=explicit" async defer></script>
+EOS;
 	break;
 
- case self::NONCED:
-	//no break here
-	//XTRA UI (POSITIONED LAST)
-	//XTRA JS
  case self::LOSEC:
- 	$one = new \stdClass();
+ case self::NONCED:
+ case self::CHALLENGED:
+	$one = new \stdClass();
 	if ($cdata['email_required']) {
 		$one->title = $mod->Lang('title_email');
-		$one->input = $this->GetInputText($id, 'login', 'auth1', '', 32, 96);
+		$one->input = $this->GetInputText($id, 'login', 'auth1', $tabindex++, '', 32, 96);
+        $logtype = 0;
 	} else {
 		$one->title = $mod->Lang('title_login');
-		$one->input = $this->GetInputText($id, 'login', 'auth1', '', 20, 32);
+		$one->input = $this->GetInputText($id, 'login', 'auth1', $tabindex++, '', 20, 32);
+        $logtype = 1;
 	}
 	$elements[] = $one;
 
 	$one = new \stdClass();
 	$one->title = $mod->Lang('password');
-	$one->input = $this->GetInputPasswd($id, 'passwd', 'auth2', '', 20, 72);
+	$one->input = $this->GetInputPasswd($id, 'passwd', 'auth2', $tabindex++, '', 20, 72);
 	if ($cdata['forget_rescue']) {
-		$one->extra = '<span style="vertical-align:30%;">'.$mod->Lang('lostpass').'</span>&nbsp;&nbsp;'.$this->GetInputCheck($id, 'recover', 'auth3', FALSE);
+		$one->extra = '<span style="vertical-align:30%;">'.$mod->Lang('lostpass').'</span>&nbsp;&nbsp;'.$this->GetInputCheck($id, 'recover', 'auth3', $tabindex++, FALSE);
 	}
 	$elements[] = $one;
+
+	switch ($cdata['security_level']) {
+	 case self::NONCED:
+		$t = $utils->RandomAlnum(24);
+	//TODO record $t for later use in session
+		$hidden[] = $mod->CreateInputHidden($id,'farn',$t);
+		$hidden[] = $mod->CreateInputHidden($id,'nearn','');
+		$one = new \stdClass();
+		$one->title = $mod->Lang('title_captcha');
+		$one->subtitle = $mod->Lang('title_captcha2');
+		list($t,$img) = $this->CaptchaImage($mod);
+	//TODO record $t code for later use
+		$one->img = $img;
+		$one->input = $this->GetInputText($id, 'captcha', 'auth4', $tabindex++, '', 8, 8);
+		$tplvars['captcha'] = $one;
+	//TODO js for captcha processing ETC
+		$jsincs[] = <<<EOS
+<script type="text/javascript" src="{$baseurl}/include/sjcl.js"></script>
+<script type="text/javascript" src="{$baseurl}/include/auth.js"></script>
+EOS;
+		$jsfuncs[] = <<<EOS
+function whatever() {
+ var far = $('#farn').val(),
+    near = randomBytes(24),
+    key = stringXor(far, near),
+    hash = encryptVal(key, near + far + $('#auth2').val());
+ $('#nearn').val(base64encode(near));
+ $('#hash').val(base64encode(hash));
+ $('#farn,#auth2').val('');
+/* $.ajax({
+  //stuff
+ });
+*/
+}
+EOS;
+		break;
+	 case self::CHALLENGED:
+		//TODO
+		break;
+	}
 
 //<script type="text/javascript" src="{$baseurl}/include/jquery.alertable.min.js"></script> N/A unless its styling can be provided
 	$jsincs[] = <<<EOS
@@ -279,7 +134,7 @@ switch ($cdata['security_level']) {
 EOS;
 
 	$pref = $mod->GetPreference('email_topdomains');
-	$topdomains = ConvertDomains($pref);
+	$topdomains = $this->ConvertDomains($pref);
 	if ($topdomains) {
 		$topdomains = <<<EOS
 
@@ -287,7 +142,7 @@ EOS;
 EOS;
 	}
 	$pref = $mod->GetPreference('email_domains');
-	$domains = ConvertDomains($pref);
+	$domains = $this->ConvertDomains($pref);
 	if ($domains) {
 		$domains = <<<EOS
 
@@ -295,7 +150,7 @@ EOS;
 EOS;
 	}
 	$pref = $mod->GetPreference('email_subdomains');
-	$l2domains = ConvertDomains($pref);
+	$l2domains = $this->ConvertDomains($pref);
 	if ($l2domains) {
 		$l2domains = <<<EOS
 
@@ -315,61 +170,48 @@ EOS;
     if (confirm(msg)) {
      $(element).val(suggest.full);
     } else {
-     var dbg = 1;
      element.focus();
     }
-   },
-   empty: function(element) {
-    var dbg = 1;
-    alert('{$mod->Lang('missing_login')}');
-    element.focus();
    }
   });
  });
  $('#authsend').click(function() {
-//  var btn = this;
-//  setTimeout(function() {
-//   btn.disabled = true;
-//  },10);
-  //TODO key = something known upstream
-  //iv & salt generated and/or known
-  //ks = keysize, ts = authetication-tag size
-  //TODO upstream usable mode
-//    iv = [-1759984183, 221357109, 480513022, -482356771],
-//    salt = [1195984120, 1407048864],
-/* iter: 1024,
-   mode: 'gcm',
-   ks: 128,
-   ts: 64,
-   iv: iv,
-   salt: salt
-
-  var key = randomAlnum(12),
-    rp = {},
-  json = sjcl.encrypt(key,$('#auth2').val(),{
-   mode: 'gcm',
-   iter:1024
-  },rp);
-//TODO get salt etc from rp
-  $('#auth2').val(json);
-*/
-  var passwd = 'Suck it up, crackers';
-  var salt = randomBytes(16);
-  var dbg = sjcl.pbkdf2(password, salt, 1024);
-  //TODO ajax stuff
+  var btn = this,
+   valid = true;
+  setTimeout(function() {
+   btn.disabled = true;
+  },10);
+  $('#authelements :input').each(function() {
+   var \$el = $(this);
+   if (\$el.val() == '') {
+    var id = \$el.attr('id'),
+     type;
+    switch (id) {
+     case 'auth1':
+      type = ({$logtype}) ? '{$mod->Lang('title_login')}':'{$mod->Lang('title_email')}';
+      break;
+     case 'auth2':
+      var \$cb = $('#auth3');
+      if (\$cb.length > 0 && \$cb.val() > 0) { return; }
+      type = '{$mod->Lang('password')}';
+      break;
+    }
+    var msg = '{$mod->Lang('missing_type','%s')}'.replace('%s',type);
+    doerror(\$el,msg);
+    valid = false;
+    setTimeout(function() {
+     btn.disabled = false;
+    },10);
+    return false;
+   }
+  });
+  if (valid) {
+//TODO encryption
+//TODO ajax stuff
+  }
   return false;
  });
 EOS;
-	if ($withcancel) {
-		$jsloads[] = <<<EOS
- $('#authcancel').click(function() {
-  $('#auth1,#auth2').val('');
- });
-EOS;
-	}
-	break;
-
- case self::CHALLENGED:
 	break;
 
  case self::HISEC:
