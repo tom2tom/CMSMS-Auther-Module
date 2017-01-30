@@ -21,6 +21,7 @@ if (!function_exists('GetUserProperties')) {
 	'address',	'contact',	2, 40, 96, 0,
 	'publicid',	'identifier',	1, 40, 96, 1,
 	'passhash',	'password_new', 2, 40, 72, 0, //fake
+	'passreset'	'password_reset', 0, 0,  0,  0,
 	'active',	'active',	0, 0,  0,  0,
 	];
 	//unused: id, context, addwhen, lastuse

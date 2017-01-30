@@ -72,13 +72,14 @@ $theme = ($this->before20) ? cmsms()->get_variable('admintheme'):
 	cms_utils::get_theme_object();
 
 $pre = cms_db_prefix();
-$sql = "SELECT id,publicid,name,address,addwhen,lastuse,active FROM {$pre}module_auth_users WHERE context=? ORDER BY publicid";
+$sql = "SELECT id,publicid,name,address,addwhen,lastuse,passreset,active FROM {$pre}module_auth_users WHERE context=? ORDER BY publicid";
 $data = $db->GetArray($sql, [$cid]);
 if ($data) {
 	$tplvars['title_name'] = $this->Lang('title_name');
 	$tplvars['title_first'] = $this->Lang('title_register');
 	$tplvars['title_last'] = $this->Lang('title_lastuse');
 	$tplvars['title_addr'] = $this->Lang('title_addressable');
+	$tplvars['title_reset'] = $this->Lang('title_pending_reset');
 	$tplvars['title_active'] = $this->Lang('title_active');
 
 	$icon_see = $theme->DisplayImage('icons/system/view.gif',$this->Lang('tip_view'),'','','systemicon');
@@ -128,6 +129,7 @@ if ($data) {
 			$oneset->last = $this->Lang('none');
 		}
 		$oneset->addr = ($one['address']) ? $icon_yes : $icon_no;
+		$oneset->reset = ($one['passreset']) ? $icon_yes : $icon_no;
 		$oneset->active = ($one['active'] > 0) ? $icon_yes : $icon_no;
 		$oneset->see = $this->CreateLink($id,'openuser','',$icon_see,
 			['ctx_id'=>$cid,'usr_id'=>$uid,'edit'=>0]);
@@ -278,6 +280,26 @@ EOS;
   }).then(function() {
    $(tg).trigger('click.deferred');
   });
+  return false;
+ });
+EOS;
+		$tplvars['reset'] = $this->CreateInputSubmit($id,'reset',$this->Lang('reset'),
+			'title="'.$this->Lang('tip_resetuser').'"');
+		$tplvars['activate'] = $this->CreateInputSubmit($id,'activate',$this->Lang('activate'),
+			'title="'.$this->Lang('tip_activeuser').'"');
+
+		$t = $this->Lang('confirm');
+		$jsloads[] = <<<EOS
+ $('#itemacts #{$id}reset,#itemacts #{$id}activate').click(function() {
+  if (any_selected()) {
+   var tg = this;
+   $.alertable.confirm('$t', {
+    okName: '{$this->Lang('proceed')}',
+    cancelName: '{$this->Lang('cancel')}'
+   }).then(function() {
+    $(tg).trigger('click.deferred');
+   });
+  }
   return false;
  });
 EOS;

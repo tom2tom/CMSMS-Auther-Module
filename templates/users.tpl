@@ -9,6 +9,7 @@
    <th>{$title_first}</th>
    <th>{$title_last}</th>
    <th class="{ldelim}sss:'icon'{rdelim}">{$title_addr}</th>
+   <th class="{ldelim}sss:'icon'{rdelim}">{$title_reset}</th>
    <th class="{ldelim}sss:'icon'{rdelim}">{$title_active}</th>
    <th class="pageicon {ldelim}sss:false{rdelim}"></th>
 {if $mod} <th class="pageicon {ldelim}sss:false{rdelim}"></th>
@@ -22,6 +23,7 @@
    <td>{$entry->reg}</td>
    <td>{$entry->last}</td>
    <td>{$entry->addr}</td>
+   <td>{$entry->reset}</td>
    <td>{$entry->active}</td>
    <td>{$entry->see}</td>
 {if $mod} <td>{$entry->edit}</td>
@@ -39,6 +41,6 @@
 <div id="itemacts" class="pageoptions" style="margin-top:1em;">
 {if $mod}{$iconlinkadd} {$textlinkadd}<span style="margin-left:8em;">{/if}
 {$close}
-{if $mod}{if ($ucount > 0)} {$delete} {/if}{$import}</span>{/if}
+{if $mod}{if ($ucount > 0)} {$reset} {$activate} {$delete} {/if}{$import}</span>{/if}
 </div>
 {$endform}
