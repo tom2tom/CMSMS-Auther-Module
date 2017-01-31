@@ -86,6 +86,20 @@ switch ($cdata['security_level']) {
 	}
 
 	switch ($cdata['security_level']) {
+	 case self::LOSEC:
+		//TODO filter parms as appropriate
+		$jsfuncs[] = <<<EOS
+function transfers(\$inputs) {
+ var parms = {};
+ $('#authcontainer input:hidden').add(\$inputs).each(function() {
+  var \$el = $(this),
+   n = \$el.attr('name');
+  parms[n] = \$el.val();
+ });
+ return parms;
+}
+EOS;
+		break;
 	 case self::NONCED:
 		$t = $utils->RandomAlnum(24);
 	//TODO record $t for later use in session
@@ -104,19 +118,23 @@ switch ($cdata['security_level']) {
 <script type="text/javascript" src="{$baseurl}/include/sjcl.js"></script>
 <script type="text/javascript" src="{$baseurl}/include/auth.js"></script>
 EOS;
+		//TODO filter parms as appropriate
 		$jsfuncs[] = <<<EOS
-function whatever() {
+function transfers(\$inputs) {
  var far = $('#farn').val(),
-    near = randomBytes(24),
-    key = stringXor(far, near),
-    hash = encryptVal(key, near + far + $('#passwd').val());
+    near = randomBytes(16),
+    key = stringXor(far,near),
+    hash = encryptVal(near + far + $('#passwd').val(),key);
  $('#nearn').val(base64encode(near));
  $('#hash').val(base64encode(hash));
  $('#farn,#passwd').val('');
-/* $.ajax({
-  //stuff
+ var parms = {};
+ $('#authcontainer input:hidden').add(\$inputs).each(function() {
+  var \$el = $(this),
+   n = \$el.attr('name');
+  parms[n] = \$el.val();
  });
-*/
+ return parms;
 }
 EOS;
 		break;
@@ -129,8 +147,6 @@ EOS;
 	$jsincs[] = <<<EOS
 <script type="text/javascript" src="{$baseurl}/include/mailcheck.min.js"></script>
 <script type="text/javascript" src="{$baseurl}/include/levenshtein.min.js"></script>
-<script type="text/javascript" src="{$baseurl}/include/sjcl.js"></script>
-<script type="text/javascript" src="{$baseurl}/include/auth.js"></script>
 EOS;
 
 	$pref = $mod->GetPreference('email_topdomains');
@@ -176,15 +192,16 @@ EOS;
   });
  });
  $('#authsend').click(function() {
-  var btn = this,
-   valid = true;
+  var btn = this;
   setTimeout(function() {
    btn.disabled = true;
   },10);
-  $('#authelements input').each(function() {
+  var valid = true,
+   \$ins = $('#authelements input');
+  \$ins.each(function() {
    var \$el = $(this),
      id = \$el.attr('id'),
-     val = \$el.val();
+    val = \$el.val();
    if (val == '') {
     var type;
     switch (id) {
@@ -214,8 +231,27 @@ EOS;
    }
   });
   if (valid) {
-//TODO encryption
-//TODO ajax stuff
+   var parms = transfers(\$ins);
+   $.ajax({
+    type: 'POST',
+    method: 'POST',
+    url: '$url',
+    data: parms,
+    dataType: 'text',
+    global: false,
+    success: function(data, status, jqXHR) {
+     if (status=='success') {
+   //stuff
+     } else {
+   //stuff e.g. show jqXHR.responseText, jqXHR.statusText
+     }
+    },
+    error: function(jqXHR, status, errmsg) {
+     var details = JSON.parse(jqXHR.responseText);
+	//TODO process details
+     btn.disabled = false;
+    }
+   });
   } else {
     setTimeout(function() {
      btn.disabled = false;
