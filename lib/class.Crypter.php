@@ -9,7 +9,7 @@ namespace Auther;
 
 class Crypter
 {
-	const STRETCHES = 12; //hence 2**12
+	const STRETCHES = 13; //hence 2**13, 8192
 
 	/**
 	encrypt_preference:
@@ -22,7 +22,7 @@ class Crypter
 		$config = \cmsms()->GetConfig();
 		$root = (empty($_SERVER['HTTPS'])) ? $config['root_url'] : $config['ssl_url'];
 		$hash = hash('crc32b', $root.$mod->GetModulePath()); //site-dependent
-		$e = new Encryption('BF-CBC', self::STRETCHES);
+		$e = new Encryption('BF-CBC', 'default', self::STRETCHES);
 		$st = $e->encrypt($value, $hash);
 		$mod->SetPreference($key, base64_encode($st));
 	}
@@ -39,7 +39,7 @@ class Crypter
 		$config = \cmsms()->GetConfig();
 		$root = (empty($_SERVER['HTTPS'])) ? $config['root_url'] : $config['ssl_url'];
 		$hash = hash('crc32b', $root.$mod->GetModulePath()); //site-dependent
-		$e = new Encryption('BF-CBC', self::STRETCHES);
+		$e = new Encryption('BF-CBC', 'default', self::STRETCHES);
 		return $e->decrypt($st, $hash);
 	}
 
@@ -56,7 +56,7 @@ class Crypter
 				$passwd = $this->decrypt_preference($mod, 'masterpass');
 			}
 			if ($passwd) {
-				$e = new Encryption('BF-CBC', self::STRETCHES);
+				$e = new Encryption('BF-CBC', 'default', self::STRETCHES);
 				$value = $e->encrypt($value, $passwd);
 			}
 		}
@@ -77,7 +77,7 @@ class Crypter
 				$passwd = $this->decrypt_preference($mod, 'masterpass');
 			}
 			if ($passwd) {
-				$e = new Encryption('BF-CBC', self::STRETCHES);
+				$e = new Encryption('BF-CBC', 'default', self::STRETCHES);
 				$value = $e->decrypt($value, $passwd);
 			}
 		}
