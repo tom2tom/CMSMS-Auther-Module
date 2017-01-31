@@ -40,7 +40,10 @@ final class Encryption
 	 * @var string $method the openssl cipher method to use for this instance
 	 */
 	protected $method;
-
+	/**
+	 * @var string $method the hash cipher method to use for this instance
+	 */
+	protected $hasher;
 	/**
 	 * @var int $rounds the number of rounds to feed into PBKDF2 for key generation
 	 * This can be 0 (in which case 2 will be applied) or 1..POWERMAX which will
@@ -54,12 +57,24 @@ final class Encryption
 	 *
 	 * @param string $method the openssl cipher type to use for this instance
 	 *  see http://php.net/manual/en/function.openssl-get-cipher-methods.php for examples
+	 * @param string $hasher the algorithm to use for HMAC hashing, default 'sha256', may actually be 'default'
 	 * @param int	 $rounds the number of extension-rounds to apply to the key, default = 1024
 	 */
-	public function __construct($method, $rounds=1024)
+	public function __construct($method, $hasher='sha256', $rounds=10)
 	{
 		$this->method = $method;
-		$this->rounds = max((int)$rounds, 0);
+		if ($hasher == 'default') {
+			$hasher = 'sha256';
+		}
+		$this->hasher = $hasher;
+		if ($rounds > self::POWERMAX) {
+			$rounds = ceil($rounds / 100) * 100;
+		} elseif ($rounds > 0) {
+			$rounds = 1 << $rounds; //exponential
+		} else {
+			$rounds = 2; //quickie !
+		}
+		$this->rounds = $rounds;
 	}
 
 	/**
@@ -80,7 +95,7 @@ final class Encryption
 
 		$enc = openssl_encrypt($data, $this->method, $cipherKey, OPENSSL_RAW_DATA, $iv);
 
-		$mac = hash_hmac('sha256', $enc, $macKey, TRUE);
+		$mac = hash_hmac($this->hasher, $enc, $macKey, TRUE);
 		return $salt . $enc . $mac;
 	}
 
@@ -101,7 +116,7 @@ final class Encryption
 
 		list($cipherKey, $macKey, $iv) = $this->getKeys($salt, $key);
 
-		if ($mac !== hash_hmac('sha256', $enc, $macKey, TRUE)) {
+		if ($mac !== hash_hmac($this->hasher, $enc, $macKey, TRUE)) {
 			return FALSE;
 		}
 
@@ -126,7 +141,7 @@ final class Encryption
 		$keySize = $this->getOpenSSLKeysize();
 		$length = 2 * $keySize + $ivSize;
 
-		$key = $this->extendKey('sha256', $key, $salt, $this->rounds, $length); //TODO stretch replacement
+		$key = $this->extendKey($this->hasher, $key, $salt, $this->rounds, $length); //TODO stretch replacement
 
 		$cipherKey = $this->byte_substr($key, 0, $keySize);
 		$macKey = $this->byte_substr($key, $keySize, $keySize);
@@ -198,15 +213,6 @@ final class Encryption
 	 */
 	protected function extendKey($algo, $key, $salt, $rounds, $length)
 	{
-		if ($rounds > self::POWERMAX) {
-			$logr = ((log($rounds,2)-0.0001)|0) + 1; //ceil-equivalent
-			$rounds = 1 << $logr;
-		} elseif ($rounds > 0) {
-			$rounds = 1 << $rounds; //exponential
-		} else {
-			$rounds = 2; //quickie !
-		}
-
 		$tmp = hash_hmac($algo, $salt . pack('N', 1), $key, TRUE);
 		$res = $tmp;
 		for ($i = 1; $i < $rounds; $i++) {
@@ -224,10 +230,10 @@ final class Encryption
 	}
 
 	/*
-	padding is mostly bytes that will look to a cracker sort-of random
+	padding is mostly bytes that will seem sort-of random to a cracker
 	c.f. (abandoned) ISO 10126
 	NOT like the more-common PKCS7 style
-	block-size <= 255 bytes/2040 bits TODO support 2048-bit blocksize
+	1-byte recorded block-size means <= 255 bytes/2040 bits TODO support 2-byte blocksize
 	*/
 	protected function pad($data)
 	{
