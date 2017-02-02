@@ -66,9 +66,8 @@ class Import
 		}
 		$t = strtolower(preg_replace(['/\s+/', '/__+/'], ['_', '_'], $name));
 		$alias = substr($t, 0, 16);
-		$t = $this->cfuncs->decrypt_preference($mod, 'masterpass');
 		$pw = $this->cfuncs->decrypt_preference($mod, 'default_password');
-		$hash = $this->afuncs->password_hash($pw, $t);
+		$hash = $this->cfuncs->encrypt_value($mod, $pw);
 
 		$sql = 'INSERT INTO '.$pref.'module_auth_contexts (id,name,alias,default_password) VALUES (?,?,?,?)';
 		$db->Execute($sql, [$cid, $name, $alias, $hash]);
@@ -231,7 +230,7 @@ class Import
 
 					if ($save) {
 						$data['context'] = $cid;
-						$data['passhash'] = $this->afuncs->password_hash($data['passhash'], $masterkey);
+						$data['passhash'] = password_hash($data['passhash'], PASSWORD_DEFAULT);
 						$data['name'] = $this->cfuncs->encrypt_value($mod, $data['name'], $masterkey);
 						$data['address'] = $this->cfuncs->encrypt_value($mod, $data['address'], $masterkey);
 
