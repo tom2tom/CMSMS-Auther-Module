@@ -30,16 +30,16 @@ if (!function_exists('getContextProperties')) {
 
 	'login_max_length',		1, 3, 0,
 	'login_min_length',		1, 3, 0,
+	'email_required',		0, 0, 0,
 
 	'password_min_length',	1, 3, 1,
 	'password_min_score',	1, 3, 1,
 	'default_password',		4, 50, 1,
+	'forget_rescue',		0, 0, 0,
 
 	'name_required',		0, 0, 0,
 	'address_required',		0, 0, 0,
-	'email_required',		0, 0, 0,
 	'email_banlist',		0, 0, 0,
-	'forget_rescue',		0, 0, 0,
 
 	'attempts_before_verify',1, 3, 0,
 	'attempts_before_ban',	1, 3, 0,
@@ -68,7 +68,7 @@ if (isset($params['cancel'])) {
 } elseif (isset($params['submit'])) {
 	$keys = [];
 	$args = [];
-	$abort = FALSE;
+	$msg = FALSE;
 
 	$props = getContextProperties();
 	$c = count($props);
@@ -80,15 +80,14 @@ if (isset($params['cancel'])) {
 				$args[] = 1;
 			} else {
 				$val = $params[$kn];
-				if ($props[$i+3] > 0) {
-					if (!($val || is_numeric($val))) {
-						$abort = TRUE;
-						break;
-						//TODO message
-					}
-				}
 				if (is_numeric($val)) {
 					$val += 0;
+				} else {
+					$val = trim($val);
+					if (!$val && $props[$i+3] > 0) {
+						$msg = $this->Lang('missing_type',$this->Lang('title_'.$kn));
+						break;
+					}
 				}
 //TODO validate, process
 				switch ($kn) {
@@ -109,35 +108,32 @@ if (isset($params['cancel'])) {
 					$dt = $dt->modify('+'.$val);
 					error_reporting($lvl);
 					if (!$dt) {
-						$abort = TRUE;
+						$msg = $this->Lang('invalid_type',$this->Lang('title_'.$kn));
 						break 2;
-						//TODO message
 					}
 					break;
 				 case 'security_level':
-					if ($val < Auther::NOBOT || $val > Auther::HISEC) {
-						$abort = TRUE;
+					if ($val < Auther\Setup::NOBOT || $val > Auther\Setup::HISEC) {
+						$msg = $this->Lang('invalid_type',$this->Lang('title_'.$kn));
 						break 2;
-						//TODO message
 					}
 					break;
 				 case 'password_min_score':
 					if ($val < 1 || $val > 5) {
-						$abort = TRUE;
+						$msg = $this->Lang('invalid_type',$this->Lang('title_'.$kn));
 						break 2;
-						//TODO message
 					}
 					break;
 				 case 'default_password':
-					$funcs = new Auther\Auth($this, $cid); //TODO if == -1
-					if (!$funcs->validatePassword($val)) {
-						$abort = TRUE;
-						break 2;
-						//TODO message
-					} else {
+				 	$t = ($cid == -1) ? NULL:$cid;
+					$funcs = new Auther\Auth($this, $t);
+					$status = $funcs->validatePassword($val);
+					if ($status[0]) {
 						$cfuncs = new Auther\Crypter();
-						$t = $cfuncs->decrypt_preference($this, 'masterpass');
-						$val = $funcs->password_hash($val, $t);
+						$val = $cfuncs->encrypt_value($this, $val);
+					} else {
+						$msg = $status[1];
+						break 2;
 					}
 					break;
 				 default:
@@ -152,7 +148,7 @@ if (isset($params['cancel'])) {
 		}
 	}
 
-	if (!$abort) {
+	if (!$msg) {
 		$pre = cms_db_prefix();
 		if ($cid == -1) {
 			$cid = $db->GenID($pre.'module_auth_contexts_seq');
@@ -172,20 +168,32 @@ if (isset($params['cancel'])) {
 	}
 }
 
-if ($cid > -1) { //existing data
-	$pre = cms_db_prefix();
-	$sql = "SELECT * FROM {$pre}module_auth_contexts WHERE id=?";
-	$data = $db->GetRow($sql,[$cid]);
+if (empty($msg)) {
+	if ($cid > -1) { //existing data
+		$pre = cms_db_prefix();
+		$sql = "SELECT * FROM {$pre}module_auth_contexts WHERE id=?";
+		$data = $db->GetRow($sql,[$cid]);
+	} else {
+		$data = [];
+		$keys = getContextProperties();
+		$c = count($keys);
+		for ($i = 0; $i < $c; $i += 4) {
+			$kn = $keys[$i];
+			$data[$kn] = $this->GetPreference($kn);
+		}
+		if (!$data['name']) {
+			$data['name'] = $this->Lang('missing_name');
+		}
+		$data['default_password'] = ''; //will be recovered later
+	}
 } else {
+	//after an error, retain supplied values
 	$data = [];
 	$keys = getContextProperties();
 	$c = count($keys);
 	for ($i = 0; $i < $c; $i += 4) {
 		$kn = $keys[$i];
-		$data[$kn] = $this->GetPreference($kn);
-	}
-	if (!$data['name']) {
-		$data['name'] = $this->Lang('missing_name');
+		$data[$kn] = (isset($params[$kn])) ? $params[$kn]:0;
 	}
 }
 
@@ -200,6 +208,9 @@ $hidden = [
 $tplvars['startform'] = $this->CreateFormStart($id,'opencontext',$returnid,'POST',
 	'','','',$hidden);
 $tplvars['endform'] = $this->CreateFormEnd();
+if (!empty($msg)) {
+	$tplvars['message'] = $msg;
+}
 if ($cid == -1) {
 	$tplvars['title'] = $this->Lang('title_contextadd');
 } else {
@@ -307,13 +318,11 @@ ORDER BY U.last_name,U.first_name';
 			break;
 		 case 'default_password':
 			if ($mod) {
+				$funcs = new Auther\Crypter();
 				if ($data[$kn]) {
-					$funcs = new Auther\Crypter();
-					$t = $funcs->decrypt_preference($this, 'masterpass');
-					$funcs = new Auther\Auth($this, $cid); //TODO if == -1
-					$val = $funcs->password_retrieve($data[$kn], $t);
+					$val = $funcs->decrypt_value($this, $data[$kn]);
 				} else {
-					$val = '';
+					$val = $funcs->decrypt_preference($this, 'default_password');
 				}
 				$l = $props[$i+2];
 				$one->input = $this->CreateInputText($id, $kn, $val, $l, $l);
