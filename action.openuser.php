@@ -34,8 +34,7 @@ if (isset($params['cancel'])) {
 	$funcs = new Auther\Auth($this, $params['ctx_id']);
 	$cfuncs = new Auther\Crypter();
 	$t = $cfuncs->decrypt_preference($this, 'masterpass');
-	$abort = FALSE;
-	$skip = FALSE;
+	$msg = FALSE;
 
 	$props = GetUserProperties ();
 	$c = count($props);
@@ -47,66 +46,60 @@ if (isset($params['cancel'])) {
 				$args[] = 1;
 			} else {
 				$val = $params[$kf];
-				if ($props[$i+5] > 0) { //TODO condiion maybe func(context), changed at runtime
-					if (!($val || is_numeric($val))) {
-						$abort = TRUE;
-						break;
-						//TODO message
-					}
-				}
 				if (is_numeric($val)) {
 					$val += 0;
 				} else {
 					$val = trim($val);
+					if (!$val && $props[$i+5] > 0) { //TODO condition maybe func(context), changed at runtime
+						$msg = $this->Lang('missing_type', $this->Lang('title_'.$props[$i+1]));
+						break;
+					}
 				}
 
 				switch ($kf) {
 				 case 'name':
-					if (0) {
-						$abort = TRUE;
-						break 2;
-						//TODO message
-					} else {
+					if (1) {
 						$val = $cfuncs->encrypt_value($this, $val, $t);
+					} else {
+						$msg = $this->Lang('invalid_type', $this->Lang('title_'.$props[$i+1]));
+						break 2;
 					}
 					break;
 				 case 'address':
-					if (!$funcs->validateAddress($val)) {
-						$abort = TRUE;
-						break 2;
-						//TODO message
-					} else {
+					$status = $funcs->validateAddress($val);
+					if ($status[0]) {
 						$val = $cfuncs->encrypt_value($this, $val, $t);
+					} else {
+						$msg = $status[1];
+						break 2;
 					}
 					break;
 				 case 'publicid':
-					if (!$funcs->validateLogin($val)) {
-						$abort = TRUE;
+					$status = $funcs->validateLogin($val);
+					if (!$status[0]) {
+						$msg = $status[1];
 						break 2;
-						//TODO message
 					}
 					break;
 				 case 'passhash':
 					if (!$val) {
-						$skip = TRUE;
-						break; //no replacement password
-					} elseif (!$funcs->validatePassword($val)) {
-						$abort = TRUE;
-						break 2;
-						//TODO message
+						//no replacement password
+						continue 2;
 					} else {
-						$val = $funcs->password_hash($val, $t);
+						$status = $funcs->validatePassword($val);
+						if ($status[0]) {
+							$val = password_hash($val, PASSWORD_DEFAULT);
+						} else {
+							$msg = $status[1];
+							break 2;
+						}
 					}
 					break;
 				 default:
 					break;
 				}
-				if (!$skip) {
-					$keys[] = $kf;
-					$args[] = $val;
-				} else {
-					$skip = FALSE;
-				}
+				$keys[] = $kf;
+				$args[] = $val;
 			}
 		} elseif ($props[$i+2] === 0) {
 			$keys[] = $kf;
@@ -114,7 +107,7 @@ if (isset($params['cancel'])) {
 		}
 	}
 
-	if (!$abort) {
+	if (!$msg) {
 		$pre = cms_db_prefix();
 		if ($uid == -1) {
 			$uid = $db->GenID($pre.'module_auth_users_seq');
@@ -146,21 +139,32 @@ if (!is_numeric($params['ctx_id'])) {
 $cfuncs = new Auther\Crypter();
 $pre = cms_db_prefix();
 
-if ($uid > -1) { //existing data
-	$sql = "SELECT * FROM {$pre}module_auth_users WHERE id=?";
-	$data = $db->GetRow($sql,[$uid]);
-//	unset($data['lastuse']);
+if (empty($msg)) {
+	if ($uid > -1) { //existing data
+		$sql = "SELECT * FROM {$pre}module_auth_users WHERE id=?";
+		$data = $db->GetRow($sql,[$uid]);
+//		unset($data['lastuse']);
+	} else {
+		$data = [
+		'id' => -1,
+		'name' => '',
+		'nameswap' => 0,
+		'address' => '',
+		'publicid' => $this->Lang('missing_name'),
+		'context' => $params['ctx_id'],
+		'passhash' => '',
+		'active' => 1,
+		];
+	}
 } else {
-	$data = [
-	'id' => -1,
-	'name' => '',
-	'nameswap' => 0,
-	'address' => '',
-	'publicid' => $this->Lang('missing_name'),
-	'context' => $params['ctx_id'],
-	'passhash' => '',
-	'active' => 1,
-	];
+	//after an error, retain supplied values
+	$data = [];
+	$props = GetUserProperties ();
+	$c = count($props);
+	for ($i = 0; $i < $c; $i += 6) {
+		$kf = $props[$i];
+		$data[$kf] = (isset($params[$kf])) ? $params[$kf]:0;
+	}
 }
 
 $cdata = $db->GetRow('SELECT name,password_min_length,password_min_score,address_required,email_required,name_required FROM '.$pre.'module_auth_contexts WHERE id=?', [$data['context']]);
@@ -175,6 +179,9 @@ $hidden = [
 $tplvars['startform'] = $this->CreateFormStart($id,'openuser',$returnid,'POST',
 	'','','',$hidden);
 $tplvars['endform'] = $this->CreateFormEnd();
+if (!empty($msg)) {
+	$tplvars['message'] = $msg;
+}
 if ($uid == -1) {
 	$tplvars['title'] = $this->Lang('title_useradd');
 	$tplvars['desc'] = $this->Lang('name_to', $cdata['name']);

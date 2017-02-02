@@ -18,25 +18,25 @@ if (!function_exists('getModulePrefs')) {
 
 	'login_max_length',			1, 3, 0,
 	'login_min_length',			1, 3, 0,
+	'email_required',			0, 0, 0,
 
 	'password_min_length',		1, 3, 1,
 	'password_min_score',		1, 3, 1,
 	'password_forget',			1, 16, 0,
 	'default_password',			4, 50, 1,
+	'forget_rescue',			0, 0, 0,
 
 	'name_required',			0, 0, 0,
 	'address_required',			0, 0, 0,
-	'email_required',			0, 0, 0,
+
 	'email_banlist',			0, 0, 0,
 	'email_domains',			1, 60, 0,
 	'email_subdomains',			1, 60, 0,
 	'email_topdomains',			1, 60, 0,
 
-	'forget_rescue',			0, 0, 0,
-
 	'attempts_before_verify',	1, 3, 0,
 	'attempts_before_ban',		1, 3, 0,
-	'attack_mitigation_span',	1, 16, 0,
+	'attack_mitigation_span',	1, 16, 1,
 	'request_key_expiration',	1, 16, 1,
 
 	'send_activate_message',	0, 0, 0,
@@ -45,9 +45,6 @@ if (!function_exists('getModulePrefs')) {
 	'context_address',			1, 50, 0,
 	'message_charset',			1, 16, 0,
 
-	'recaptcha_key',			1, 40, 0,
-	'recaptcha_secret',			4, 40, 0,
-
 	'cookie_name',				1, 32, 1,
 //	'cookie_domain',			1, 48, 1,
 //	'cookie_path',				1, 48, 1,
@@ -55,6 +52,9 @@ if (!function_exists('getModulePrefs')) {
 //	'cookie_secure',			0, 0, 0,
 	'cookie_remember',			1, 16, 1,
 	'cookie_forget',			1, 16, 1,
+
+	'recaptcha_key',			1, 40, 0,
+	'recaptcha_secret',			4, 40, 0,
 	];
  }
 }
@@ -76,6 +76,7 @@ if (isset($params['submit'])) {
 		exit;
 	}
 
+	$msg = FALSE;
 	$props = getModulePrefs();
 	$c = count($props);
 	for ($i = 0; $i < $c; $i += 4) {
@@ -87,8 +88,13 @@ if (isset($params['submit'])) {
 				$val = $params[$kn];
 				if (is_numeric($val)) {
 					$val += 0;
+				} else {
+					$val = trim($val);
+				    if (!$val && $props[$i+3] > 0) {
+						$msg = $this->Lang('missing_type',$this->Lang('title_'.$kn));
+						break 2;
+					}
 				}
-//TODO validate, process
 				switch ($kn) {
 				 case 'password_forget':
 					if (empty($val)) {
@@ -105,15 +111,15 @@ if (isset($params['submit'])) {
 					$dt = $dt->modify('+'.$val);
 					error_reporting($lvl);
 					if (!$dt) {
-						//TODO abort, message
+						$msg = $this->Lang('invalid_type',$this->Lang('title_'.$kn));
 						break 2;
 					}
 					break;
 				 case 'security_level':
-					if ($val < Auther::NOBOT) {
-						$val = Auther::NOBOT;
-					} elseif ($val > Auther::HISEC) {
-						$val = Auther::HISEC;
+					if ($val < Auther\Setup::NOBOT) {
+						$val = Auther\Setup::NOBOT;
+					} elseif ($val > Auther\Setup::HISEC) {
+						$val = Auther\Setup::HISEC;
 					}
 					break;
 				 case 'password_min_score':
@@ -124,31 +130,25 @@ if (isset($params['submit'])) {
 					}
 					break;
 				 case 'masterpass':
-					if ($props[$i+3] > 0) {
-						if (!$val) {
-	//TODO abort, message
-							break 2;
-						}
-					}
 					$oldpw = $cfuncs->decrypt_preference($this, $kn);
 					if ($oldpw != $val) {
 	//TODO re-hash all relevant data
 					}
 					$cfuncs->encrypt_preference($this, $kn, $val);
-					break 2;
+					continue 2;
 				 case 'default_password':
-					if ($props[$i+3] > 0) {
-						$afuncs = new Auther\Auth($this, NULL);
-						if (!$afuncs->validatePassword($val)) {
-							//TODO abort, message
-							break 2;
-						}
+					$afuncs = new Auther\Auth($this, NULL);
+					$status = $afuncs->validatePassword($val);
+					if ($status[0]) {
+						$cfuncs->encrypt_preference($this, $kn, $val);
+						continue 2;
+					} else {
+						$msg = $status[1];
+						break 2;
 					}
-					$cfuncs->encrypt_preference($this, $kn, $val);
-					break 2;
 				 case 'recaptcha_secret':
 					$cfuncs->encrypt_preference($this, $kn, $val);
-					break 2;
+					continue 2;
 				 default:
 					break;
 				}
@@ -225,14 +225,25 @@ $tplvars['startform1'] = $this->CreateFormStart($id, 'defaultadmin', $returnid);
 $theme = ($this->before20) ? cmsms()->get_variable('admintheme'):
 	cms_utils::get_theme_object();
 
-$pre = cms_db_prefix();
-$sql = <<<EOS
+if (empty($msg)) {
+	$pre = cms_db_prefix();
+	$sql = <<<EOS
 SELECT C.id,C.name,C.alias,C.owner,COUNT(U.context) AS users
 FROM {$pre}module_auth_contexts C
 LEFT JOIN {$pre}module_auth_users U ON C.id = U.context
 GROUP BY U.context
 EOS;
-$data = $db->GetArray($sql);
+	$data = $db->GetArray($sql);
+} else {
+	//after an error, retain supplied values
+	$data = [];
+	$props = getModulePrefs();
+	$c = count($props);
+	for ($i = 0; $i < $c; $i += 4) {
+		$kn = $props[$i];
+		$data[$kn] = (isset($params[$kn])) ? $params[$kn]:0;
+	}
+}
 
 if ($data) {
 	$tplvars['title_name'] = $this->Lang('title_name');
@@ -394,7 +405,7 @@ if ($pset) {
 				$t = $cfuncs->decrypt_preference($this, $kn);
 				$l = $props[$i+2];
 				$t = $this->CreateInputText($id, $kn, $t, $l, $l);
-				$one->input = strtr($t, 'class="', 'class="cloaked ');
+				$one->input = strtr($t, ['class="'=>'class="cloaked ']);
 				break;
 			}
 			$one->must = ($props[$i+3] > 0);
