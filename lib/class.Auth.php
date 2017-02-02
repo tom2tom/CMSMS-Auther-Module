@@ -18,6 +18,8 @@ generic autoloading
 send events	$this->mod->SendEvent('OnX',$parms);
 */
 
+include __DIR__.DIRECTORY_SEPARATOR.'password.php';
+
 class Auth
 {
 	const EMAILPATN = '/^.+@.+\..+$/';
@@ -35,8 +37,6 @@ class Auth
 		$this->db = \cmsms()->GetDb();
 		$this->pref = \cms_db_prefix();
 		$this->context = $context;
-
-		include __DIR__.DIRECTORY_SEPARATOR.'password.php';
 	}
 
 	/**
@@ -523,21 +523,14 @@ class Auth
 	/**
 	* Gets basic user-data for the given UID
 	* @uid: int user enumerator
-	* @raw: whether to decrypt relevant values, default = FALSE
 	* Returns: array with members uid,publicid,passhash,active or else FALSE
 	*/
-	protected function getBaseUser($uid, $raw = FALSE)
+	protected function getBaseUser($uid)
 	{
 		$sql = 'SELECT publicid,passhash,active FROM '.$this->pref.'module_auth_users WHERE id=?';
 		$data = $this->db->GetRow($sql, [$uid]);
 
 		if ($data) {
-/*			if (!$raw) {
-				$funcs = new Auther\Crypter();
-				$t = $funcs->decrypt_preference($this->mod, 'masterpass');
-				$data['passhash'] = $this->password_retrieve($data['passhash'], $t);
-			}
-*/
 			$data['uid'] = $uid;
 			return $data;
 		}
