@@ -281,7 +281,6 @@ EOS;
 		$db = \cmsms()->GetDb();
 		$pre = \cms_db_prefix();
 		$cdata = $db->GetRow('SELECT * FROM '.$pre.'module_auth_contexts WHERE id=?', [$cid]);
-//$cdata['security_level'] = 1; //DEBUG
 
 		if ($token) {
 			$sdata = []; //TODO cached sessiondata
@@ -309,7 +308,7 @@ EOS;
  $('#{$id}jsworks').val('$iv');
  $('#authelements input').bind('keypress',function(ev) {
   ev = ev || window.event;
-  if (ev.keyCode == 13) {
+  if (ev.keyCode == 13 || ev.keyCode == 9) {
    var nxtid = parseInt($(this).attr('tabindex'),10) + 1,
     nob = $('[tabindex=' + nxtid + ']');
    if (nob.length > 0) {
@@ -339,7 +338,7 @@ EOS;
 		$hidden[] = $mod->CreateInputHidden($id, 'IV', $iv);
 		$hidden[] = $mod->CreateInputHidden($id, 'data', $t);
 
-		$tplvars['hidden'] = implode(PHP_EOL,$hidden);
+		$tplvars['hidden'] = implode('',$hidden);
 		$tplvars['components'] = $elements;
 		$tplvars['submitbtn'] =
 '<input type="submit" id="authsend" name="'.$id.'send" value="'.$mod->Lang('submit').'"  tabindex="'.$tabindex++.'" />';
