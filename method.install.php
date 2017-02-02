@@ -36,13 +36,13 @@ login_max_length I(1) DEFAULT 48,
 login_min_length I(1) DEFAULT 5,
 forget_rescue I(1) DEFAULT 1,
 address_required I(1) DEFAULT 1,
-email_required I(1) DEFAULT 1,
+email_required I(1) DEFAULT 0,
 email_banlist I(1) DEFAULT 1,
 message_charset C(16),
 password_forget C(16),
 password_min_length I(1) DEFAULT 8,
 password_min_score I(1) DEFAULT 4,
-security_level I(1) DEFAULT '.Auther::LOSEC.',
+security_level I(1) DEFAULT '.Auther\Setup::LOSEC.',
 send_activate_message I(1) DEFAULT 1,
 send_reset_message I(1) DEFAULT 1
 ';
@@ -149,7 +149,7 @@ $this->SetPreference('email_banlist', 1);
 $this->SetPreference('email_domains', ''); //specific/complete domains for initial check
 $this->SetPreference('email_subdomains', ''); //partial domains for secondary check
 $this->SetPreference('email_topdomains', 'biz,co,com,edu,gov,info,mil,name,net,org'); //for final check
-$this->SetPreference('email_required', 1);
+$this->SetPreference('email_required', 0);
 $this->SetPreference('forget_rescue', 1);
 
 $this->SetPreference('login_max_length', 48);
@@ -163,7 +163,7 @@ $this->SetPreference('password_min_length', 8);
 $this->SetPreference('password_min_score', 4);
 $this->SetPreference('request_key_expiration', '10 minutes');
 
-$this->SetPreference('security_level', Auther::LOSEC);
+$this->SetPreference('security_level', Auther\Setup::LOSEC);
 $this->SetPreference('send_activate_message', 1);
 $this->SetPreference('send_reset_message', 1);
 $t = 'kd8s2!7HVHG7777ghZfghuior.)\!/jU'; //32-bytes
