@@ -82,6 +82,7 @@ if (empty($params) || $params['identity'] !== substr($id, 2, 3)) {
 }
 
 $iv = base64_decode($_POST[$id.'nearn']);
+$iv = substr($iv, 0, 16); //force correct iv length
 $t = openssl_decrypt($_POST[$id.'sent'], 'AES-256-CBC', $params['far'], 0, $iv);
 if (!$t) {
 	//TODO signal something
@@ -126,12 +127,13 @@ $afuncs = new Auther\Auth($mod, $params['context']);
 
 $msg = 'I\'m back';
 $res = ['message'=>$msg, 'element'=>'passwd']; //etc
+$t = json_encode($res);
 
 if (1) { //TODO error
 	if ($jax) {
 		header('HTTP/1.1 500 Internal Server Error');
 		header('Content-Type: application/json; charset=UTF-8');
-		die(json_encode($res));
+		die($t);
 	} else {
 		//send stuff to $params['handler']
 	}
@@ -139,7 +141,7 @@ if (1) { //TODO error
 	if ($jax) {
 		header('HTTP/1.1 204 No Content');
 		header('Content-Type: application/json; charset=UTF-8');
-		die(json_encode($res));
+		die($t);
 	} else {
 		//send stuff to $params['handler']
 	}
