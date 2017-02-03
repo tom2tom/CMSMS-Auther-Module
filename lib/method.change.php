@@ -49,7 +49,7 @@ switch ($cdata['security_level']) {
 	if ($logtype == 0) {
 		$one->title = $mod->Lang('new_typed', $mod->Lang('title_email'));
 		$one->input = $this->GetInputText($id, 'login2', 'login2', $tabindex++, '', 32, 96);
-		$one->extra = $same;
+		$one->extra = $mod->Lang('help_contact').'<br />'.$same;
 	} else {
 		$one->title = $mod->Lang('new_typed', $mod->Lang('title_login'));
 		$one->input = $this->GetInputText($id, 'login2', 'login2', $tabindex++, '', 20, 32);
@@ -79,7 +79,7 @@ switch ($cdata['security_level']) {
 			$optcontact = 1;
 		}
 		$one->input = $this->GetInputText($id, 'contact', 'contact', $tabindex++, '', 32, 96);
-		$one->extra = $mod->Lang('help_contact').'<br />'.$same;
+		$one->extra = $mod->Lang('help_contact2').'<br />'.$same;
 		$elements[] = $one;
 	} else {
 		$optcontact = 1;
