@@ -112,13 +112,13 @@ $cdata = $db->GetRow('SELECT * FROM '.$pre.'module_auth_contexts WHERE id=?', [$
 $_POST array e.g.
 [pA762_IV]	"Ys1ad0tN0JI="
 [pA762_data]	"xD+qbcJIMUA87rNvZuppgYyCb2Ox04ChJj6jma8O7b/lwKuFC7yHoDwFH6buzxhLw2Ur/x0FonEwT6lMCotElxFLUcaHK9zvH1Wquo75vYWqC7pNbkBkonvKATq+semQA0xPCHuDsOw8nMVyFs84ctr0KRv/an3DVozCr8t35B23PWyBlKMv4xIySW3UoZ5942ReppZ99I4QZBma9YVvBwP0nyyL6+odS6bowic1nBgIQXjOYKs+gtqxiciS2DI18eAxWd0K+bJprgPHT000KjTNyxqoF5M+20Sapp5Bn7o6G2BaqLwPIQ=="
-[pA762_jsworks]	"TRUE"
+[pA762_jsworks]	"TRUE" iff ajax-sourced
 [pA762_login]	"rogerrabbit"
 [pA762_nearn]	"AjsxOcOYMMOSw77DkWAmwoAXw53Cun0"
 [pA762_recover]	"0"
 [pA762_sent]	"AjsxOcOYMMOSw77DkWAmwnb+nrh+HVJTjx6nelaIfxTfPBeyVqfR83gAhBd59lSk
 y1ePAujBNoQstmmiebMRRAyhPAh5SvNK29Zlr2J77T7efx/y5heYyyf+5jyveKbu"
-
+THE LATTER BECOMES
 $sent array e.g.
 [passwd] =>	"s11kul52"
 */
