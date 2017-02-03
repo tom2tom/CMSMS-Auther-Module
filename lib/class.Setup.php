@@ -4,7 +4,6 @@
 # Copyright (C) 2017 Tom Phane <tpgww@onepost.net>
 # Refer to licence and other details at the top of file Auther.module.php
 # More info at http://dev.cmsmadesimple.org/projects/auther
-# Requires PHP 5.4+
 #----------------------------------------------------------------------
 namespace Auther;
 
@@ -95,6 +94,17 @@ final class Setup
 			}
 		}
 		return $ret;
+	}
+
+	private function UniqueToken($length)
+	{
+		$s1 = uniqid();
+		$l1 = strlen($s1);
+		if ($l1 < $length) {
+			$s2 = $this->RandomAscii($length - $l1);
+			return str_shuffle($s2.$s1);
+		}
+		return substr($s1, 0, $length);
 	}
 
 	//Returns: enum or FALSE
@@ -377,7 +387,6 @@ EOS;
 <div id="authcontainer">
  <div class="hidejs">
   <p class="authtitle error">{$wantjs}</p>
-  <br />
  </div>
 {if (!empty($intro))}<p class="authtext">{$intro}</p><br />{/if}
  <form action="{$url}" method="POST" enctype="multipart/form-data">
