@@ -54,7 +54,7 @@ $db->CreateSequence($pref.'module_auth_contexts_seq');
 
 $flds = '
 id I AUTO KEY,
-ip C(39) NOTNULL,
+ip C(40) NOTNULL,
 expire I
 ';
 $tblname = $pref.'module_auth_attempts';
@@ -63,7 +63,7 @@ $dict->ExecuteSQLArray($sql);
 
 $flds = '
 id I KEY,
-uid I NOTNULL,
+uid I(4) NOTNULL,
 expire I,
 rkey C(32) NOTNULL,
 type C(16) NOTNULL
@@ -76,20 +76,29 @@ $db->CreateSequence($pref.'module_auth_requests_seq');
 
 $flds = '
 id I AUTO KEY,
-uid I NOTNULL,
-hash C(40) NOTNULL,
-challenge C(60),
+token C(24) NOTNULL,
+ip C(40),
+uid I(4),
+cid I(2),
 expire I,
-ip C(39) NOTNULL,
-agent C(200) NOTNULL,
+timeout I,
+lastmode I(1),
+status I(1) DEFAULT 0,
+defunct I(1) DEFAULT 0,
+attempts I(1) DEFAULT 0,
+challenge C(64),
 cookie_hash C(40) NOTNULL
+agent C(200) NOTNULL,
 ';
 $tblname = $pref.'module_auth_sessions';
 $sql = $dict->CreateTableSQL($tblname, $flds, $taboptarray);
 $dict->ExecuteSQLArray($sql);
 
+$sql = $dict->CreateIndexSQL('idx_'.$tblname, $tblname, 'token');
+$dict->ExecuteSQLArray($sql);
+
 $flds = '
-id I KEY,
+id I(4) KEY,
 publicid C(48),
 passhash B,
 name B,
@@ -110,7 +119,7 @@ $db->CreateSequence($pref.'module_auth_users_seq');
 /* support for extra, runtime-specified, user-parameters
 $flds = '
 id I KEY,
-uid I,
+uid I(4),
 name C(256),
 value C('.Auther::LENSHORTVAL.'),
 longvalue B
