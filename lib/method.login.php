@@ -30,8 +30,7 @@ see https://developers.google.com/recaptcha/docs/display
 */
 switch ($cdata['security_level']) {
  case self::NOBOT:
-//	$pubkey = $mod->GetPreference('recaptcha_key');
-	$pubkey = '6LfgfxMUAAAAALXMQlujx_YF3p3fkv6pjmWwVdaI';
+	$pubkey = $mod->GetPreference('recaptcha_key');
 	if ($pubkey) {
 		$one = new \stdClass();
 		$one->input = '<div id="g-recaptcha"></div>';
@@ -54,6 +53,9 @@ switch ($cdata['security_level']) {
 		$elements[] = $one;
 	}
 	//TODO record $t code for later use
+	$cache['captcha'] = $t;
+	//TODO js for captcha processing ETC
+//<script type="text/javascript" src="{$baseurl}/include/auth.js"></script>
 	//TODO backend for captcha processing
 	//TODO captcha encoding per $config['locale'] if that exists or else Lang setting?
 	// add to URL &hl=whatever with 'en' for 'en_US' etc
@@ -124,38 +126,49 @@ function transfers(\$inputs) {
 EOS;
 		break;
 	 case self::NONCED:
-		$t = $utils->RandomAlnum(24);
-	//TODO record $t for later use in session
-		$hidden[] = $mod->CreateInputHidden($id,'farn',$t);
-		$hidden[] = $mod->CreateInputHidden($id,'nearn','');
+		$t = uniqid($this->RandomAscii(19));
+		$cache['far'] = $t;
+		$hidden[] = $mod->CreateInputHidden($id, 'farn', $t);
+		$hidden[] = $mod->CreateInputHidden($id, 'nearn', '');
 		$one = new \stdClass();
 		$one->title = $mod->Lang('title_captcha');
 		$one->subtitle = $mod->Lang('title_captcha2');
 		list($t,$img) = $this->CaptchaImage($mod);
-	//TODO record $t code for later use
+		$cache['captcha'] = $t;
 		$one->img = $img;
 		$one->input = $this->GetInputText($id, 'captcha', 'captcha', $tabindex++, '', 8, 8);
 		$tplvars['captcha'] = $one;
-	//TODO js for captcha processing ETC
 		$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/sjcl.js"></script>
-<script type="text/javascript" src="{$baseurl}/include/auth.js"></script>
+<script type="text/javascript" src="{$baseurl}/include/gibberish-aes.js"></script>
 EOS;
-		//TODO filter parms as appropriate
+// var far = GibberAES.a2s(GibberAES.Base64.decode($('#{$id}farn').val()));
+		//function returns js object
 		$jsfuncs[] = <<<EOS
 function transfers(\$inputs) {
- var far = $('#farn').val(),
-    near = randomBytes(16),
-    key = stringXor(far,near),
-    hash = encryptVal(near + far + $('#passwd').val(),key);
- $('#nearn').val(base64encode(near));
- $('#hash').val(base64encode(hash));
- $('#farn,#passwd').val('');
- var parms = {};
+ var far = $('#{$id}farn').val();
+ var sent = JSON.stringify({
+  passwd: $('#passwd').val()
+ });
+ var iv = GibberAES.a2s(GibberAES.randArr(16));
+ var parms = {
+  {$id}sent: GibberAES.encString(far+sent,far,iv)
+ };
+ $('#{$id}nearn').val(GibberAES.Base64.encode(iv));
+ $('#{$id}farn').val('');
  $('#authcontainer input:hidden').add(\$inputs).each(function() {
   var \$el = $(this),
+   v = \$el.val(),
+   t, n;
+  if (v) {
+   t = \$el.attr('type');
+   if (t == 'password') {
+    return;
+   } else if (t == 'checkbox' && !\$el.is(':checked')) {
+    v = '0';
+   }
    n = \$el.attr('name');
-  parms[n] = \$el.val();
+   parms[n] = v;
+  }
  });
  return parms;
 }
@@ -236,6 +249,8 @@ EOS;
       if (\$cb.length > 0 && \$cb.val() > 0) { return; }
       type = '{$mod->Lang('password')}';
       break;
+     case 'captcha':
+      return;
     }
     var msg = '{$mod->Lang('missing_type','%s')}'.replace('%s',type);
     doerror(\$el,msg);
@@ -260,7 +275,7 @@ EOS;
     method: 'POST',
     url: '$url',
     data: parms,
-    dataType: 'text',
+    dataType: 'json',
     global: false,
     success: function(data, status, jqXHR) {
      if (status=='success') {
