@@ -319,9 +319,7 @@ $cdata['security_level'] = 3; //DEBUG
 		'token' => $token,
 		];
 
-		$hidden = [$mod->CreateInputHidden($id, 'jsworks', '')];
 		$jsloads[] = <<<EOS
- $('#{$id}jsworks').val('TRUE');
  $('#authelements input').bind('keypress',function(ev) {
   ev = ev || window.event;
   if (ev.keyCode == 13 || ev.keyCode == 9) {
@@ -393,7 +391,7 @@ EOS;
 {if !empty($elem->extra)}<div class="authtext">{$elem->extra}</div>{/if}
 {/foreach}
 {if !empty($captcha)}
-<div class="DEBUGhidejs">
+<div class="hidejs">
 <p class="authtitle">{$captcha->title}</p>
 <div class="authinput">
 <table><tbody><tr>
