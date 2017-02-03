@@ -287,12 +287,12 @@ EOS;
     error: function(jqXHR, status, errmsg) {
      var details = JSON.parse(jqXHR.responseText);
 	//TODO process details
-     btn.disabled = false;
+     $(btn).prop('disabled', false);
     }
    });
   } else {
     setTimeout(function() {
-     btn.disabled = false;
+     $(btn).prop('disabled', false);
     },10);
   }
   return false;
