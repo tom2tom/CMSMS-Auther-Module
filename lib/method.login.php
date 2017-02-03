@@ -145,12 +145,13 @@ EOS;
 		//function returns js object
 		$jsfuncs[] = <<<EOS
 function transfers(\$inputs) {
- var far = $('#{$id}farn').val();
  var sent = JSON.stringify({
   passwd: $('#passwd').val()
- });
- var iv = GibberAES.a2s(GibberAES.randArr(16));
+ }),
+  far = $('#{$id}farn').val(),
+  iv = GibberAES.a2s(GibberAES.randArr(16));
  var parms = {
+  {$id}jsworks: 'TRUE',
   {$id}sent: GibberAES.encString(far+sent,far,iv)
  };
  $('#{$id}nearn').val(GibberAES.Base64.encode(iv));
