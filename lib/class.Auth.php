@@ -15,28 +15,19 @@ namespace Auther;
 
 addUser() race fix
 generic autoloading
-send events	$this->mod->SendEvent('OnX',$parms);
+send events  $this->mod->SendEvent('OnX',$parms);
 */
 
 include __DIR__.DIRECTORY_SEPARATOR.'password.php';
 
-class Auth
+class Auth extends Session
 {
 	const EMAILPATN = '/^.+@.+\..+$/';
-	const KEYSALT = 19; //prefix-length 19 + uniqid() 13, hence 32-byte session-key
 	const STRETCHES = 12; //hence 2**12
-
-	protected $mod;
-	protected $db;
-	protected $pref;
-	protected $context;
 
 	public function __construct(&$mod, $context=NULL)
 	{
-		$this->mod = $mod;
-		$this->db = \cmsms()->GetDb();
-		$this->pref = \cms_db_prefix();
-		$this->context = $context;
+		parent::__construct($mod, $context);
 	}
 
 	/**
@@ -44,12 +35,12 @@ class Auth
 	* @publicid: string user identifier
 	* @password: plaintext string
 	* @nonce: default = FALSE
-	* @remember: boolean whether to setup session-expiry-time in self::addSession() default = FALSE
-	* Returns: array, 0=>T/F for success, 1=>message, if success then also session-parameters: 'hash','expire'
+	* @remember: boolean whether to setup session-expiry-time in self::AddSession() default = FALSE
+	* Returns: array, 0=>T/F for success, 1=>message, if success then also session-parameters: 'token','expire'
 	*/
 	public function login($publicid, $password, $nonce=FALSE, $remember=FALSE)
 	{
-		$block_status = $this->isBlocked();
+		$block_status = $this->IsBlocked();
 
 		if ($block_status == 'verify') {
 			if (0) { //TODO FACTOR
@@ -64,7 +55,7 @@ class Auth
 		$uid = $this->getUID($publicid);
 
 		if (!$uid) {
-			$this->addAttempt();
+			$this->AddAttempt();
 			$this->mod->SendEvent('OnLoginFail', $parms);
 			return [FALSE,$this->mod->Lang('login_incorrect')];
 		}
@@ -72,7 +63,7 @@ class Auth
 		$userdata = $this->getBaseUser($uid);
 
 		if (!$userdata['active']) {
-			$this->addAttempt();
+			$this->AddAttempt();
 			$this->mod->SendEvent('OnLoginFail', $parms);
 			return [FALSE,$this->mod->Lang('account_inactive')];
 		}
@@ -80,18 +71,18 @@ class Auth
 		$status = $this->matchPassword($uid, $password);
 
 		if (!$status[0]) {
-			$this->addAttempt();
+			$this->AddAttempt();
 			$this->mod->SendEvent('OnLoginFail', $parms);
 			return [FALSE,$this->mod->Lang('password_incorrect')];
 		}
 
 		if (!is_bool($remember)) {
-			$this->addAttempt();
+			$this->AddAttempt();
 			$this->mod->SendEvent('OnLoginFail', $parms);
 			return [FALSE,$this->mod->Lang('remember_me_invalid')];
 		}
 
-		$sessiondata = $this->addSession($uid, $remember);
+		$sessiondata = $this->AddSession($uid, $remember);
 
 		if (!$sessiondata) {
 			$this->mod->SendEvent('OnLoginFail', $parms);
@@ -101,7 +92,7 @@ class Auth
 		$this->mod->SendEvent('OnLogin', $parms);
 
 		$data = [TRUE,$this->mod->Lang('logged_in')];
-		$data['hash'] = $sessiondata['hash'];
+		$data['token'] = $sessiondata['token'];
 		$data['expire'] = $sessiondata['expiretime'];
 		return $data;
 	}
@@ -118,7 +109,7 @@ class Auth
 	*/
 	public function register($publicid, $password, $repeatpassword, $email='', $params=[], $sendmail=NULL)
 	{
-		$block_status = $this->isBlocked();
+		$block_status = $this->IsBlocked();
 
 		if ($block_status == 'verify') {
 			if (0) { //TODO FACTOR
@@ -171,32 +162,32 @@ class Auth
 
 	/**
 	* Activates a user's account
-	* @key: string
+	* @key: string 32-byte token
 	* Returns: array 0=>T/F for success, 1=>message
 	*/
 	public function activate($key)
 	{
-		$block_status = $this->isBlocked();
+		$block_status = $this->IsBlocked();
 
 		if ($block_status == 'block') {
 			return [FALSE,$this->mod->Lang('user_blocked')];
 		}
 
 		if (strlen($key) !== 32) {
-			$this->addAttempt();
+			$this->AddAttempt();
 			return [FALSE,$this->mod->Lang('activationkey_invalid')];
 		}
 
 		$data = $this->getRequest($key, 'activate');
 
 		if (!$data[0]) {
-			$this->addAttempt();
+			$this->AddAttempt();
 			return $data;
 		}
 
 		$userdata = $this->getBaseUser($data['uid']);
 		if ($userdata['active']) {
-			$this->addAttempt();
+			$this->AddAttempt();
 			$this->deleteRequest($data['id']);
 			return [FALSE,$this->mod->Lang('system_error').' #02'];
 		}
@@ -217,7 +208,7 @@ class Auth
 	*/
 	public function requestReset($publicid, $sendmail=NULL)
 	{
-		$block_status = $this->isBlocked();
+		$block_status = $this->IsBlocked();
 
 		if ($block_status == 'block') {
 			return [FALSE,$this->mod->Lang('user_blocked')];
@@ -235,14 +226,14 @@ class Auth
 
 		if (!$id) {
 			//TODO minimise impact of $publicid brute-forcing
-			$this->addAttempt();
+			$this->AddAttempt();
 			return [FALSE,$this->mod->Lang('login_incorrect')];
 		}
 
 		$status = $this->addRequest($id, $publicid, 'reset', $sendmail);
 
 		if (!$status[0]) {
-			$this->addAttempt();
+			$this->AddAttempt();
 			return $status;
 		}
 
@@ -253,75 +244,25 @@ class Auth
 	}
 
 	/**
-	* Logs out the session, identified by session-hash
-	* @hash: 40-byte string
+	* Ends the session identified by @token
+	* @token: string 24-byte session-identifier
 	* Returns: boolean
 	*/
-	public function logout($hash)
+	public function logout($token)
 	{
-		if (strlen($hash) != 40) {
+		if (strlen($token) != 24) {
 			return FALSE;
 		}
-
-		return $this->deleteSession($hash);
+		return $this->DeleteSession($token);
 	}
 
 	/**
-	* Change recorded context property
+	* Changes recorded context property
 	* @context: numeric identifier or alias for login context
 	*/
 	public function setContext($context)
 	{
 		$this->context = $context;
-	}
-
-	/**
-	* Get specified property(ies) for the current context
-	* @propkey: string property-name or array of them (not validated here)
-	* Returns: property value or assoc. array of them
-	*/
-	protected function getConfig($propkey)
-	{
-		if ($this->context) {
-			if (is_array($propkey)) {
-				$sql2 = implode(',', $propkey);
-			} else {
-				$sql2 = $propkey;
-			}
-			if (is_int($this->context)) {
-				$sql3 = 'id';
-			} else {
-				$sql3 = 'alias';
-			}
-
-			$sql = 'SELECT '.$sql2.' FROM '.$this->pref.'module_auth_contexts WHERE '.$sql3.'=?';
-			$data = $this->db->GetRow($sql, [$this->context]);
-			if ($data) {
-				//grab defaults for 'empty' settings
-				foreach ($data as $key=>&$val) {
-					if (0) { //TODO empty test
-						$val = $this->mod->GetPreference($key, NULL);
-					}
-				}
-				unset($val);
-				if ($sql2 == $propkey) {
-					return $data[$propkey];
-				} else {
-					return $data;
-				}
-			}
-		}
-
-		//grab all defaults
-		if (is_array($propkey)) {
-			$data = [];
-			foreach ($propkey as $key) {
-				$data[$key] = $this->mod->GetPreference($key, NULL);
-			}
-			return $data;
-		} else {
-			return $this->mod->GetPreference($propkey, NULL);
-		}
 	}
 
 	/**
@@ -333,124 +274,6 @@ class Auth
 	{
 		$sql = 'SELECT id FROM '.$this->pref.'module_auth_users WHERE publicid=?';
 		return $this->db->GetOne($sql, [$publicid]);
-	}
-
-	/**
-	* Creates a session for user @uid
-	* @uid: int user enumerator
-	* @remember: boolean whether to setup an expiry time for the session
-	* Returns: array with members 'hash','expire','expiretime','cookie_hash', or else FALSE
-	*/
-	protected function addSession($uid, $remember)
-	{
-		$userdata = $this->getBaseUser($uid);
-		if (!$userdata) {
-			return FALSE;
-		}
-
-		$this->deleteExistingSessions($uid);
-
-		$val = $this->mod->GetPreference('session_salt');
-		$hash = sha1(uniqid($val, TRUE));
-
-		$data = ['hash'=>$hash,'cookie_hash'=>sha1($hash.$val)];
-
-		$dt = new \DateTime('@'.time(), NULL);
-		if ($remember) {
-			$val = $this->getConfig('cookie_remember');
-			$dt->modify('+'.$val);
-			$data['expire'] = $dt->getTimestamp();
-			$data['expiretime'] = $data['expire'];
-		} else {
-			$val = $this->getConfig('cookie_forget');
-			$dt->modify('+'.$val);
-			$data['expire'] = $dt->getTimestamp();
-			$data['expiretime'] = 0;
-		}
-
-		$ip = $this->getIp();
-		$agent = $_SERVER['HTTP_USER_AGENT'];
-
-		$sql = 'INSERT INTO '.$this->pref.'module_auth_sessions (uid,hash,expire,ip,agent,cookie_hash) VALUES (?,?,?,?,?,?)';
-
-		if (!$this->db->Execute($sql, [$uid, $hash, $data['expire'], $ip, $agent, $data['cookie_hash']])) {
-			return FALSE;
-		}
-
-		return $data;
-	}
-
-	/**
-	* Removes all existing sessions for user @uid
-	* @uid: int user enumerator
-	* Returns: boolean
-	*/
-	protected function deleteExistingSessions($uid)
-	{
-		$sql = 'DELETE FROM '.$this->pref.'module_auth_sessions WHERE uid=?';
-		$res = $this->db->Execute($sql, [$uid]);
-		return ($res != FALSE);
-	}
-
-	/**
-	* Removes a session based on @hash
-	* @hash: string
-	* Returns: boolean
-	*/
-	protected function deleteSession($hash)
-	{
-		$sql = 'DELETE FROM '.$this->pref.'module_auth_sessions WHERE hash=?';
-		$res = $this->db->Execute($sql, [$hash]);
-		return ($res != FALSE);
-	}
-
-	/**
-	* Checks if a session is valid
-	* @hash: string sha1-generated session identifier
-	* Returns: boolean
-	*/
-	public function checkSession($hash)
-	{
-		$block_status = $this->isBlocked();
-
-		if ($block_status == 'block') {
-			return FALSE;
-		}
-
-		if (strlen($hash) != 40) { //sha1 hash length
-			return FALSE;
-		}
-
-		$sql = 'SELECT id,uid,expire,ip,agent,cookie_hash FROM '.$this->pref.'module_auth_sessions WHERE hash=?';
-		$row = $this->db->GetRow($sql, [$hash]);
-
-		if (!$row) {
-			return FALSE;
-		}
-
-		if ($row['expire'] < time()) {
-			$this->deleteExistingSessions($row['uid']);
-			return FALSE;
-		}
-
-		$ip = $this->getIp();
-		if ($ip != $row['ip']) {
-			return FALSE;
-		}
-
-		$val = $this->mod->GetPreference('session_salt');
-		return ($row['cookie_hash'] == sha1($hash.$val));
-	}
-
-	/**
-	* Retrieves the user-enumerator associated with the given session-hash
-	* @hash: string
-	* Returns: int
-	*/
-	public function getSessionUID($hash)
-	{
-		$sql = 'SELECT uid FROM '.$this->pref.'module_auth_sessions WHERE hash=?';
-		return $this->db->GetOne($sql, [$hash]);
 	}
 
 	/**
@@ -608,7 +431,7 @@ class Auth
 	*/
 	public function deleteUser($uid, $password)
 	{
-		$block_status = $this->isBlocked();
+		$block_status = $this->IsBlocked();
 
 		if ($block_status == 'verify') {
 			if (0) { //TODO FACTOR
@@ -621,19 +444,19 @@ class Auth
 		$status = $this->matchPassword($uid, $password);
 
 		if (!$status[0]) {
-			$this->addAttempt();
+			$this->AddAttempt();
 			return $status;
 		}
 
 		$userdata = $this->getBaseUser($uid);
 
 		if (!$userdata) {
-			$this->addAttempt();
+			$this->AddAttempt();
 			return [FALSE,$this->mod->Lang(TODO)];
 		}
 
 		if (!$this->password_check($password, $userdata['password']/*, $tries TODO*/)) {
-			$this->addAttempt();
+			$this->AddAttempt();
 			return [FALSE,$this->mod->Lang('password_incorrect')];
 		}
 
@@ -689,13 +512,13 @@ class Auth
 		if ($sendmail === NULL) {
 			$sendmail = TRUE;
 			if ($type == 'reset') {
-				$val = $this->getConfig('send_reset_message');
+				$val = $this->GetConfig('send_reset_message');
 				if (!$val) {
 					$sendmail = FALSE;
 					return [TRUE,''];
 				}
 			} elseif ($type == 'activate') {
-				$val = $this->getConfig('send_activate_message');
+				$val = $this->GetConfig('send_activate_message');
 				if (!$val) {
 					$sendmail = FALSE;
 					return [TRUE,''];
@@ -721,12 +544,11 @@ class Auth
 		}
 
 		$dt = new \DateTime('@'.time(), NULL);
-		$val = $this->getConfig('request_key_expiration');
+		$val = $this->GetConfig('request_key_expiration');
 		$dt->modify('+'.$val);
 		$expiretime = $dt->getTimestamp();
 
-		$val = $this->getRandomKey(self::KEYSALT);
-		$key = uniqid($val, FALSE); //32-byte string
+		$key = $this->UniqueToken(32);
 
 		$request_id = $this->db->GenID($this->pref.'module_auth_requests_seq');
 
@@ -755,11 +577,11 @@ class Auth
 			$mlr = new \cms_mailer();
 		}
 
-		$site_name = $this->getConfig('context_sender'); //TODO this gets a personal name
+		$site_name = $this->GetConfig('context_sender'); //TODO this gets a personal name
 
 		$mlr->reset();
 		if (1) { //TODO default sender isn't wanted
-			$site_from = $this->getConfig('context_address');
+			$site_from = $this->GetConfig('context_address');
 			$mlr->SetFrom($site_from, $site_name);
 		}
 		$mlr->AddAddress($email, '');
@@ -794,7 +616,7 @@ class Auth
 
 	/**
 	* Returns request data if @key is valid
-	* @key: 32-byte string from uniqid() with 19-random-bytes prefix
+	* @key: 32-byte string from UniqueToken()
 	* @type: string 'reset' or 'activate'
 	* Returns: array 0=>T/F for success, 1=>message, if success then also 'id','uid'
 	*/
@@ -804,12 +626,12 @@ class Auth
 		$row = $this->db->GetRow($sql, [$key, $type]);
 
 		if (!$row) {
-			$this->addAttempt();
+			$this->AddAttempt();
 			return [FALSE,$this->mod->Lang($type.'key_incorrect')];
 		}
 
 		if ($row['expire'] < time()) {
-			$this->addAttempt();
+			$this->AddAttempt();
 			$this->deleteRequest($row['id']);
 			return [FALSE,$this->mod->Lang($type.'key_expired')];
 		}
@@ -836,18 +658,18 @@ class Auth
 	*/
 	public function validateLogin($publicid)
 	{
-		$val = (int)$this->getConfig('login_min_length');
+		$val = (int)$this->GetConfig('login_min_length');
 		if ($val > 0 && strlen($publicid) < $val) {
 			return [FALSE,$this->mod->Lang('login_short')];
 		}
 
-		$val = (int)$this->getConfig('login_max_length');
+		$val = (int)$this->GetConfig('login_max_length');
 		if ($val > 0 && strlen($publicid) > $val) {
 			return [FALSE,$this->mod->Lang('login_long')];
 		}
 
 		if (preg_match(self::EMAILPATN, $publicid)) {
-			$val = $this->getConfig('email_banlist');
+			$val = $this->GetConfig('email_banlist');
 			if ($val) {
 				$parts = explode('@', $publicid);
 				$bannedDomains = json_decode(file_get_contents(__DIR__.DIRECTORY_SEPARATOR.'domains.json'));
@@ -867,11 +689,11 @@ class Auth
 	*/
 	public function validateAddress($address)
 	{
-		$val = $this->getConfig('address_required');
+		$val = $this->GetConfig('address_required');
 		if ($val && !$address) {
 			return [FALSE, $this->mod->Lang('missing_address')];
 		}
-		$val = $this->getConfig('email_required');
+		$val = $this->GetConfig('email_required');
 		if ($val) {
 			return $this->validateEmail($address);
 		}
@@ -924,7 +746,7 @@ class Auth
 	*/
 	public function validatePassword($password)
 	{
-		$val = (int)$this->getConfig('password_min_length');
+		$val = (int)$this->GetConfig('password_min_length');
 		if ($val > 0 && strlen($password) < $val) {
 			return [FALSE,$this->mod->Lang('password_short')];
 		}
@@ -933,7 +755,7 @@ class Auth
 		$funcs = new \ZxcvbnPhp\Zxcvbn();
 		$check = $funcs->passwordStrength($password);
 
-		$val = (int)$this->getConfig('password_min_score');
+		$val = (int)$this->GetConfig('password_min_score');
 		if ($check['score'] + 1 < $val) { //returned value 0..4, public uses 1..5
 			return [FALSE,$this->mod->Lang('password_weak')];
 		}
@@ -943,14 +765,14 @@ class Auth
 
 	/**
 	* Allows a user to reset her/his password after requesting a reset
-	* @key: string
+	* @key: string 32-byte token
 	* @password: plaintext string
 	* @repeatpassword: plaintext string
 	* Returns: array 0=>T/F for success, 1=>message
 	*/
 	public function resetPassword($key, $password, $repeatpassword)
 	{
-		$block_status = $this->isBlocked();
+		$block_status = $this->IsBlocked();
 
 		if ($block_status == 'verify') {
 			if (0) { //TODO FACTOR
@@ -984,13 +806,13 @@ class Auth
 		$userdata = $this->getBaseUser($data['uid']);
 
 		if (!$userdata) {
-			$this->addAttempt();
+			$this->AddAttempt();
 			$this->deleteRequest($data['id']);
 			return [FALSE,$this->mod->Lang('system_error').' #11'];
 		}
 
 		if ($this->password_check($password, $userdata['password']/*, $tries TODO*/)) {
-			$this->addAttempt();
+			$this->AddAttempt();
 			return [FALSE,$this->mod->Lang('newpassword_match')];
 		}
 
@@ -1015,7 +837,7 @@ class Auth
 	*/
 	public function changePassword($uid, $currpass, $newpass, $repeatnewpass)
 	{
-		$block_status = $this->isBlocked();
+		$block_status = $this->IsBlocked();
 
 		if ($block_status == 'verify') {
 			if (0) { //TODO FACTOR
@@ -1028,7 +850,7 @@ class Auth
 		$status = $this->matchPassword($uid, $currpass);
 
 		if (!$status[0]) {
-			$this->addAttempt();
+			$this->AddAttempt();
 			return $status;
 		}
 
@@ -1043,12 +865,12 @@ class Auth
 		$userdata = $this->getBaseUser($uid);
 
 		if (!$userdata) {
-			$this->addAttempt();
+			$this->AddAttempt();
 			return [FALSE,$this->mod->Lang('system_error').' #13'];
 		}
 
 		if (!$this->password_check($currpass, $userdata['password']/*, $tries TODO*/)) {
-			$this->addAttempt();
+			$this->AddAttempt();
 			return [FALSE,$this->mod->Lang('password_incorrect')];
 		}
 
@@ -1085,7 +907,7 @@ class Auth
 	*/
 	public function changelogin($uid, $publicid, $password)
 	{
-		$block_status = $this->isBlocked();
+		$block_status = $this->IsBlocked();
 
 		if ($block_status == 'verify') {
 			if (0) { //TODO
@@ -1104,24 +926,24 @@ class Auth
 		$status = $this->matchPassword($uid, $password);
 
 		if (!$status[0]) {
-			$this->addAttempt();
+			$this->AddAttempt();
 			return $status;
 		}
 
 		$userdata = $this->getBaseUser($uid);
 
 		if (!$userdata) {
-			$this->addAttempt();
+			$this->AddAttempt();
 			return [FALSE,$this->mod->Lang('system_error').' #14'];
 		}
 
 		if (!$this->password_check($password, $userdata['password']/*, $tries TODO*/)) {
-			$this->addAttempt();
+			$this->AddAttempt();
 			return [FALSE,$this->mod->Lang('password_incorrect')];
 		}
 
 		if ($publicid == $userdata['publicid']) {
-			$this->addAttempt();
+			$this->AddAttempt();
 			return [FALSE,$this->mod->Lang('newlogin_match')];
 		}
 
@@ -1143,7 +965,7 @@ class Auth
 	*/
 	public function resendActivation($publicid, $sendmail=NULL)
 	{
-		$block_status = $this->isBlocked();
+		$block_status = $this->IsBlocked();
 
 		if ($block_status == 'block') {
 			return [FALSE,$this->mod->Lang('user_blocked')];
@@ -1163,21 +985,21 @@ class Auth
 		$id = $this->db->GetOne($sql, [$publicid]);
 
 		if ($id == FALSE) {
-			$this->addAttempt();
+			$this->AddAttempt();
 			return [FALSE,$this->mod->Lang('login_incorrect')];
 		}
 
 		$userdata = $this->getBaseUser($id);
 
 		if ($userdata['active']) {
-			$this->addAttempt();
+			$this->AddAttempt();
 			return [FALSE,$this->mod->Lang('already_activated')];
 		}
 
 		$status = $this->addRequest($id, $publicid, 'activate', $sendmail);
 
 		if (!$status[0]) {
-			$this->addAttempt();
+			$this->AddAttempt();
 			return $status;
 		}
 
@@ -1185,38 +1007,14 @@ class Auth
 	}
 
 	/**
-	* Reports access-status for the current ip address
-	* Returns: string 'allow','verify' or 'block'
-	*/
-	public function isBlocked()
-	{
-		$ip = $this->getIp();
-		$this->deleteAttempts($ip, FALSE);
-		$sql = 'SELECT count(1) AS tries FROM '.$this->pref.'module_auth_attempts WHERE ip=?';
-		$tries = $this->db->GetOne($sql, [$ip]);
-
-		$val = (int)$this->getConfig('attempts_before_verify');
-		if ($val > 0 && $tries < $val) {
-			return 'allow';
-		}
-
-		$val = (int)$this->getConfig('attempts_before_ban');
-		if ($val > 0 && $tries < $val) {
-			return 'verify';
-		}
-
-		return 'block';
-	}
-
-	/**
 	* Adds an attempt to database
 	* Returns: boolean indicating success
 	*/
-	protected function addAttempt()
+	protected function AddAttempt()
 	{
-		$ip = $this->getIp();
+		$ip = $this->GetIp();
 		$dt = new \DateTime('@'.time(), NULL);
-		$val = $this->getConfig('attack_mitigation_span');
+		$val = $this->GetConfig('attack_mitigation_span');
 		$dt->modify('+'.$val);
 		$expiretime = $dt->getTimestamp();
 
@@ -1231,7 +1029,7 @@ class Auth
 	* @all: boolean default = FALSE
 	* Returns: boolean indicating success
 	*/
-	protected function deleteAttempts($ip, $all=FALSE)
+	protected function DeleteAttempts($ip, $all=FALSE)
 	{
 		if ($all) {
 			$sql = 'DELETE FROM '.$this->pref.'module_auth_attempts WHERE ip=?';
@@ -1245,34 +1043,6 @@ class Auth
 	}
 
 	/**
-	* Returns a random string of a specified length
-	* @length: int wanted byte-count
-	* Returns: string
-	*/
-	public function getRandomKey($length=20)
-	{
-		$chars = '01234567890123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-		$key = str_repeat('0', $length);
-		for ($i = 0; $i < $length; $i++) {
-			$key[$i] = $chars[mt_rand(0, 81)];
-		}
-		return $key;
-	}
-
-	/**
-	* Get IP address
-	* Returns: string $ip
-	*/
-	protected function getIp()
-	{
-		if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-			return $_SERVER['HTTP_X_FORWARDED_FOR'];
-		} else {
-			return $_SERVER['REMOTE_ADDR'];
-		}
-	}
-
-	/**
 	* Checks whether a user is logged in
 	* Returns: boolean
 	*/
@@ -1281,46 +1051,8 @@ class Auth
 		//TODO review http://php.net/manual/en/features.cookies.php &
 		// http://php.net/manual/en/function.setcookie.php &
 		// http://www.faqs.org/rfcs/rfc6265.html
-		$val = $this->getConfig('cookie_name');
-		return (isset($_COOKIE[$val]) && $this->checkSession($_COOKIE[$val]));
-	}
-
-	/**
-	* Gets current session hash
-	* Returns: string
-	*/
-	public function getSessionHash()
-	{
-		$val = $this->getConfig('cookie_name');
-		return $_COOKIE[$val];
-	}
-
-	/**
-	Gets a captcha-suitable string and URL of a correspoding png-image file
-	Requires PHP extension GD 1 or 2
-	Returns: 2-member array
-	 'code' = @length-byte string
-   'image_src' = URL of cached png image displaying 'code' string
-	*/
-	public function getCaptcha($length = 8)
-	{
-		$config = \cmsms()->GetConfig();
-		$tmpdir = $config['root_path'].DIRECTORY_SEPARATOR.'tmp'.DIRECTORY_SEPARATOR.'cache';
-
-		$funcs = new Auther\Captcha\SimpleCaptcha();
-		$data = $funcs->generate([
-			'background' => 'plain.png',
-			'font' => 'Roboto-Regular.ttf',
-			'size' => 20,
-			'color' => '#000',
-			'length' => $length,
-			'path' => $tmpdir,
-		]);
-
-		$rooturl = (empty($_SERVER['HTTPS'])) ? $config['root_url'] : $config['ssl_url'];
-		$url = strtr($tmpdir, [$config['root_path']=>$rooturl, DIRECTORY_SEPARATOR=>'/']);
-		$url .= '/'.$data['file'];
-		return ['code' => $data['code'], 'image_src' => $url];
+		$val = $this->GetConfig('cookie_name');
+		return (isset($_COOKIE[$val]) && $this->CheckSession($_COOKIE[$val]));
 	}
 
 	/**
