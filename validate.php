@@ -6,10 +6,10 @@
 # More info at http://dev.cmsmadesimple.org/projects/auther
 #----------------------------------------------------------------------
 
-function ajax_errreport($args) {
+function ajax_errreport($msg) {
 	header('HTTP/1.1 500 Internal Server Error');
 	header('Content-Type: application/json; charset=UTF-8');
-	die(json_encode($args));
+	die(json_encode(['message'=>$msg]));
 }
 
 //clear all page-content echoed before now
@@ -20,6 +20,12 @@ if ($handlers) {
 		ob_end_clean();
 }
 
+/*//TODO workaround dodgy json-parsing
+$t = key($_POST);
+if (strlen($t) > 40) {
+	$_POST = (array)json_decode($t.reset($_POST));
+}
+*/
 $scan = [];
 $keys = array_keys($_POST);
 foreach ($keys as $kn) {
@@ -33,18 +39,7 @@ foreach ($keys as $kn) {
 $c = max($scan);
 $id = array_search($c, $scan);
 
-$jax = ($_POST[$id.'jsworks'] !== '');
-
-$kn = $id.'data';
-if (empty($_POST[$kn])) {
-	//TODO signal something
-	if ($jax) {
-		ajax_errreport(['TODO']);
-	} else {
-	}
-	exit;
-}
-
+$jax = !empty($_POST[$id.'jsworks']);
 //grab stuff cuz' we've bypassed a normal session-start
 $fp = __DIR__;
 $c = strpos($fp, '/modules');
@@ -53,22 +48,55 @@ require $inc;
 
 $mod = cms_utils::get_module('Auther');
 
-$cfuncs = new Auther\Crypter();
-$pw = $cfuncs->decrypt_preference($mod, 'masterpass');
-$t = openssl_decrypt($_POST[$kn], 'BF-CBC', $pw, 0, $_POST[$id.'IV']);
-if (!$t) {
+$kn = $id.'data';
+if (empty($_POST[$kn])) {
 	//TODO signal something
 	if ($jax) {
-		ajax_errreport(['TODO']);
+		ajax_errreport($mod->Lang('err_ajax'));
 	} else {
 	}
 	exit;
 }
-$params = (array)json_decode($t);
+
+$cfuncs = new Auther\Crypter();
+$pw = $cfuncs->decrypt_preference($mod, 'masterpass');
+$iv = base64_decode($_POST[$id.'IV']);
+$t = openssl_decrypt($_POST[$kn], 'BF-CBC', $pw, 0, $iv);
+if (!$t) {
+	//TODO signal something
+	if ($jax) {
+		ajax_errreport($mod->Lang('err_ajax'));
+	} else {
+	}
+	exit;
+}
+
+$params = unserialize($t);
 if (empty($params) || $params['identity'] !== substr($id, 2, 3)) {
 	//TODO signal something
 	if ($jax) {
-		ajax_errreport(['TODO']);
+		ajax_errreport($mod->Lang('err_ajax'));
+	} else {
+	}
+	exit;
+}
+
+$iv = base64_decode($_POST[$id.'nearn']);
+$t = openssl_decrypt($_POST[$id.'sent'], 'AES-256-CBC', $params['far'], 0, $iv);
+if (!$t) {
+	//TODO signal something
+	if ($jax) {
+		ajax_errreport($mod->Lang('err_ajax'));
+	} else {
+	}
+	exit;
+}
+$p = strpos($t, $params['far']) + strlen($params['far']);
+$sent = (array)json_decode(substr($t, $p));
+if (!$sent) {
+	//TODO signal something
+	if ($jax) {
+		ajax_errreport($mod->Lang('err_ajax'));
 	} else {
 	}
 	exit;
@@ -77,30 +105,33 @@ if (empty($params) || $params['identity'] !== substr($id, 2, 3)) {
 $db = $gCms->GetDb(); //var defined by inclusion
 $pre = cms_db_prefix();
 $cdata = $db->GetRow('SELECT * FROM '.$pre.'module_auth_contexts WHERE id=?', [$params['context']]);
+
 //TODO session data from cache
+/*TODO get & process
+$_POST array e.g.
+[pA762_IV]	"Ys1ad0tN0JI="
+[pA762_data]	"xD+qbcJIMUA87rNvZuppgYyCb2Ox04ChJj6jma8O7b/lwKuFC7yHoDwFH6buzxhLw2Ur/x0FonEwT6lMCotElxFLUcaHK9zvH1Wquo75vYWqC7pNbkBkonvKATq+semQA0xPCHuDsOw8nMVyFs84ctr0KRv/an3DVozCr8t35B23PWyBlKMv4xIySW3UoZ5942ReppZ99I4QZBma9YVvBwP0nyyL6+odS6bowic1nBgIQXjOYKs+gtqxiciS2DI18eAxWd0K+bJprgPHT000KjTNyxqoF5M+20Sapp5Bn7o6G2BaqLwPIQ=="
+[pA762_jsworks]	"TRUE"
+[pA762_login]	"rogerrabbit"
+[pA762_nearn]	"AjsxOcOYMMOSw77DkWAmwoAXw53Cun0"
+[pA762_recover]	"0"
+[pA762_sent]	"AjsxOcOYMMOSw77DkWAmwnb+nrh+HVJTjx6nelaIfxTfPBeyVqfR83gAhBd59lSk
+y1ePAujBNoQstmmiebMRRAyhPAh5SvNK29Zlr2J77T7efx/y5heYyyf+5jyveKbu"
+
+$sent array e.g.
+[passwd] =>	"s11kul52"
+*/
 
 $afuncs = new Auther\Auth($mod, $params['context']);
 
-//TODO get & process other $_POST values
-
-/* sjcl longform output = string
-{
-"iv":"wvdG7+KjzXKRWuDPgHhfig==",
-"v":1,
-"iter":1000,
-"ks":128,
-"ts":64,
-"mode":"ccm",
-"adata":"This%20is%20my%20nonce",
-"cipher":"aes",
-"salt":"7LAtmkELhSc=",
-"ct":"w1wAR4pw1/v25GXqPWb1BuRIF9B+jImzoNBnqUlKPEnQEZlB4iG57UxaiwuOfq3m1/i7eRGBWBhy"
-}
-*/
+$msg = 'I\'m back';
+$res = ['message'=>$msg, 'element'=>'passwd']; //etc
 
 if (1) { //TODO error
 	if ($jax) {
-		ajax_errreport(['message'=>'OOPS, something went wrong!', 'code'=>1337]);
+		header('HTTP/1.1 500 Internal Server Error');
+		header('Content-Type: application/json; charset=UTF-8');
+		die(json_encode($res));
 	} else {
 		//send stuff to $params['handler']
 	}
@@ -108,7 +139,7 @@ if (1) { //TODO error
 	if ($jax) {
 		header('HTTP/1.1 204 No Content');
 		header('Content-Type: application/json; charset=UTF-8');
-		die(json_encode(['TODO']));
+		die(json_encode($res));
 	} else {
 		//send stuff to $params['handler']
 	}
