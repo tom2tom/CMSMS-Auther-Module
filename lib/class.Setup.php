@@ -81,6 +81,22 @@ final class Setup
 		return [$res['code'], '<img src="'.$fp.'" '.$attr.' alt="CAPTCHA" />'];
 	}
 
+	private function RandomAscii($length)
+	{
+		$ret = openssl_random_pseudo_bytes($length);
+		for ($i = 0; $i < $length; $i++) {
+			$ch = ord($ret[$i]);
+			if ($ch < 33) {
+				$ret[$i] = chr($ch + 33);
+			} elseif ($ch > 161) {
+				$ret[$i] = chr($ch - 129);
+			} elseif ($ch > 126) {
+				$ret[$i] = chr($ch - 61);
+			}
+		}
+		return $ret;
+	}
+
 	//Returns: enum or FALSE
 	private function CheckHandler($handler)
 	{
@@ -281,6 +297,7 @@ EOS;
 		$db = \cmsms()->GetDb();
 		$pre = \cms_db_prefix();
 		$cdata = $db->GetRow('SELECT * FROM '.$pre.'module_auth_contexts WHERE id=?', [$cid]);
+$cdata['security_level'] = 3; //DEBUG
 
 		if ($token) {
 			$sdata = []; //TODO cached sessiondata
@@ -288,11 +305,10 @@ EOS;
 			$sdata = FALSE;
 		}
 
-		$iv = $utils->RandomAlnum(8, TRUE); //sized for Blowfish in openssl
 		$now = time();
 		$base = floor($now / (84600 * 1800)) * 1800; //start of current 30-mins
 		$day = date('j',$now);
-		$id = $iv[0].$iv[1].$utils->Tokenise($base+$day).'_'; //6-bytes
+		$id = $utils->RandomAlnum(2, TRUE).$utils->Tokenise($base+$day).'_'; //6-bytes
 
 		$cache = [
 		'context' => $cid,
@@ -305,7 +321,7 @@ EOS;
 
 		$hidden = [$mod->CreateInputHidden($id, 'jsworks', '')];
 		$jsloads[] = <<<EOS
- $('#{$id}jsworks').val('$iv');
+ $('#{$id}jsworks').val('TRUE');
  $('#authelements input').bind('keypress',function(ev) {
   ev = ev || window.event;
   if (ev.keyCode == 13 || ev.keyCode == 9) {
@@ -334,9 +350,11 @@ EOS;
 
 		$cfuncs = new Crypter();
 		$pw = $cfuncs->decrypt_preference($mod, 'masterpass');
-		$t = openssl_encrypt(json_encode($cache), 'BF-CBC', $pw, 0, $iv); //low security
-		$hidden[] = $mod->CreateInputHidden($id, 'IV', $iv);
+		$iv = openssl_random_pseudo_bytes(8); //sized for Blowfish in openssl
+		//serialize $cache cuz' random-bytes in far-nonce BUT RAW DATA ALWAYS FAILS! DITTO FOR JSON
+		$t = openssl_encrypt(serialize($cache), 'BF-CBC', $pw, 0, $iv); //low security
 		$hidden[] = $mod->CreateInputHidden($id, 'data', $t);
+		$hidden[] = $mod->CreateInputHidden($id, 'IV', base64_encode($iv));
 
 		$tplvars['hidden'] = implode('',$hidden);
 		$tplvars['components'] = $elements;
@@ -375,7 +393,7 @@ EOS;
 {if !empty($elem->extra)}<div class="authtext">{$elem->extra}</div>{/if}
 {/foreach}
 {if !empty($captcha)}
-<div class="hidejs">
+<div class="DEBUGhidejs">
 <p class="authtitle">{$captcha->title}</p>
 <div class="authinput">
 <table><tbody><tr>
