@@ -9,6 +9,16 @@ namespace Auther;
 
 class Session
 {
+	//status codes:
+	const NEW_FOR_USER = 1;
+	const NEW_FOR_IP = 2;
+	const RESET_REQUESTED = 3;
+	const WAIT_CONFIRM = 4;
+	const WAIT_CHALLENGE = 5;
+	const ATTEMPT_FAILED = 10;
+	const BAD_IP = 11;
+	const BLOCKED_IP = 12;
+
 	protected $mod;
 	protected $db;
 	protected $pref;
