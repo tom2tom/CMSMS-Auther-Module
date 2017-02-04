@@ -367,7 +367,7 @@ EOS;
 		$tplvars['hidden'] = implode('',$hidden);
 		$tplvars['components'] = $elements;
 		$tplvars['submitbtn'] =
-'<input type="submit" id="authsend" name="'.$id.'send" value="'.$mod->Lang('submit').'"  tabindex="'.$tabindex++.'" />';
+'<input type="submit" id="authsubmit" name="'.$id.'submit" value="'.$mod->Lang('submit').'"  tabindex="'.$tabindex++.'" />';
 		if ($withcancel && 0) { //TODO special-cases
 			$withcancel = FALSE;
 		}
