@@ -348,7 +348,7 @@ class Auth extends Session
 	* @uid: int user enumerator
 	* Returns: array with members uid,publicid,passhash,active or else FALSE
 	*/
-	protected function getBaseUser($uid)
+	public function getBaseUser($uid)
 	{
 		$sql = 'SELECT publicid,passhash,active FROM '.$this->pref.'module_auth_users WHERE id=?';
 		$data = $this->db->GetRow($sql, [$uid]);
