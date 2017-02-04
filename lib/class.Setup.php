@@ -354,7 +354,7 @@ EOS;
 		$tabindex = 1;
 		$elements = [];
 		//append as appropriate to arrays: $cache, $hidden, $elements, $tplvars, $jsincs, $jsfuncs, $jsloads
-		require __DIR__.DIRECTORY_SEPARATOR.'method.'.$task.'.php';
+		require __DIR__.DIRECTORY_SEPARATOR.'setup.'.$task.'.php';
 
 		$cfuncs = new Crypter();
 		$pw = $cfuncs->decrypt_preference($mod, 'masterpass');
