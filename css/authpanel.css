@@ -6,6 +6,11 @@
  margin:1em auto 0 auto;
 }
 
+#authcontainer .error {
+ color:#e83544;
+ font-weight:bold;
+}
+
 #authcontainer .autherror {
  border:2px solid #e83544 !important;
  border-color:#e83544 !important;
