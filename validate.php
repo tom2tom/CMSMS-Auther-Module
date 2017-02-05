@@ -20,12 +20,6 @@ if ($handlers) {
 		ob_end_clean();
 }
 
-/*//TODO workaround dodgy json-parsing
-$t = key($_POST);
-if (strlen($t) > 40) {
-	$_POST = (array)json_decode($t.reset($_POST));
-}
-*/
 $scan = [];
 $keys = array_keys($_POST);
 foreach ($keys as $kn) {
@@ -48,31 +42,37 @@ require $inc;
 
 $mod = cms_utils::get_module('Auther');
 
-$kn = $id.'data';
-if (empty($_POST[$kn])) {
-	//TODO signal something
-	if ($jax) {
-		ajax_errreport($mod->Lang('err_ajax'));
-	} else {
-	}
-	exit;
-}
-
 $cfuncs = new Auther\Crypter();
 $pw = $cfuncs->decrypt_preference($mod, 'masterpass');
 $iv = base64_decode($_POST[$id.'IV']);
 $t = openssl_decrypt($_POST[$kn], 'BF-CBC', $pw, 0, $iv);
 if (!$t) {
-	//TODO signal something
 	if ($jax) {
 		ajax_errreport($mod->Lang('err_ajax'));
 	} else {
+	//TODO signal something - BUT handler N/A yet
 	}
 	exit;
 }
 
 $params = unserialize($t);
 if (empty($params) || $params['identity'] !== substr($id, 2, 3)) {
+	if ($jax) {
+		ajax_errreport($mod->Lang('err_ajax'));
+	} else {
+	//TODO signal something - BUT handler N/A yet
+	}
+	exit;
+}
+
+if (!empty($_POST[$id.'cancel'])) {
+	//TODO pass to handler
+$adbg = $_POST;
+$X = $Y;
+}
+
+$kn = $id.'data';
+if (empty($_POST[$kn])) {
 	//TODO signal something
 	if ($jax) {
 		ajax_errreport($mod->Lang('err_ajax'));
@@ -120,6 +120,7 @@ $msgs = [];
 $focus = '';
 
 /*TODO get & process $_POST array e.g.
+[pA762_cancel]	"Cancel" iff enabled & clicked
 [pA762_IV]	"Ys1ad0tN0JI="
 [pA762_data]	"xD+qbcJIMUA87rNvZuppgYyCb2Ox04ChJj6jma8O7b/lwKuFC7yHoDwFH6buzxhLw2Ur/x0FonEwT6lMCotElxFLUcaHK9zvH1Wquo75vYWqC7pNbkBkonvKATq+semQA0xPCHuDsOw8nMVyFs84ctr0KRv/an3DVozCr8t35B23PWyBlKMv4xIySW3UoZ5942ReppZ99I4QZBma9YVvBwP0nyyL6+odS6bowic1nBgIQXjOYKs+gtqxiciS2DI18eAxWd0K+bJprgPHT000KjTNyxqoF5M+20Sapp5Bn7o6G2BaqLwPIQ=="
 [pA762_jsworks]	"TRUE" iff ajax-sourced
