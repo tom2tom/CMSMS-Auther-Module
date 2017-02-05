@@ -1074,42 +1074,6 @@ class Auth extends Session
 	}
 
 	/**
-	* Adds an attempt to database
-	* Returns: boolean indicating success
-	*/
-	protected function AddAttempt()
-	{
-		$ip = $this->GetIp();
-		$dt = new \DateTime('@'.time(), NULL);
-		$val = $this->GetConfig('attack_mitigation_span');
-		$dt->modify('+'.$val);
-		$expiretime = $dt->getTimestamp();
-
-		$sql = 'INSERT INTO '.$this->pref.'module_auth_attempts (ip,expire) VALUES (?,?)';
-		$res = $this->db->Execute($sql, [$ip, $expiretime]);
-		return ($res != FALSE);
-	}
-
-	/**
-	* Deletes some/all attempts for a given IP from database
-	* @ip: string
-	* @all: boolean default = FALSE
-	* Returns: boolean indicating success
-	*/
-	protected function DeleteAttempts($ip, $all=FALSE)
-	{
-		if ($all) {
-			$sql = 'DELETE FROM '.$this->pref.'module_auth_attempts WHERE ip=?';
-			$res = $this->db->Execute($sql, [$ip]);
-		} else {
-			$sql = 'DELETE FROM '.$this->pref.'module_auth_attempts WHERE ip=? AND expire<?';
-			$nowtime = time();
-			$res = $this->db->Execute($sql, [$ip, $nowtime]);
-		}
-		return ($res != FALSE);
-	}
-
-	/**
 	* Checks whether a user is logged in
 	* Returns: boolean
 	*/
