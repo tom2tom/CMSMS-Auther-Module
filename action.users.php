@@ -72,8 +72,16 @@ $theme = ($this->before20) ? cmsms()->get_variable('admintheme'):
 	cms_utils::get_theme_object();
 
 $pre = cms_db_prefix();
-$sql = "SELECT id,publicid,name,address,addwhen,lastuse,passreset,active FROM {$pre}module_auth_users WHERE context=? ORDER BY publicid";
-$data = $db->GetArray($sql, [$cid]);
+$sql = 'SELECT id,publicid,name,address,addwhen,lastuse,privreset,active FROM '.$pre.'module_auth_users WHERE context_id';
+if ($cid !== NULL) {
+	$sql .= '=?';
+	$args = [$cid];
+} else {
+	$sql .= ' IS NULL';
+	$args = [];
+}
+$sql .= ' ORDER BY publicid';
+$data = $db->GetArray($sql, $args);
 if ($data) {
 	$tplvars['title_name'] = $this->Lang('title_name');
 	$tplvars['title_first'] = $this->Lang('title_register');
@@ -129,7 +137,7 @@ if ($data) {
 			$oneset->last = $this->Lang('none');
 		}
 		$oneset->addr = ($one['address']) ? $icon_yes : $icon_no;
-		$oneset->reset = ($one['passreset']) ? $icon_yes : $icon_no;
+		$oneset->reset = ($one['privreset']) ? $icon_yes : $icon_no;
 		$oneset->active = ($one['active'] > 0) ? $icon_yes : $icon_no;
 		$oneset->see = $this->CreateLink($id,'openuser','',$icon_see,
 			['ctx_id'=>$cid,'usr_id'=>$uid,'edit'=>0]);
