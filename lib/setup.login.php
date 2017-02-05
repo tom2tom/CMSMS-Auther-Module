@@ -107,8 +107,10 @@ EOS;
 	$one->title = $mod->Lang('password');
 	$one->input = $this->GetInputPasswd($id, 'passwd', 'passwd', $tabindex++, '', 20, 72);
 	if ($cdata['forget_rescue']) {
-		$one->extra = '<span style="vertical-align:30%;">'.$mod->Lang('lostpass').
-		'</span>&nbsp;&nbsp;'.$this->GetInputCheck($id, 'recover', 'recover', $tabindex++, FALSE);
+		$one->extra = '<label for="recover">'.$mod->Lang('lostpass').'</label>'.
+		$this->GetInputCheck($id, 'recover', 'recover', $tabindex++, FALSE);
+	} else {
+		$one->extra = $mod->Lang('lostpass_renew');
 	}
 	$elements[] = $one;
 
@@ -130,6 +132,7 @@ EOS;
 	 case self::NONCED:
 		$far = $this->UniqueToken(32);
 		$cache['far'] = $far;
+		$far2 = strtr($far, ['"'=>'\"']);
 		$hidden[] = $mod->CreateInputHidden($id, 'nearn', '');
 		$one = new \stdClass();
 		$one->title = $mod->Lang('title_captcha');
@@ -150,7 +153,7 @@ function transfers(\$inputs) {
  var sent = JSON.stringify({
   passwd: $('#passwd').val()
  }),
-  far = '$far',
+  far = "$far2",
   iv = GibberAES.a2s(GibberAES.randArr(16));
  var parms = {
   {$id}jsworks: 'TRUE',
