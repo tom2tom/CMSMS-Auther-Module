@@ -113,7 +113,7 @@ class Session
 	*/
 	protected function AddSession($uid, $remember)
 	{
-		$sql = 'SELECT uid FROM '.$this->pref.'module_auth_users WHERE id=? AND active>0';
+		$sql = 'SELECT id FROM '.$this->pref.'module_auth_users WHERE id=? AND active>0';
 		if (!$this->db->GetOne($sql, [$uid])) {
 			return FALSE;
 		}
@@ -139,10 +139,10 @@ class Session
 
 		$ip = $this->GetIp();
 		$agent = $_SERVER['HTTP_USER_AGENT'];
+		//TODO other fields e.g. context_id
+		$sql = 'INSERT INTO '.$this->pref.'module_auth_sessions (token,user_id,expire,ip,agent,cookie_token) VALUES (?,?,?,?,?,?)';
 
-		$sql = 'INSERT INTO '.$this->pref.'module_auth_sessions (uid,token,expire,ip,agent,cookie_token) VALUES (?,?,?,?,?,?)';
-
-		if (!$this->db->Execute($sql, [$uid, $token, $data['expire'], $ip, $agent, $data['cookie_token']])) {
+		if (!$this->db->Execute($sql, [$token, $uid, $data['expire'], $ip, $agent, $data['cookie_token']])) {
 			return FALSE;
 		}
 
@@ -156,7 +156,7 @@ class Session
 	*/
 	protected function DeleteExistingSessions($uid)
 	{
-		$sql = 'DELETE FROM '.$this->pref.'module_auth_sessions WHERE uid=?';
+		$sql = 'DELETE FROM '.$this->pref.'module_auth_sessions WHERE user_id=?';
 		$res = $this->db->Execute($sql, [$uid]);
 		return ($res != FALSE);
 	}
@@ -194,7 +194,7 @@ class Session
 			return FALSE;
 		}
 
-		$sql = 'SELECT id,uid,expire,ip,agent,cookie_token FROM '.$this->pref.'module_auth_sessions WHERE token=?';
+		$sql = 'SELECT id,user_id,expire,ip,agent,cookie_token FROM '.$this->pref.'module_auth_sessions WHERE token=?';
 		$row = $this->db->GetRow($sql, [$token]);
 
 		if (!$row) {
@@ -222,7 +222,7 @@ class Session
 	*/
 	public function getSessionUID($token)
 	{
-		$sql = 'SELECT uid FROM '.$this->pref.'module_auth_sessions WHERE token=?';
+		$sql = 'SELECT user_id FROM '.$this->pref.'module_auth_sessions WHERE token=?';
 		return $this->db->GetOne($sql, [$token]);
 	}
 

@@ -106,10 +106,10 @@ class Import
 			}
 			//file-column-name to fieldname translation
 			$translates = [
-			 '#Context'=>'context', //interpreted
+			 '#Context'=>'context_id', //interpreted
 			 '#Login'=>'publicid',
-			 'Password'=>'passhash', //interpreted
-//			 'Passhash'=>'passhash',
+			 'Password'=>'privhash', //interpreted
+//			 'Passhash'=>'privhash',
 			 'Name'=>'name',
 			 'MessageTo'=>'address',
 			 'Update'=>'update' //not a real field, numeric user-id or some boolean
@@ -160,7 +160,7 @@ class Import
 						$k = $offers[$i];
 						if ($one) {
 							switch ($k) {
-							 case 'context':
+							 case 'context_id':
 							 	if (is_numeric($one)) {
 									$data[$k] = (int)$one;
 								} else {
@@ -168,7 +168,7 @@ class Import
 								}
 								break;
 							 case 'publicid':
-							 case 'passhash':
+							 case 'privhash':
 							 case 'name':
 							 case 'address':
  								$data[$k] = trim($one);
@@ -194,7 +194,7 @@ class Import
 						}
 					}
 
-					$t = $data['context'];
+					$t = $data['context_id'];
 					if ($t) {
 						if (array_key_exists($t, $cached)) {
 							$cid = $cached[$t];
@@ -223,14 +223,14 @@ class Import
 
 					$res = $this->afuncs->validateLogin($data['publicid']);
 					$save = $res[0];
-					$res = $this->afuncs->validatePassword($data['passhash']);
+					$res = $this->afuncs->validatePassword($data['privhash']);
 					$save = $save && $res[0];
 					$res = $this->afuncs->validateAddress($data['address']);
 					$save = $save && $res[0];
 
 					if ($save) {
-						$data['context'] = $cid;
-						$data['passhash'] = password_hash($data['passhash'], PASSWORD_DEFAULT);
+						$data['context_id'] = $cid;
+						$data['privhash'] = password_hash($data['privhash'], PASSWORD_DEFAULT);
 						$data['name'] = $this->cfuncs->encrypt_value($mod, $data['name'], $masterkey);
 						$data['address'] = $this->cfuncs->encrypt_value($mod, $data['address'], $masterkey);
 

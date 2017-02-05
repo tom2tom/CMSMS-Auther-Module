@@ -228,10 +228,10 @@ $theme = ($this->before20) ? cmsms()->get_variable('admintheme'):
 if (empty($msg)) {
 	$pre = cms_db_prefix();
 	$sql = <<<EOS
-SELECT C.id,C.name,C.alias,C.owner,COUNT(U.context) AS users
+SELECT C.id,C.name,C.alias,C.owner,COUNT(U.context_id) AS users
 FROM {$pre}module_auth_contexts C
-LEFT JOIN {$pre}module_auth_users U ON C.id = U.context
-GROUP BY U.context
+LEFT JOIN {$pre}module_auth_users U ON C.id = U.context_id
+GROUP BY U.context_id
 EOS;
 	$data = $db->GetArray($sql);
 } else {
@@ -445,6 +445,12 @@ EOS;
 	$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('cancel'));
 } //$pset
 
+//DEBUG
+$funcs = new Auther\Setup();
+list($authhtm,$authjs) = $funcs->GetPanel(1, 'login', ['Auther','dummy']);
+$tplvars['authform'] = $authhtm;
+//$tplvars['authform'] = NULL;
+
 $jsall = $utils->MergeJS($jsincs, $jsfuncs, $jsloads);
 unset($jsincs);
 unset($jsfuncs);
@@ -453,4 +459,7 @@ unset($jsloads);
 echo $utils->ProcessTemplate($this, 'adminpanel.tpl', $tplvars);
 if ($jsall) {
 	echo $jsall; //inject constructed js after other content
+}
+if ($authjs) {
+	echo $authjs;
 }
