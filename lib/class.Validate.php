@@ -98,7 +98,7 @@ class Validate
 	 */
 	public function IsKnown($login, $passwd, $failkey='authority_failed')
 	{
-		if ($this->afuncs->isRegistered($login, $passwd))
+		if ($this->afuncs->isRegistered($login, $passwd)) {
 			return [TRUE,''];
 		}
 
@@ -119,40 +119,42 @@ class Validate
 	{
 		$res = $this->IsKnown($login, FALSE, $failkey);
 		if ($res[0]) {
-			//TODO iff context::send_reset_message
-			$userdata = $this->afuncs->getPublicUser($login);
-			if (preg_match('//', $userdata['address'])) {
-				$sendmail = $userdata['address'];
-			elseif (preg_match('//', $login)) {
-				$sendmail = login;
-			} else {
-				$sendmail = FALSE;
-			}
-			if ($sendmail) {
-			// send message
-				if ($token) {
-		//	cache stuff in current session 
+			if ($this->afuncs->GetConfig('send_reset_message')) {
+				$userdata = $this->afuncs->getPublicUser($login);
+				if (preg_match(Auther::EMAILPATN, $userdata['address'])) {
+					$sendmail = $userdata['address'];
+				} elseif (preg_match(Auther::EMAILPATN, $login)) {
+					$sendmail = login;
 				} else {
-		//	make new session
-		//	cache stuff in new session 
+					$sendmail = FALSE;
 				}
-			// setup for downstream message
-				if ($jax) {
-			//	send ['replace'=>'authelements','html'=>'X','message'=>'X']
-				} else {
-			//	send token to handler 
-				}
-				return [TRUE,''];
-			} elseif (0) { //can setup for sync reset
+				if ($sendmail) {
+				// send message
+					if ($token) {
+			//	cache stuff in current session
+					} else {
+			//	make new session
+			//	cache stuff in new session
+					}
+				// setup for downstream message
+					if ($jax) {
+				//	send ['replace'=>'authelements','html'=>'X','message'=>'X']
+					} else {
+				//	send token to handler
+					}
+					return [TRUE,''];
+				} //sendmail
+			} //send message
+			if (0) { //can do sync reset
 			// set/update session as above
-		//TODO
+			//TODO
 				if ($jax) {
 			//	send ['replace'=>'authelements','html'=>'X','message'=>'X']
 				} else {
-			//	send token to handler 
+			//	send token to handler
 				}
 				return [TRUE,''];
-			} else {
+			} else { //can't reset
 				if (is_array($failkey)) {
 					$msg = $this->CompoundMessage($failkey);
 				} else {
