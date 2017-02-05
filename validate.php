@@ -9,7 +9,7 @@
 function ajax_errreport($msg) {
 	header('HTTP/1.1 500 Internal Server Error');
 	header('Content-Type: application/json; charset=UTF-8');
-	die(json_encode(['message'=>$msg]));
+	die(json_encode(['message'=>$msg, 'focus'=>'']));
 }
 
 //clear all page-content echoed before now
@@ -106,30 +106,44 @@ if (!$sent) {
 $db = $gCms->GetDb(); //var defined by inclusion
 $pre = cms_db_prefix();
 $cdata = $db->GetRow('SELECT * FROM '.$pre.'module_auth_contexts WHERE id=?', [$params['context']]);
+if (!empty($params['token'])) {
+	$token = $params['token'];
+	$sdata = $db->GetRow('SELECT * FROM '.$pre.'module_auth_sessions WHERE token=?', [$token]);
+} else {
+	$token = FALSE; //may be updated by included code
+	$sdata = FALSE;
+}
 
-//TODO session data from cache
-/*TODO get & process
-$_POST array e.g.
+$afuncs = new Auther\Auth($mod, $params['context']);
+$vfuncs = new Auther\Validate($mod, $afuncs, $cfuncs);
+$msgs = [];
+$focus = '';
+
+/*TODO get & process $_POST array e.g.
 [pA762_IV]	"Ys1ad0tN0JI="
 [pA762_data]	"xD+qbcJIMUA87rNvZuppgYyCb2Ox04ChJj6jma8O7b/lwKuFC7yHoDwFH6buzxhLw2Ur/x0FonEwT6lMCotElxFLUcaHK9zvH1Wquo75vYWqC7pNbkBkonvKATq+semQA0xPCHuDsOw8nMVyFs84ctr0KRv/an3DVozCr8t35B23PWyBlKMv4xIySW3UoZ5942ReppZ99I4QZBma9YVvBwP0nyyL6+odS6bowic1nBgIQXjOYKs+gtqxiciS2DI18eAxWd0K+bJprgPHT000KjTNyxqoF5M+20Sapp5Bn7o6G2BaqLwPIQ=="
 [pA762_jsworks]	"TRUE" iff ajax-sourced
+[pA762_submit]	"Submit" iff NOT ajax-sourced
+[pA762_captcha]	"text" maybe iff NOT ajax-sourced
 [pA762_login]	"rogerrabbit"
 [pA762_nearn]	"AjsxOcOYMMOSw77DkWAmwoAXw53Cun0"
-[pA762_recover]	"0"
+[pA762_name]	"whatever" iff relevant for the mode
+[pA762_contact]	"whatever" iff relevant for the mode
+[pA762_recover]	"0" OR "1"
+encrypted password(s) in
 [pA762_sent]	"AjsxOcOYMMOSw77DkWAmwnb+nrh+HVJTjx6nelaIfxTfPBeyVqfR83gAhBd59lSk
 y1ePAujBNoQstmmiebMRRAyhPAh5SvNK29Zlr2J77T7efx/y5heYyyf+5jyveKbu"
 THE LATTER BECOMES
 $sent array e.g.
-[passwd] =>	"s11kul52"
+[passwd] => "s11kul52"
+[passwd2] => "someother" (if relevant)
 */
 
-$afuncs = new Auther\Auth($mod, $params['context']);
+require (__DIR__.DIRECTORY_SEPARATOR.'process.'.$this->task.'.php');
 
-$msg = 'I\'m back';
-$res = ['message'=>$msg, 'element'=>'passwd']; //etc
-$t = json_encode($res);
-
-if (1) { //TODO error
+if ($msgs) { //error
+	$msgtext = implode('\n', $msgs); //newline for js alert box
+	$t = json_encode(['message'=>$msgtext, 'focus'=>$focus]);
 	if ($jax) {
 		header('HTTP/1.1 500 Internal Server Error');
 		header('Content-Type: application/json; charset=UTF-8');
@@ -138,6 +152,7 @@ if (1) { //TODO error
 		//send stuff to $params['handler']
 	}
 } elseif (1) { //TODO not-finished-now
+$t = 'I\'m back';
 	if ($jax) {
 		header('HTTP/1.1 204 No Content');
 		header('Content-Type: application/json; charset=UTF-8');
