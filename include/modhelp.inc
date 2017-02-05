@@ -51,7 +51,10 @@ $id = module ID string, as widely used in the CMSModule class<br />
 $xhtml = displayable content (a form including inputs, buttons etc)<br />
 $js = associated javascript<br /><br />
 Then put the displayable content ($xhtml) and javascript ($js) into your page/template
-in whatever manner is appropriate.
+in whatever manner is appropriate.<br /><br />
+<strong>OR</strong><br /><br />
+You can roll-your-own user-interface, and work with the Auth-class API directly.<br /><br />
+This approach would be appropriate if authority must be checked without an actual login, for example.
 <h4>API</h4>
 <h3>Styling</h3>
 <h3>Permissions</h3>
