@@ -13,7 +13,7 @@ class Validate
 	protected $afuncs;
 	protected $cfuncs;
 
-	public function __construct(&$mod, $afuncs=NULL, $cfuncs=NULL)
+	public function __construct(&$mod, &$afuncs=NULL, &$cfuncs=NULL)
 	{
 		$this->mod = $mod;
 		if (!$afuncs) {
@@ -78,7 +78,7 @@ class Validate
 		$res = $this->afuncs->getBaseUser($uid);
 		if ($res && $res['active']) {
 			$tries = 1; //TODO get from session
-			if ($this->afuncs->password_check($val, $res['passhash'], $tries)) {
+			if ($this->afuncs->password_check($val, $res['privhash'], $tries)) {
 				return [TRUE,''];
 			}
 		}
@@ -93,17 +93,13 @@ class Validate
 
 	/**
 	 * Checks validity of suppplied login and password
+	 * @passwd may be FALSE, so as to check only the login
 	 * Returns: 2-member array, [0] = boolean indicating success, [1] = error message or ''
 	 */
-	public function IsKnown($params, $failkey='authority_failed')
+	public function IsKnown($login, $passwd, $failkey='authority_failed')
 	{
-		$uid = 22; //TODO get from $params
-		$res = $this->afuncs->getBaseUser($uid);
-		if ($res && $res['active']) {
-			$tries = 1; //TODO get from session
-			if ($this->afuncs->password_check($params['TODO'], $res['passhash'], $tries)) {
-				return [TRUE,''];
-			}
+		if ($this->afuncs->isRegistered($login, $passwd))
+			return [TRUE,''];
 		}
 
 		if (is_array($failkey)) {
@@ -119,29 +115,61 @@ class Validate
 	* Normally do not provide $failkey
 	* Returns: 2-member array, [0] = boolean indicating success, [1] = error message or ''
 	*/
-	public function DoRecover($params, $failkey='err_parm')
+	public function DoRecover($login, &$token, $failkey='err_parm')
 	{
-		$uid = 22; //TODO get from $params
-		$res = $this->afuncs->getBaseUser($uid);
-		if ($res && $res['active']) {
-			//TODO do stuff
-			return [TRUE, ''];
+		$res = $this->IsKnown($login, FALSE, $failkey);
+		if ($res[0]) {
+			//TODO iff context::send_reset_message
+			$userdata = $this->afuncs->getPublicUser($login);
+			if (preg_match('//', $userdata['address'])) {
+				$sendmail = $userdata['address'];
+			elseif (preg_match('//', $login)) {
+				$sendmail = login;
+			} else {
+				$sendmail = FALSE;
+			}
+			if ($sendmail) {
+			// send message
+				if ($token) {
+		//	cache stuff in current session 
+				} else {
+		//	make new session
+		//	cache stuff in new session 
+				}
+			// setup for downstream message
+				if ($jax) {
+			//	send ['replace'=>'authelements','html'=>'X','message'=>'X']
+				} else {
+			//	send token to handler 
+				}
+				return [TRUE,''];
+			} elseif (0) { //can setup for sync reset
+			// set/update session as above
+		//TODO
+				if ($jax) {
+			//	send ['replace'=>'authelements','html'=>'X','message'=>'X']
+				} else {
+			//	send token to handler 
+				}
+				return [TRUE,''];
+			} else {
+				if (is_array($failkey)) {
+					$msg = $this->CompoundMessage($failkey);
+				} else {
+					$msg = $this->mod->Lang($failkey);
+				}
+				return [FALSE, $msg];
+			}
+		} else { //login not recognised
+			if ($token) {
+				$tries = $this->afuncs->BumpTries($token);
+//				TODO handle if too many
+			} else {
+				$ip = $this->afuncs->GetIp();
+				$token = $this->afuncs->MakeSourceSession($ip); //upstream gets it too
+				$this->afuncs->BumpTries($token); //1 attempt sofar
+			}
+			return [FALSE, $res[1]];
 		}
-		$ip = $this->afuncs->GetIp();
-		$token = $this->afuncs->GetSourceSession($ip);
-		if ($token) {
-			$this->afuncs->BumpTries($token);
-//			TODO handle if too many
-		} else {
-			$token = $this->afuncs->MakeSourceSession($ip);
-			$this->afuncs->BumpTries($token); //1 attempt sofar
-		}
-
-		if (is_array($failkey)) {
-			$msg = $this->CompoundMessage($failkey);
-		} else {
-			$msg = $this->mod->Lang($failkey);
-		}
-		return [FALSE, $msg];
 	}
 }
