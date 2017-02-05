@@ -69,11 +69,11 @@ class Utils
 		$pre = \cms_db_prefix();
 		if (is_array($context)) {
 			$fillers = str_repeat('?,', count($context)-1);
-			$sql1 = 'DELETE FROM '.$pre.'module_auth_users WHERE context IN('.$fillers.'?)';
+			$sql1 = 'DELETE FROM '.$pre.'module_auth_users WHERE context_id IN('.$fillers.'?)';
 			$sql2 = 'DELETE FROM '.$pre.'module_auth_contexts WHERE id IN('.$fillers.'?)';
 			$args = $context;
 		} else {
-			$sql1 = 'DELETE FROM '.$pre.'module_auth_users WHERE context=?';
+			$sql1 = 'DELETE FROM '.$pre.'module_auth_users WHERE context_id=?';
 			$sql2 = 'DELETE FROM '.$pre.'module_auth_contexts WHERE id=?';
 			$args = [$context];
 		}
@@ -207,6 +207,8 @@ EOS;
 });
 EOS;
 			}
+//			$funcs = new JSqueeze();
+//			$all[] = $funcs->squeeze(implode(PHP_EOL, $all2));
 			$all[] =<<<'EOS'
 //]]>
 </script>
