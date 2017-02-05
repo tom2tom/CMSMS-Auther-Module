@@ -125,7 +125,7 @@ if (isset($params['cancel'])) {
 					}
 					break;
 				 case 'default_password':
-				 	$t = ($cid == -1) ? NULL:$cid;
+				 	$t = ($cid == -1) ? 0:$cid;
 					$funcs = new Auther\Auth($this, $t);
 					$status = $funcs->validatePassword($val);
 					if ($status[0]) {
