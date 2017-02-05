@@ -25,10 +25,21 @@
  margin-top:2px;
 }
 
+#authelements input[type=checkbox] {
+ vertical-align:middle;
+ position:relative;
+ bottom:1px;
+}
+
+#authelements label {
+ padding-right:0.5em;
+}
+
 #authactions {
  margin-top:1em;
  text-align:left;
 }
 
 .authtext {
+ margin-top:2px;
 }
