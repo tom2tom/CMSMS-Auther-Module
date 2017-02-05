@@ -56,10 +56,12 @@ switch ($lvl) {
 		$msgs[] = $res[1];
 		if (!$focus) { $focus = 'passwd'; }
 	}
-	$pw2 = ($jax) ? $sent['passwd2'] : $_POST[$id.'passwd2'];
-	if ($pw !== $pw2) {
-		$msgs[] = $mod->Lang('newpassword_nomatch');
-		if (!$focus) { $focus = 'passwd2'; }
+	if (!$jax) { //i.e lengths not matched in browser
+		$pw2 = trim($_POST[$id.'passwd2']);
+		if ($pw !== $pw2) {
+			$msgs[] = $mod->Lang('newpassword_nomatch');
+			if (!$focus) { $focus = 'passwd2'; }
+		}
 	}
 	if (!$msgs) {
 		$flds['privhash'] = $t; //hash if/when needed
