@@ -42,6 +42,57 @@ class Utils
 	}
 
 	/**
+	DeleteContext:
+	@context: numeric context identifier, or array of them
+	*/
+	public function DeleteContext($context)
+	{
+		$pre = \cms_db_prefix();
+		if (is_array($context)) {
+			$i = array_search(0, $context);
+			if ($i !== FALSE) {
+				unset($context[$i]); //preserve default context
+				if (!$context) {
+					return;
+				}
+			}
+			$fillers = str_repeat('?,', count($context)-1);
+			$sql1 = 'DELETE FROM '.$pre.'module_auth_users WHERE context_id IN ('.$fillers.'?)';
+			$sql2 = 'DELETE FROM '.$pre.'module_auth_contexts WHERE id IN ('.$fillers.'?)';
+			$args = $context;
+		} else {
+			if ($context === 0) {
+				return; //preserve default
+			}
+			$sql1 = 'DELETE FROM '.$pre.'module_auth_users WHERE context_id=?';
+			$sql2 = 'DELETE FROM '.$pre.'module_auth_contexts WHERE id=?';
+			$args = [$context];
+		}
+		$db = \cmsms()->GetDB();
+		$db->Execute($sql1, $args);
+		$db->Execute($sql2, $args);
+	}
+
+	/**
+	DeleteContextUsers:
+	@context: numeric context identifier, or array of them
+	*/
+	public function DeleteContextUsers($context)
+	{
+		$pre = \cms_db_prefix();
+		if (is_array($context)) {
+			$fillers = str_repeat('?,', count($context)-1);
+			$sql = 'DELETE FROM '.$pre.'module_auth_users WHERE context_id IN ('.$fillers.'?)';
+			$args = $context;
+		} else {
+			$sql = 'DELETE FROM '.$pre.'module_auth_users WHERE context_id=?';
+			$args = [$context];
+		}
+		$db = \cmsms()->GetDB();
+		$db->Execute($sql, $args);
+	}
+
+	/**
 	DeleteUser:
 	@user: numeric user identifier, or array of them
 	*/
@@ -50,7 +101,7 @@ class Utils
 		$pre = \cms_db_prefix();
 		if (is_array($user)) {
 			$fillers = str_repeat('?,', count($user)-1);
-			$sql = 'DELETE FROM '.$pre.'module_auth_users WHERE id IN('.$fillers.'?)';
+			$sql = 'DELETE FROM '.$pre.'module_auth_users WHERE id IN ('.$fillers.'?)';
 			$args = $user;
 		} else {
 			$sql = 'DELETE FROM '.$pre.'module_auth_users WHERE id=?';
@@ -58,28 +109,6 @@ class Utils
 		}
 		$db = \cmsms()->GetDB();
 		$db->Execute($sql, $args);
-	}
-
-	/**
-	DeleteContext:
-	@user: numeric context identifier, or array of them
-	*/
-	public function DeleteContext($context)
-	{
-		$pre = \cms_db_prefix();
-		if (is_array($context)) {
-			$fillers = str_repeat('?,', count($context)-1);
-			$sql1 = 'DELETE FROM '.$pre.'module_auth_users WHERE context_id IN('.$fillers.'?)';
-			$sql2 = 'DELETE FROM '.$pre.'module_auth_contexts WHERE id IN('.$fillers.'?)';
-			$args = $context;
-		} else {
-			$sql1 = 'DELETE FROM '.$pre.'module_auth_users WHERE context_id=?';
-			$sql2 = 'DELETE FROM '.$pre.'module_auth_contexts WHERE id=?';
-			$args = [$context];
-		}
-		$db = \cmsms()->GetDB();
-		$db->Execute($sql1, $args);
-		$db->Execute($sql2, $args);
 	}
 
 	/**
