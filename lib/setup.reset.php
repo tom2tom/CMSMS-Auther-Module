@@ -78,6 +78,7 @@ EOS;
 	 case self::NONCED:
 		$far = $this->UniqueToken(32);
 		$cache['far'] = $far;
+		$far2 = strtr($far, ['"'=>'\"']);
 		$hidden[] = $mod->CreateInputHidden($id,'nearn','');
 		$one = new \stdClass();
 		$one->title = $mod->Lang('title_captcha');
@@ -98,7 +99,7 @@ function transfers(\$inputs) {
   passwd: $('#passwd').val(),
   passwd2: $('#passwd2').val()
  }),
-  far = '$far',
+  far = "$far2",
   iv = GibberAES.a2s(GibberAES.randArr(16));
  var parms = {
   {$id}jsworks: 'TRUE',
