@@ -173,7 +173,17 @@ class Auther extends CMSModule
 
 	public function GetHelp()
 	{
-		return ''.@file_get_contents(__DIR__.DIRECTORY_SEPARATOR.'include'.DIRECTORY_SEPARATOR.'modhelp.inc');
+		$fn = cms_join_path(__DIR__,'css','authpanel.css');
+		$cont = @file_get_contents($fn);
+		if ($cont) {
+			$example = preg_replace(array('~\s?/\*(.*)?\*/~Usm','~\s?//.*$~m'),array('',''),$cont);
+			$example = str_replace(array("\n\n","\n","\t"),array('<br />','<br />',' '),trim($example));
+		} else {
+			$example = 'MISSING!';
+		}
+		return ''.
+		@file_get_contents(__DIR__.DIRECTORY_SEPARATOR.'include'.DIRECTORY_SEPARATOR.'modhelp.inc').
+		$example;
 	}
 
 	public function VisibleToAdminUser()
