@@ -186,8 +186,9 @@ class Auther extends CMSModule
 		$baseurl = $this->GetModuleURLPath();
 		//authpanel included for debugging
 		return <<<EOS
-<link rel="stylesheet" type="text/css" id="adminstyler" href="{$baseurl}/css/admin.css" />';
-<link rel="stylesheet" type="text/css" href="{$baseurl}/css/authpanel.css" />';
+<link rel="stylesheet" type="text/css" href="{$baseurl}/css/alertable.css" />
+<link rel="stylesheet" type="text/css" id="adminstyler" href="{$baseurl}/css/admin.css" />
+<link rel="stylesheet" type="text/css" href="{$baseurl}/css/authpanel.css" />
 EOS;
 	}
 
