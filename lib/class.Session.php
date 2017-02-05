@@ -22,7 +22,7 @@ class Session
 	protected $mod;
 	protected $db;
 	protected $pref;
-	protected $context;
+	protected $context; //numeric or NULL
 
 	public function __construct(&$mod, $context=NULL)
 	{
@@ -32,93 +32,89 @@ class Session
 		$this->context = $context;
 	}
 
+	/**
+	* Gets the current session (if any) for user @uid
+	* Returns: string session-token, or FALSE
+	*/
 	public function GetUserSession($uid)
 	{
+		$sql = 'SELECT token FROM '.$this->pref.'module_auth_sessions WHERE user_id=? AND context_id';
+		if ($this->context !== NULL) {
+			$sql .= '=?';
+			$args = [$uid, $this->context];
+		} else {
+			$sql .= ' IS NULL';
+			$args = [$uid];
+		}
+		return $this->db->GetOne($sql, $args);
 	}
 
+	/**
+	* Gets the current session (if any) for source @ip
+	* Returns: string session-token, or FALSE
+	*/
 	public function GetSourceSession($ip)
 	{
-	}
-
-	public function GetSession($token)
-	{
-	}
-
-	public function UpdateSession($token)
-	{
-	}
-
-	public function LatestLogin($token, $set)
-	{
-	}
-
-	public function GetTries($token)
-	{
-	}
-
-	public function BumpTries($token)
-	{
-	}
-
-	/**
-	* Adds an attempt to database
-	* TODO @token session identifier
-	* Returns: boolean indicating success
-	*/
-	public function AddAttempt()
-	{
-		$ip = $this->GetIp();
-		$dt = new \DateTime('@'.time(), NULL);
-		$val = $this->GetConfig('attack_mitigation_span');
-		$dt->modify('+'.$val);
-		$expiretime = $dt->getTimestamp();
-
-		$sql = 'INSERT INTO '.$this->pref.'module_auth_attempts (ip,expire) VALUES (?,?)';
-		$res = $this->db->Execute($sql, [$ip, $expiretime]);
-		return ($res != FALSE);
-	}
-
-	/**
-	* Deletes some/all attempts for a given IP from database
-	* @ip: string
-	* @all: boolean default = FALSE
-	* Returns: boolean indicating success
-	*/
-	public function DeleteAttempts($ip, $all=FALSE)
-	{
-		if ($all) {
-			$sql = 'DELETE FROM '.$this->pref.'module_auth_attempts WHERE ip=?';
-			$res = $this->db->Execute($sql, [$ip]);
+		$sql = 'SELECT token FROM '.$this->pref.'module_auth_sessions WHERE ip=? AND context_id';
+		if ($this->context !== NULL) {
+			$sql .= '=?';
+			$args = [$ip, $this->context];
 		} else {
-			$sql = 'DELETE FROM '.$this->pref.'module_auth_attempts WHERE ip=? AND expire<?';
-			$nowtime = time();
-			$res = $this->db->Execute($sql, [$ip, $nowtime]);
+			$sql .= ' IS NULL';
+			$args = [$ip];
 		}
-		return ($res != FALSE);
+		return $this->db->GetOne($sql, $args);
 	}
 
-	public function MakeUserSession($uid)
+	/**
+	* Gets all parameters for the session having @token
+	* Returns: array, or FALSE
+	*/
+	public function GetSessionData($token)
 	{
-	}
-
-	public function MakeSourceSession($ip)
-	{
+		$sql = 'SELECT * FROM '.$this->pref.'module_auth_sessions WHERE token=?';
+		return $this->db->GetRow($sql, [$token]);
 	}
 
 	/**
 	* Creates a session for user @uid
-	* @uid: int user enumerator
-	* @remember: boolean whether to setup an expiry time for the session
-	* Returns: array with members 'token','expire','expiretime','cookie_token', or else FALSE
+	* Returns: string session-token
 	*/
-	protected function AddSession($uid, $remember)
+	public function MakeUserSession($uid, $remember=TRUE)
 	{
-		$sql = 'SELECT id FROM '.$this->pref.'module_auth_users WHERE id=? AND active>0';
-		if (!$this->db->GetOne($sql, [$uid])) {
-			return FALSE;
-		}
+		$ip = $this->GetIp();
+		$data = $this->AddSession($uid, $ip, $remember);
+		return $data['token'];
+	}
 
-		$this->DeleteExistingSessions($uid);
+	/**
+	* Creates a session for source @ip
+	* Returns: string session-token
+	*/
+	public function MakeSourceSession($ip, $remember=TRUE)
+	{
+		$data = $this->AddSession(FALSE, $ip, $remember);
+		return $data['token'];
+	}
+
+	/**
+	* Creates a session for user @uid/source @ip
+	* @uid: int user enumerator or FALSE
+	* @ip: source ip address (V4 or 6)
+	* @remember: boolean whether to setup an expiry time for the session
+	* Returns: array with members 'token','cookie_token','expire','expiretime', or else FALSE
+	*/
+	protected function AddSession($uid, $ip, $remember)
+	{
+		if ($uid) {
+			$sql = 'SELECT id FROM '.$this->pref.'module_auth_users WHERE id=? AND active>0';
+			if (!$this->db->GetOne($sql, [$uid])) {
+				return FALSE;
+			}
+			$this->DeleteUserSessions($uid);
+		} else {
+			$this->DeleteSourceSessions($ip);
+		}
 
 		$token = $this->UniqueToken(24);
 		$val = $this->mod->GetPreference('session_salt');
@@ -137,12 +133,18 @@ class Session
 			$data['expiretime'] = 0;
 		}
 
-		$ip = $this->GetIp();
+		$cid = $TODO;
+		$stat = ($uid) ? self::NEW_FOR_USER : self::NEW_FOR_IP;
+		if (!$uid) {
+			$uid = NULL;
+		}
 		$agent = $_SERVER['HTTP_USER_AGENT'];
-		//TODO other fields e.g. context_id
-		$sql = 'INSERT INTO '.$this->pref.'module_auth_sessions (token,user_id,expire,ip,agent,cookie_token) VALUES (?,?,?,?,?,?)';
 
-		if (!$this->db->Execute($sql, [$token, $uid, $data['expire'], $ip, $agent, $data['cookie_token']])) {
+		$sql = 'INSERT INTO '.$this->pref.
+'module_auth_sessions (token,ip,user_id,context_id,expire,lastmode,attempts,cookie_hash,agent) VALUES (?,?,?,?,?,?,?,?,?)';
+		$args = [$token, $ip, $uid, $this->context, $data['expire'], $stat, 1, $data['cookie_token'], $agent];
+
+		if (!$this->db->Execute($sql, $args)) {
 			return FALSE;
 		}
 
@@ -154,15 +156,23 @@ class Session
 	* @uid: int user enumerator
 	* Returns: boolean
 	*/
-	protected function DeleteExistingSessions($uid)
+	protected function DeleteUserSessions($uid)
 	{
 		$sql = 'DELETE FROM '.$this->pref.'module_auth_sessions WHERE user_id=?';
 		$res = $this->db->Execute($sql, [$uid]);
 		return ($res != FALSE);
 	}
 
-	public function RemoveSession($token)
+	/**
+	* Removes all existing sessions for src @ip
+	* @ip: source ip address (V4 or 6)
+	* Returns: boolean
+	*/
+	protected function DeleteSourceSessions($ip)
 	{
+		$sql = 'DELETE FROM '.$this->pref.'module_auth_sessions WHERE ip=?';
+		$res = $this->db->Execute($sql, [$uid]);
+		return ($res != FALSE);
 	}
 
 	/**
@@ -216,9 +226,23 @@ class Session
 	}
 
 	/**
+	* Sets the user-enumerator associated with the given session-token (after a
+	* @token: string identifier
+	* @uid: user enumerator
+	* Returns: nothing
+	*/
+	public function setSessionUID($token, $uid)
+	{
+		$sql = 'UPDATE '.$this->pref.'module_auth_sessions SET user_id=? WHERE token=?';
+		$this->db->Execute($sql, [$uid, $token]);
+		$sql = 'UPDATE '.$this->pref.'module_auth_sessions SET lastmode=? WHERE token=? AND lastmode=?';
+		$this->db->Execute($sql, [self::NEW_FOR_USER, $token, self::NEW_FOR_IP]); //maybe does nothing
+	}
+
+	/**
 	* Retrieves the user-enumerator associated with the given session-token
 	* @token: string
-	* Returns: int
+	* Returns: int, or maybe '' if user not recorded yet
 	*/
 	public function getSessionUID($token)
 	{
@@ -227,7 +251,92 @@ class Session
 	}
 
 	/**
+	@set FALSE to get data, timstamp or YmdHis-formatted string to set data
+	@raw optional boolean whether to set/get timestamp instead of D/T string, default FALSE
+	*/
+	public function LatestLogin($token, $set, $raw=FALSE)
+	{
+		if ($set) {
+			if ($raw) {
+				$st = $set;
+			} else {
+				$st = 0; //TODO convert from Ymd His string
+			}
+			$sql = 'UPDATE '.$this->pref.'module_auth_users U JOIN '.$this->pref.
+			'module_auth_sessions S ON U.id = S.user_id SET set U.lastuse=? WHERE S.token=?';
+			$this->db->Execute($sql, [$st, $token]);
+		} else {
+			//TODO CHECK can there be >1 session for the user?
+			$sql = 'SELECT U.lastuse FROM '.$this->pref.'module_auth_users U JOIN '.
+			$this->pref.'module_auth_sessions S ON U.id = S.user_id WHERE S.token=?';
+			$st = $this->db->GetOne($sql, [$token]);
+			if ($raw) {
+				return $st;
+			} else {
+				//TODO format as Ymd His
+				return 'TODO Ymd His';
+			}
+		}
+	}
+
+	public function GetAttempts($token)
+	{
+		$sql = 'SELECT attempts FROM '.$this->pref.'module_auth_sessions WHERE token=?';
+		return $this->db->GetOne($sql, [$token]);
+	}
+
+	public function BumpAttempts($token)
+	{
+		$sql = 'UPDATE '.$this->pref.'module_auth_sessions SET attempts=attempts+1 WHERE token=?';
+		$this->db->Execute($sql, [$token]);
+	}
+
+	/**
+	* Adds an attempt to the session related to the current source ip address
+	* Returns: Nothing
+	*/
+	public function AddAttempt()
+	{
+		$dt = new \DateTime('@'.time(), NULL);
+		$val = $this->GetConfig('attack_mitigation_span');
+		$dt->modify('+'.$val);
+		$expiry = $dt->getTimestamp();
+
+		$ip = $this->GetIp();
+		$token = $this->GetSourceSession($ip);
+		if ($token) {
+		//SESSION STATUS CHANGE?
+			$sql = 'UPDATE '.$this->pref.'module_auth_sessions SET expire=?, attempts=attempts+1 WHERE token=?';
+			$this->db->Execute($sql, [$expiry, $token]);
+		} else {
+			$token = $this->MakeSourceSession($ip);
+			$sql = 'UPDATE '.$this->pref.'module_auth_sessions SET expire=? WHERE token=?';
+			$this->db->Execute($sql, [$expiry, $token]);
+		}
+	}
+
+	/**
+	* Deletes expired|all attempts for a given IP from session(s) data
+	* @ip: string source ip address
+	* @all: optional boolean whether to delete only expired attempts, default = FALSE
+	* Returns: boolean indicating success
+	*/
+	public function DeleteAttempts($ip, $all=FALSE)
+	{
+		if ($all) {
+			$sql = 'UPDATE '.$this->pref.'module_auth_sessions SET attempts=0 WHERE ip=?';
+			$res = $this->db->Execute($sql, [$ip]);
+		} else {
+			$sql = 'UPDATE '.$this->pref.'module_auth_sessions SET attempts=0 WHERE ip=? AND expire<?';
+			$nowtime = time();
+			$res = $this->db->Execute($sql, [$ip, $nowtime]);
+		}
+		return ($res != FALSE);
+	}
+
+	/**
 	* Gets current session token
+	* Not to be confused with GetUserSession() etc
 	* Returns: string
 	*/
 	public function GetSessionToken()
