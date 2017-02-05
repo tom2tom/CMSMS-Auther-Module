@@ -285,13 +285,16 @@ EOS;
     success: function(data, status, jqXHR) {
      if (status=='success') {
    //stuff
+      var details = JSON.parse(jqXHR.responseText);
+      ajaxresponse (details, false);
      } else {
    //stuff e.g. show jqXHR.responseText, jqXHR.statusText
      }
+     $(btn).prop('disabled', false);
     },
     error: function(jqXHR, status, errmsg) {
-     var details = JSON.parse(jqXHR.responseText);
-	//TODO process details
+     details = JSON.parse(jqXHR.responseText);
+     ajaxresponse (details, errmsg);
      $(btn).prop('disabled', false);
     }
    });
