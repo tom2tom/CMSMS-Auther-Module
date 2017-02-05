@@ -55,7 +55,8 @@ switch ($cdata['security_level']) {
 	//TODO record $t code for later use
 	$cache['captcha'] = $t;
 	//TODO js for captcha processing ETC
-//<script type="text/javascript" src="{$baseurl}/include/auth.js"></script>
+	//javascript:alert(grecaptcha.getResponse(widgetId1));
+	//<script type="text/javascript" src="{$baseurl}/include/auth.js"></script>
 	//TODO backend for captcha processing
 	//TODO captcha encoding per $config['locale'] if that exists or else Lang setting?
 	// add to URL &hl=whatever with 'en' for 'en_US' etc
@@ -106,7 +107,8 @@ EOS;
 	$one->title = $mod->Lang('password');
 	$one->input = $this->GetInputPasswd($id, 'passwd', 'passwd', $tabindex++, '', 20, 72);
 	if ($cdata['forget_rescue']) {
-		$one->extra = '<span style="vertical-align:30%;">'.$mod->Lang('lostpass').'</span>&nbsp;&nbsp;'.$this->GetInputCheck($id, 'recover', 'recover', $tabindex++, FALSE);
+		$one->extra = '<span style="vertical-align:30%;">'.$mod->Lang('lostpass').
+		'</span>&nbsp;&nbsp;'.$this->GetInputCheck($id, 'recover', 'recover', $tabindex++, FALSE);
 	}
 	$elements[] = $one;
 
@@ -126,9 +128,8 @@ function transfers(\$inputs) {
 EOS;
 		break;
 	 case self::NONCED:
-		$t = uniqid($this->RandomAscii(19));
-		$cache['far'] = $t;
-		$hidden[] = $mod->CreateInputHidden($id, 'farn', $t);
+		$far = $this->UniqueToken(32);
+		$cache['far'] = $far;
 		$hidden[] = $mod->CreateInputHidden($id, 'nearn', '');
 		$one = new \stdClass();
 		$one->title = $mod->Lang('title_captcha');
@@ -138,6 +139,7 @@ EOS;
 		$one->img = $img;
 		$one->input = $this->GetInputText($id, 'captcha', 'captcha', $tabindex++, '', 8, 8);
 		$tplvars['captcha'] = $one;
+
 		$jsincs[] = <<<EOS
 <script type="text/javascript" src="{$baseurl}/include/gibberish-aes.js"></script>
 EOS;
@@ -148,14 +150,13 @@ function transfers(\$inputs) {
  var sent = JSON.stringify({
   passwd: $('#passwd').val()
  }),
-  far = $('#{$id}farn').val(),
+  far = '$far',
   iv = GibberAES.a2s(GibberAES.randArr(16));
  var parms = {
   {$id}jsworks: 'TRUE',
   {$id}sent: GibberAES.encString(far+sent,far,iv)
  };
  $('#{$id}nearn').val(GibberAES.Base64.encode(iv));
- $('#{$id}farn').val('');
  $('#authcontainer input:hidden').add(\$inputs).each(function() {
   var \$el = $(this),
    v = \$el.val(),
@@ -228,7 +229,7 @@ EOS;
    }
   });
  });
- $('#authsend').click(function() {
+ $('#authsubmit').click(function() {
   var btn = this;
   setTimeout(function() {
    btn.disabled = true;

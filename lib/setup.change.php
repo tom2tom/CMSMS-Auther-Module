@@ -18,6 +18,18 @@ switch ($cdata['security_level']) {
 	$one = new \stdClass();
 	$one->title = $mod->Lang('noauth');
 	$elements[] = $one;
+	//TODO filter parms as appropriate
+	$jsfuncs[] = <<<EOS
+function transfers(\$inputs) {
+ var parms = {};
+ $('#authcontainer input:hidden').add(\$inputs).each(function() {
+  var \$el = $(this),
+   n = \$el.attr('name');
+  parms[n] = \$el.val();
+ });
+ return parms;
+}
+EOS;
 	break;
 
  case self::LOSEC:
@@ -39,7 +51,8 @@ switch ($cdata['security_level']) {
 	$one->title = $mod->Lang('current_typed', $mod->Lang('password'));
 	$one->input = $this->GetInputPasswd($id, 'passwd', 'passwd', $tabindex++, '', 20, 72);
 	if ($cdata['forget_rescue']) {
-		$one->extra = '<span style="vertical-align:30%;">'.$mod->Lang('lostpass').'</span>&nbsp;&nbsp;'.$this->GetInputCheck($id, 'recover', 'recover', $tabindex++, FALSE);
+		$one->extra = '<span style="vertical-align:30%;">'.$mod->Lang('lostpass').
+		'</span>&nbsp;&nbsp;'.$this->GetInputCheck($id, 'recover', 'recover', $tabindex++, FALSE);
 	}
 	$elements[] = $one;
 
@@ -101,38 +114,48 @@ function transfers(\$inputs) {
 EOS;
 		break;
 	 case self::NONCED:
-		$t = $utils->RandomAlnum(24);
-	//TODO record $t for later use in session
-		$hidden[] = $mod->CreateInputHidden($id,'farn',$t);
+		$far = $this->UniqueToken(32);
+		$cache['far'] = $far;
 		$hidden[] = $mod->CreateInputHidden($id,'nearn','');
 		$one = new \stdClass();
 		$one->title = $mod->Lang('title_captcha');
 		$one->subtitle = $mod->Lang('title_captcha2');
 		list($t,$img) = $this->CaptchaImage($mod);
-	//TODO record $t code for later use
+		$cache['captcha'] = $t;
 		$one->img = $img;
 		$one->input = $this->GetInputText($id, 'captcha', 'captcha', $tabindex++, '', 8, 8);
 		$tplvars['captcha'] = $one;
-	//TODO js for captcha processing ETC
+
 		$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/sjcl.js"></script>
-<script type="text/javascript" src="{$baseurl}/include/auth.js"></script>
+<script type="text/javascript" src="{$baseurl}/include/gibberish-aes.js"></script>
 EOS;
-		//TODO filter parms as appropriate
+		//function returns js object
 		$jsfuncs[] = <<<EOS
 function transfers(\$inputs) {
- var far = $('#farn').val(),
-    near = randomBytes(16),
-    key = stringXor(far,near),
-    hash = encryptVal(near + far + $('#passwd').val(),key);
- $('#nearn').val(base64encode(near));
- $('#hash').val(base64encode(hash));
- $('#farn,#passwd').val('');
- var parms = {};
+ var sent = JSON.stringify({
+  passwd: $('#passwd').val(),
+ }),
+  far = '$far',
+  iv = GibberAES.a2s(GibberAES.randArr(16));
+ var parms = {
+  {$id}jsworks: 'TRUE',
+  {$id}sent: GibberAES.encString(far+sent,far,iv)
+ };
+ $('#{$id}nearn').val(GibberAES.Base64.encode(iv));
  $('#authcontainer input:hidden').add(\$inputs).each(function() {
   var \$el = $(this),
+   v = \$el.val(),
+   t, n;
+  if (v) {
+   t = \$el.attr('type');
+   if (t == 'password') {
+    return;
+   } else if (t == 'checkbox' && !\$el.is(':checked')) {
+    v = '0';
+   }
    n = \$el.attr('name');
-  parms[n] = \$el.val();
+   parms[n] = v;
+  }
  });
  return parms;
 }
@@ -191,7 +214,7 @@ EOS;
    }
   });
  });
- $('#authsend').click(function() {
+ $('#authsubmit').click(function() {
   var btn = this;
   setTimeout(function() {
    btn.disabled = true;
@@ -213,6 +236,8 @@ EOS;
       if (\$cb.length > 0 && \$cb.val() > 0) { return; }
       type = '{$mod->Lang('password')}';
       break;
+     case 'captcha':
+      return;
     }
     var msg = '{$mod->Lang('missing_type','%s')}'.replace('%s',type);
     doerror(\$el,msg);
@@ -237,7 +262,7 @@ EOS;
     method: 'POST',
     url: '$url',
     data: parms,
-    dataType: 'text',
+    dataType: 'json',
     global: false,
     success: function(data, status, jqXHR) {
      if (status=='success') {
@@ -249,12 +274,12 @@ EOS;
     error: function(jqXHR, status, errmsg) {
      var details = JSON.parse(jqXHR.responseText);
 	//TODO process details
-     btn.disabled = false;
+     $(btn).prop('disabled', false);
     }
    });
   } else {
     setTimeout(function() {
-     btn.disabled = false;
+     $(btn).prop('disabled', false);
     },10);
   }
   return false;
