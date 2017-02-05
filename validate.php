@@ -33,6 +33,16 @@ foreach ($keys as $kn) {
 $c = max($scan);
 $id = array_search($c, $scan);
 
+$kn = $id.'data';
+if (empty($_POST[$kn])) {
+	if ($jax) {
+		ajax_errreport($mod->Lang('err_ajax'));
+	} else {
+	//TODO signal something- BUT handler N/A yet
+	}
+	exit;
+}
+
 $jax = !empty($_POST[$id.'jsworks']);
 //grab stuff cuz' we've bypassed a normal session-start
 $fp = __DIR__;
@@ -60,7 +70,7 @@ if (empty($params) || $params['identity'] !== substr($id, 2, 3)) {
 	if ($jax) {
 		ajax_errreport($mod->Lang('err_ajax'));
 	} else {
-	//TODO signal something - BUT handler N/A yet
+	//TODO signal something
 	}
 	exit;
 }
@@ -69,16 +79,6 @@ if (!empty($_POST[$id.'cancel'])) {
 	//TODO pass to handler
 $adbg = $_POST;
 $X = $Y;
-}
-
-$kn = $id.'data';
-if (empty($_POST[$kn])) {
-	//TODO signal something
-	if ($jax) {
-		ajax_errreport($mod->Lang('err_ajax'));
-	} else {
-	}
-	exit;
 }
 
 $iv = base64_decode($_POST[$id.'nearn']);
@@ -140,7 +140,7 @@ $sent array e.g.
 [passwd2] => "someother" (if relevant)
 */
 
-require (__DIR__.DIRECTORY_SEPARATOR.'process.'.$this->task.'.php');
+require (__DIR__.DIRECTORY_SEPARATOR.'lib'.DIRECTORY_SEPARATOR.'process.'.$params['task'].'.php');
 
 if ($msgs) { //error
 	$msgtext = implode('\n', $msgs); //newline for js alert box
