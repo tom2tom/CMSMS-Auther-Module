@@ -20,7 +20,7 @@ $flds = '
 id I(2) KEY,
 name C(48) NOTNULL,
 alias C(16) NOTNULL,
-owner I DEFAULT 0,
+owner I DEFAULT -1,
 default_password B,
 request_key_expiration C(16) DEFAULT \'10 minutes\',
 attack_mitigation_span C(16) DEFAULT \'30 minutes\',
@@ -192,3 +192,9 @@ $this->CreatePermission('AuthModifyContext', $this->Lang('perm_modcontext'));
 $this->CreatePermission('AuthModifyUser', $this->Lang('perm_moduser'));
 $this->CreatePermission('AuthView', $this->Lang('perm_see'));
 //$this->CreatePermission('AuthSendEvents', $this->Lang('perm_send'));
+
+//add default context
+$t = $funcs->decrypt_preference($this, 'default_password');
+$t = $funcs->encrypt_value($this, $t);
+$sql = 'INSERT INTO '.$pref.'module_auth_contexts (id,name,alias,default_password) VALUES (0,?,"default",?)';
+$db->Execute($sql, [$this->Lang('default'), $t]);
