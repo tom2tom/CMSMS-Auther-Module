@@ -36,6 +36,18 @@ EOS;
  case self::NONCED:
  case self::CHALLENGED:
 	$one = new \stdClass();
+	if ($cdata['email_required']) {
+		$one->title = $mod->Lang('title_email');
+		$one->input = $this->GetInputText($id, 'login', 'login', $tabindex++, '', 32, 96);
+        $logtype = 0;
+	} else {
+		$one->title = $mod->Lang('title_login');
+		$one->input = $this->GetInputText($id, 'login', 'login', $tabindex++, '', 20, 32);
+        $logtype = 1;
+	}
+	$elements[] = $one;
+
+	$one = new \stdClass();
 	$one->title = $mod->Lang('current_typed', $mod->Lang('password'));
 	$one->input = $this->GetInputPasswd($id, 'passwd', 'passwd', $tabindex++, '', 20, 72);
 	$elements[] = $one;
@@ -64,38 +76,49 @@ function transfers(\$inputs) {
 EOS;
 		break;
 	 case self::NONCED:
-		$t = $utils->RandomAlnum(24);
-	//TODO record $t for later use in session
-		$hidden[] = $mod->CreateInputHidden($id,'farn',$t);
+		$far = $this->UniqueToken(32);
+		$cache['far'] = $far;
 		$hidden[] = $mod->CreateInputHidden($id,'nearn','');
 		$one = new \stdClass();
 		$one->title = $mod->Lang('title_captcha');
 		$one->subtitle = $mod->Lang('title_captcha2');
 		list($t,$img) = $this->CaptchaImage($mod);
-	//TODO record $t code for later use
+		$cache['captcha'] = $t;
 		$one->img = $img;
 		$one->input = $this->GetInputText($id, 'captcha', 'captcha', $tabindex++, '', 8, 8);
 		$tplvars['captcha'] = $one;
-	//TODO js for captcha processing ETC
+
 		$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/sjcl.js"></script>
-<script type="text/javascript" src="{$baseurl}/include/auth.js"></script>
+<script type="text/javascript" src="{$baseurl}/include/gibberish-aes.js"></script>
 EOS;
-		//TODO filter parms as appropriate
+		//function returns js object
 		$jsfuncs[] = <<<EOS
 function transfers(\$inputs) {
- var far = $('#farn').val(),
-    near = randomBytes(16),
-    key = stringXor(far,near),
-    hash = encryptVal(near + far + $('#passwd').val(),key);
- $('#nearn').val(base64encode(near));
- $('#hash').val(base64encode(hash));
- $('#farn,#passwd').val('');
- var parms = {};
+ var sent = JSON.stringify({
+  passwd: $('#passwd').val(),
+  passwd2: $('#passwd2').val()
+ }),
+  far = '$far',
+  iv = GibberAES.a2s(GibberAES.randArr(16));
+ var parms = {
+  {$id}jsworks: 'TRUE',
+  {$id}sent: GibberAES.encString(far+sent,far,iv)
+ };
+ $('#{$id}nearn').val(GibberAES.Base64.encode(iv));
  $('#authcontainer input:hidden').add(\$inputs).each(function() {
   var \$el = $(this),
+   v = \$el.val(),
+   t, n;
+  if (v) {
+   t = \$el.attr('type');
+   if (t == 'password') {
+    return;
+   } else if (t == 'checkbox' && !\$el.is(':checked')) {
+    v = '0';
+   }
    n = \$el.attr('name');
-  parms[n] = \$el.val();
+   parms[n] = v;
+  }
  });
  return parms;
 }
@@ -106,12 +129,55 @@ EOS;
 		break;
 	}
 
-/*	$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/jquery.alertable.min.js"></script> N/A unless its styling can be provided
+//<script type="text/javascript" src="{$baseurl}/include/jquery.alertable.min.js"></script> N/A unless its styling can be provided
+	$jsincs[] = <<<EOS
+<script type="text/javascript" src="{$baseurl}/include/mailcheck.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/include/levenshtein.min.js"></script>
 EOS;
-*/
+
+	$pref = $mod->GetPreference('email_topdomains');
+	$topdomains = $this->ConvertDomains($pref);
+	if ($topdomains) {
+		$topdomains = <<<EOS
+
+   topLevelDomains: [$topdomains],
+EOS;
+	}
+	$pref = $mod->GetPreference('email_domains');
+	$domains = $this->ConvertDomains($pref);
+	if ($domains) {
+		$domains = <<<EOS
+
+   domains: [$domains],
+EOS;
+	}
+	$pref = $mod->GetPreference('email_subdomains');
+	$l2domains = $this->ConvertDomains($pref);
+	if ($l2domains) {
+		$l2domains = <<<EOS
+
+   secondLevelDomains: [$l2domains],
+EOS;
+	}
+
 	$jsloads[] = <<<EOS
- $('#authsend').click(function() {
+ $('#login').blur(function() {
+  $(this).mailcheck({{$domains}{$l2domains}{$topdomains}
+   distanceFunction: function(string1,string2) {
+    var lv = Levenshtein;
+    return lv.get(string1,string2);
+   },
+   suggested: function(element,suggest) {
+    var msg = '{$mod->Lang('meaning_type','%s')}'.replace('%s',suggest.full);
+    if (confirm(msg)) {
+     $(element).val(suggest.full);
+    } else {
+     element.focus();
+    }
+   }
+  });
+ });
+ $('#authsubmit').click(function() {
   var btn = this;
   setTimeout(function() {
    btn.disabled = true;
@@ -125,25 +191,33 @@ EOS;
    if (val == '') {
     var type;
     switch (id) {
+     case 'login':
+      type = ({$logtype}) ? '{$mod->Lang('title_login')}':'{$mod->Lang('title_email')}';
+      break;
      case 'passwd':
       type = '{$mod->Lang('current_typed',$mod->Lang('password'))}';
       break;
      case 'passwd2':
       type = '{$mod->Lang('new_typed',$mod->Lang('password'))}';
+      break;
      case 'passwd3':
       type = '{$mod->Lang('title_passagain')}';
       break;
+     case 'captcha':
+      return;
     }
     var msg = '{$mod->Lang('missing_type','%s')}'.replace('%s',type);
     doerror(\$el,msg);
     valid = false;
     return false;
    } else {
-    if (id == 'passwd3') {
-     if (val !== $('#passwd2').val() {
-      doerror(\$el,'{$mod->Lang('password_nomatch')}');
+    if (id == 'login') {
+     if (!{$logtype}) {
+      if (val.search(/^.+@.+\..+$/) == -1) {
+       doerror(\$el,'{$mod->Lang('email_invalid')}');
       valid = false;
       return false;
+      }
      }
     }
    }
@@ -155,7 +229,7 @@ EOS;
     method: 'POST',
     url: '$url',
     data: parms,
-    dataType: 'text',
+    dataType: 'json',
     global: false,
     success: function(data, status, jqXHR) {
      if (status=='success') {
@@ -167,12 +241,12 @@ EOS;
     error: function(jqXHR, status, errmsg) {
      var details = JSON.parse(jqXHR.responseText);
 	//TODO process details
-     btn.disabled = false;
+     $(btn).prop('disabled', false);
     }
    });
   } else {
     setTimeout(function() {
-     btn.disabled = false;
+     $(btn).prop('disabled', false);
     },10);
   }
   return false;
