@@ -56,7 +56,6 @@ in whatever manner is appropriate.<br /><br />
 You can roll-your-own user-interface, and work with the Auth-class API directly.<br /><br />
 This approach would be appropriate if authority must be checked without an actual login, for example.
 <h4>API</h4>
-<h3>Styling</h3>
 <h3>Permissions</h3>
 <h4>Modify Authentication Module Properties</h4>
 <h4>Modify Authentication Contexts</h4>
@@ -94,3 +93,6 @@ The module must not be used otherwise than in acccordance with that license.</p>
 <li>PHP Openssl extension (for multi-factor authorisation)</li>
 </ul>
 <h3>Desirables</h3>
+<h3>Styling</h3>
+The following are defaults, which you might like to adapt and/or introduce where
+the authentication is initialised.<br /><br />
