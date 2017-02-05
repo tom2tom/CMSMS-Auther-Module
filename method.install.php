@@ -63,7 +63,7 @@ $dict->ExecuteSQLArray($sql);
 
 $flds = '
 id I KEY,
-uid I(4) NOTNULL,
+user_id I(4) NOTNULL,
 expire I,
 rkey C(32) NOTNULL,
 type C(16) NOTNULL
@@ -78,8 +78,8 @@ $flds = '
 id I AUTO KEY,
 token C(24) NOTNULL,
 ip C(40),
-uid I(4),
-cid I(2),
+user_id I(4),
+context_id I(2),
 expire I,
 timeout I,
 lastmode I(1),
@@ -87,8 +87,9 @@ status I(1) DEFAULT 0,
 defunct I(1) DEFAULT 0,
 attempts I(1) DEFAULT 0,
 challenge C(64),
-cookie_hash C(40) NOTNULL
-agent C(200) NOTNULL,
+cookie_hash C(40),
+agent C(200),
+cache B
 ';
 $tblname = $pref.'module_auth_sessions';
 $sql = $dict->CreateTableSQL($tblname, $flds, $taboptarray);
@@ -100,14 +101,14 @@ $dict->ExecuteSQLArray($sql);
 $flds = '
 id I(4) KEY,
 publicid C(48),
-passhash B,
+privhash B,
 name B,
 address B,
-context I(2),
+context_id I(2),
 addwhen I,
 lastuse I,
 nameswap I(1) DEFAULT 0,
-passreset I(1) DEFAULT 0,
+privreset I(1) DEFAULT 0,
 active I(1) DEFAULT 1
 ';
 $tblname = $pref.'module_auth_users';
@@ -119,7 +120,7 @@ $db->CreateSequence($pref.'module_auth_users_seq');
 /* support for extra, runtime-specified, user-parameters
 $flds = '
 id I KEY,
-uid I(4),
+user_id I(4),
 name C(256),
 value C('.Auther::LENSHORTVAL.'),
 longvalue B
