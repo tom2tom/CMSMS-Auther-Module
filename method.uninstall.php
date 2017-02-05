@@ -13,10 +13,11 @@ $tblname = $pref.'module_auth_contexts';
 $sql = $dict->DropTableSQL($tblname);
 $dict->ExecuteSQLArray($sql);
 
+/*
 $tblname = $pref.'module_auth_attempts';
 $sql = $dict->DropTableSQL($tblname);
 $dict->ExecuteSQLArray($sql);
-
+*/
 $tblname = $pref.'module_auth_requests';
 $sql = $dict->DropTableSQL($tblname);
 $dict->ExecuteSQLArray($sql);

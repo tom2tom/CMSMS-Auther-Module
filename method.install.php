@@ -52,6 +52,7 @@ $dict->ExecuteSQLArray($sql);
 
 $db->CreateSequence($pref.'module_auth_contexts_seq');
 
+/* attempts now in sessions table
 $flds = '
 id I AUTO KEY,
 ip C(40) NOTNULL,
@@ -60,6 +61,7 @@ expire I
 $tblname = $pref.'module_auth_attempts';
 $sql = $dict->CreateTableSQL($tblname, $flds, $taboptarray);
 $dict->ExecuteSQLArray($sql);
+*/
 
 $flds = '
 id I KEY,
