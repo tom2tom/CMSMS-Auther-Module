@@ -22,9 +22,9 @@ class Session
 	protected $mod;
 	protected $db;
 	protected $pref;
-	protected $context; //numeric or NULL
+	protected $context; //numeric id
 
-	public function __construct(&$mod, $context=NULL)
+	public function __construct(&$mod, $context=0)
 	{
 		$this->mod = $mod;
 		$this->db = \cmsms()->GetDb();
@@ -38,15 +38,8 @@ class Session
 	*/
 	public function GetUserSession($uid)
 	{
-		$sql = 'SELECT token FROM '.$this->pref.'module_auth_sessions WHERE user_id=? AND context_id';
-		if ($this->context !== NULL) {
-			$sql .= '=?';
-			$args = [$uid, $this->context];
-		} else {
-			$sql .= ' IS NULL';
-			$args = [$uid];
-		}
-		return $this->db->GetOne($sql, $args);
+		$sql = 'SELECT token FROM '.$this->pref.'module_auth_sessions WHERE user_id=? AND context_id=?';
+		return $this->db->GetOne($sql, [$uid, $this->context]);
 	}
 
 	/**
@@ -55,15 +48,8 @@ class Session
 	*/
 	public function GetSourceSession($ip)
 	{
-		$sql = 'SELECT token FROM '.$this->pref.'module_auth_sessions WHERE ip=? AND context_id';
-		if ($this->context !== NULL) {
-			$sql .= '=?';
-			$args = [$ip, $this->context];
-		} else {
-			$sql .= ' IS NULL';
-			$args = [$ip];
-		}
-		return $this->db->GetOne($sql, $args);
+		$sql = 'SELECT token FROM '.$this->pref.'module_auth_sessions WHERE ip=? AND context_id=?';
+		return $this->db->GetOne($sql,  [$ip, $this->context]);
 	}
 
 	/**

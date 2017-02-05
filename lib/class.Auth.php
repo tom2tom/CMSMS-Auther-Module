@@ -25,7 +25,7 @@ class Auth extends Session
 	const EMAILPATN = '/^.+@.+\..+$/';
 	const STRETCHES = 12; //hence 2**12
 
-	public function __construct(&$mod, $context=NULL)
+	public function __construct(&$mod, $context=0)
 	{
 		parent::__construct($mod, $context);
 	}
@@ -272,15 +272,8 @@ class Auth extends Session
 	*/
 	public function getUID($publicid)
 	{
-		$sql = 'SELECT id FROM '.$this->pref.'module_auth_users WHERE publicid=? AND context_id';
-		if ($this->context !== NULL) {
-			$sql .= '=?';
-			$args = [$publicid, $this->context];
-		} else {
-			$sql .= ' IS NULL';
-			$args = [$publicid];
-		}
-		return $this->db->GetOne($sql, $args);
+		$sql = 'SELECT id FROM '.$this->pref.'module_auth_users WHERE publicid=? AND context_id=?';
+		return $this->db->GetOne($sql, [$publicid, $this->context]);
 	}
 
 	/**
@@ -291,15 +284,8 @@ class Auth extends Session
 	*/
 	public function isLoginTaken($publicid)
 	{
-		$sql = 'SELECT id FROM '.$this->pref.'module_auth_users WHERE publicid=? AND context_id';
-		if ($this->context !== NULL) {
-			$sql .= '=?';
-			$args = [$publicid, $this->context];
-		} else {
-			$sql .= ' IS NULL';
-			$args = [$publicid];
-		}
-		$num = $this->db->GetOne($sql, $args);
+		$sql = 'SELECT id FROM '.$this->pref.'module_auth_users WHERE publicid=? AND context_id=?';
+		$num = $this->db->GetOne($sql, [$publicid, $this->context]);
 		return ($num > 0);
 	}
 
@@ -415,18 +401,11 @@ class Auth extends Session
 	*/
 	public function getPublicUser($publicid, $active=TRUE)
 	{
-		$sql = 'SELECT name,address,addwhen,lastuse FROM '.$this->pref.'module_auth_users WHERE publicid=? AND context_id';
-		if ($this->context !== NULL) {
-			$sql .= '=?';
-			$args = [$publicid, $this->context];
-		} else {
-			$sql .= ' IS NULL';
-			$args = [$publicid];
-		}
+		$sql = 'SELECT name,address,addwhen,lastuse FROM '.$this->pref.'module_auth_users WHERE publicid=? AND context_id=?';
 		if ($active) {
 			$sql .= ' AND active>0';
 		}
-		$data = $this->db->GetRow($sql, $args);
+		$data = $this->db->GetRow($sql, [$publicid, $this->context]);
 
 		if ($data) {
 			$funcs = new Auther\Crypter();
@@ -510,20 +489,13 @@ class Auth extends Session
 	*/
 	public function getActiveUsers()
 	{
-		$sql = 'SELECT id,publicid FROM '.$this->pref.'module_auth_users WHERE context_id';
-		if ($this->context !== NULL) {
-			$sql .= '=?';
-			$args = [$this->context];
-		} else {
-			$sql .= ' IS NULL';
-			$args = [];
-		}
-		$sql .= ' AND active>0 ORDER BY addwhen';
-		return $this->db->GetAssoc($sql, $args);
+		$sql = 'SELECT id,publicid FROM '.$this->pref.'module_auth_users WHERE context_id=? AND active>0 ORDER BY addwhen';
+		return $this->db->GetAssoc($sql, [$this->context]);
 	}
 
 	/**
-	* Checks whether @publicid is recorded for current context and active, and @password is valid
+	* Checks whether @publicid is recorded for current context and active, and
+	*  @password (if not FALSE) is valid
 	* @publicid: string user identifier
 	* @password: plaintext string, or FALSE to skip password-validation
 	* @active: optional boolean whether to check for active user, default TRUE
@@ -532,14 +504,8 @@ class Auth extends Session
 	*/
 	public function isRegistered($publicid, $password, $active=TRUE, $fast=FALSE)
 	{
-		$sql = 'SELECT privhash,active FROM '.$this->pref.'module_auth_users WHERE publicid=? AND context_id';
-		if ($this->context !== NULL) {
-			$sql .= '=?';
-			$userdata = $this->db->GetRow($sql, [$publicid, $this->context]);
-		} else {
-			$sql .= ' IS NULL';
-			$userdata = $this->db->GetRow($sql, [$publicid]);
-		}
+		$sql = 'SELECT privhash,active FROM '.$this->pref.'module_auth_users WHERE publicid=? AND context_id=?';
+		$userdata = $this->db->GetRow($sql, [$publicid, $this->context]);
 		if ($userdata && (!$active || $userdata['active'] > 0)) {
 			if ($password === FALSE) {
 				return TRUE;
@@ -558,18 +524,18 @@ class Auth extends Session
 	* @uid: int user enumerator
 	* @publicid: string user identifier
 	* @type: string 'reset' or 'activate'
-	* @sendmail: boolean reference whether to send confirmation email
+	* @sendmail: boolean reference whether to send confirmation email default=NULL
 	* @fake: boolean whether to treat this as a bogus notice default = FALSE
 	* Returns: array 0=>T/F for success, 1=>message
 	*/
-	protected function addRequest($uid, $publicid, $type, &$sendmail, $fake=FALSE)
+	protected function addRequest($uid, $publicid, $type, &$sendmail=NULL, $fake=FALSE)
 	{
 		if (!($type == 'activate' || $type == 'reset')) {
 			return [FALSE,$this->mod->Lang('system_error').' #08'];
 		}
 
-		// if not set manually, check config data
 		if ($sendmail === NULL) {
+			// if not set explicitly, check config data
 			$sendmail = TRUE;
 			if ($type == 'reset') {
 				$val = $this->GetConfig('send_reset_message');
@@ -1041,15 +1007,8 @@ class Auth extends Session
 			return $status;
 		}
 
-		$sql = 'SELECT id FROM '.$this->pref.'module_auth_users WHERE publicid=? AND context_id';
-		if ($this->context !== NULL) {
-			$sql .= '=?';
-			$args= [$publicid, $this->context];
-		} else {
-			$sql .= ' IS NULL';
-			$args= [$publicid];
-		}
-		$id = $this->db->GetOne($sql, $args);
+		$sql = 'SELECT id FROM '.$this->pref.'module_auth_users WHERE publicid=? AND context_id=?';
+		$id = $this->db->GetOne($sql, [$publicid, $this->context]);
 
 		if ($id == FALSE) {
 			$this->AddAttempt();

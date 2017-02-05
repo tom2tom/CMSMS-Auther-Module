@@ -72,16 +72,8 @@ $theme = ($this->before20) ? cmsms()->get_variable('admintheme'):
 	cms_utils::get_theme_object();
 
 $pre = cms_db_prefix();
-$sql = 'SELECT id,publicid,name,address,addwhen,lastuse,privreset,active FROM '.$pre.'module_auth_users WHERE context_id';
-if ($cid !== NULL) {
-	$sql .= '=?';
-	$args = [$cid];
-} else {
-	$sql .= ' IS NULL';
-	$args = [];
-}
-$sql .= ' ORDER BY publicid';
-$data = $db->GetArray($sql, $args);
+$sql = 'SELECT id,publicid,name,address,addwhen,lastuse,privreset,active FROM '.$pre.'module_auth_users WHERE context_id=? ORDER BY publicid';
+$data = $db->GetArray($sql, [$cid]);
 if ($data) {
 	$tplvars['title_name'] = $this->Lang('title_name');
 	$tplvars['title_first'] = $this->Lang('title_register');
