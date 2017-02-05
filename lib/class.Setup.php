@@ -350,6 +350,36 @@ function doerror(\$el,msg) {
  });
  \$el[0].focus();
 }
+function ajaxresponse(details, errmsg) {
+ var msg, \$el, ht;
+ if (details.hasOwnProperty('message')) {
+  msg = details.message;
+ } else {
+  msg = errmsg;
+ }
+ if (errmsg) {
+  alert(msg);
+ }
+ msg = msg.replace(/(?:\\r\\n|\\r|\\n)/g, '<br />');
+ \$el = $('#authcontainer p.feedback');
+ if (\$el.length > 0) {
+  \$el.html(msg);
+ } else {
+  if (errmsg) {
+   ht = '<p class="authtext error feedback">'+msg+'</p>';
+  } else {
+   ht = '<p class="authtext feedback">'+msg+'</p>';
+  }
+  $('#authelements').before(ht);
+ }
+ if (details.hasOwnProperty('focus') && details.focus != false) {
+  \$el = $('#'+details.focus);
+  if (details.hasOwnProperty('html')) {
+   \$el.html(details.html);
+  }
+  \$el[0].focus();
+ }
+}
 EOS;
 		$tabindex = 1;
 		$elements = [];
