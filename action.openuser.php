@@ -20,8 +20,8 @@ if (!function_exists('GetUserProperties')) {
 	'nameswap',	'nameswap',	0, 0,  0,  0,
 	'address',	'contact',	2, 40, 96, 0,
 	'publicid',	'identifier',	1, 40, 96, 1,
-	'passhash',	'password_new', 2, 40, 72, 0, //fake
-	'passreset','password_reset', 0, 0,  0,  0,
+	'privhash',	'password_new', 2, 40, 72, 0, //fake
+	'privreset','password_reset', 0, 0,  0,  0,
 	'active',	'active',	0, 0,  0,  0,
 	];
 	//unused: id, context, addwhen, lastuse
@@ -81,7 +81,7 @@ if (isset($params['cancel'])) {
 						break 2;
 					}
 					break;
-				 case 'passhash':
+				 case 'privhash':
 					if (!$val) {
 						//no replacement password
 						continue 2;
@@ -114,7 +114,7 @@ if (isset($params['cancel'])) {
 			array_unshift($args, $uid);
 			array_push($args, (int)$params['ctx_id'], time());
 			array_unshift($keys, 'id');
-			array_push($keys, 'context', 'addwhen');
+			array_push($keys, 'context_id', 'addwhen');
 
 			$flds = implode(',',$keys);
 			$fillers = str_repeat('?,',count($keys)-1);
@@ -151,8 +151,8 @@ if (empty($msg)) {
 		'nameswap' => 0,
 		'address' => '',
 		'publicid' => $this->Lang('missing_name'),
-		'context' => $params['ctx_id'],
-		'passhash' => '',
+		'context_id' => $params['ctx_id'],
+		'privhash' => '',
 		'active' => 1,
 		];
 	}
@@ -167,12 +167,12 @@ if (empty($msg)) {
 	}
 }
 
-$cdata = $db->GetRow('SELECT name,password_min_length,password_min_score,address_required,email_required,name_required FROM '.$pre.'module_auth_contexts WHERE id=?', [$data['context']]);
+$cdata = $db->GetRow('SELECT name,password_min_length,password_min_score,address_required,email_required,name_required FROM '.$pre.'module_auth_contexts WHERE id=?', [$data['context_id']]);
 
 $tplvars = ['mod' => $pmod];
 $tplvars['pagenav'] = $utils->BuildNav($this,$id,$returnid,$params);
 $hidden = [
-	'ctx_id'=>$data['context'],
+	'ctx_id'=>$data['context_id'],
 	'usr_id'=>$data['id'],
 	'edit'=>!empty($params['edit'])
 ]; //TODO etc
@@ -243,7 +243,7 @@ for ($i = 0; $i < $c; $i += 6) {
 				$one->input = $val;
 			}
 			break;
-		 case 'passhash':
+		 case 'privhash':
 			if ($uid == -1) {
 				$one->title = $this->Lang('password');
 				$one->must = 1;
@@ -378,7 +378,7 @@ strengthify unused opts
 EOS;
 
 	$jsloads[] = <<<EOS
- $('#{$id}passhash').strengthify({
+ $('#{$id}privhash').strengthify({
   zxcvbn: '{$baseurl}/include/zxcvbn/zxcvbn.js'
  });
 EOS;
