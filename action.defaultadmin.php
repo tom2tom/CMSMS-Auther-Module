@@ -231,7 +231,7 @@ if (empty($msg)) {
 SELECT C.id,C.name,C.alias,C.owner,COUNT(U.context_id) AS users
 FROM {$pre}module_auth_contexts C
 LEFT JOIN {$pre}module_auth_users U ON C.id = U.context_id
-GROUP BY U.context_id
+GROUP BY C.id
 EOS;
 	$data = $db->GetArray($sql);
 } else {
@@ -286,9 +286,14 @@ if ($data) {
 			if ($pmod) {
 				$oneset->edit = $this->CreateLink($id,'opencontext','',$icon_edit,
 					['ctx_id'=>$cid,'edit'=>1]);
-				$oneset->del = $this->CreateLink($id,'deletecontext','',$icon_delete,
-					['ctx_id'=>$cid]);
-				$oneset->sel = $this->CreateInputCheckbox($id,'sel[]',$cid,-1);
+				if ($cid > 0) {
+					$oneset->del = $this->CreateLink($id,'deletecontext','',$icon_delete,
+						['ctx_id'=>$cid]);
+					$oneset->sel = $this->CreateInputCheckbox($id,'sel[]',$cid,-1);
+				} else {
+					$oneset->del = NULL;
+					$oneset->sel = NULL;
+				}
 			}
 			$rows[] = $oneset;
 		}
@@ -447,7 +452,8 @@ EOS;
 
 //DEBUG
 $funcs = new Auther\Setup();
-list($authhtm,$authjs) = $funcs->GetPanel(1, 'login', ['Auther','dummy']);
+$token = FALSE;
+list($authhtm,$authjs) = $funcs->GetPanel(1, 'register', ['Auther','dummy'], TRUE, $token);
 $tplvars['authform'] = $authhtm;
 //$tplvars['authform'] = NULL;
 
