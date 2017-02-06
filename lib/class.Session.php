@@ -33,6 +33,15 @@ class Session
 	}
 
 	/**
+	* Changes recorded context property
+	* @context: numeric identifier for login context
+	*/
+	public function setContext($context)
+	{
+		$this->context = $context;
+	}
+
+	/**
 	* Gets the current session (if any) for user @uid
 	* Returns: string session-token, or FALSE
 	*/
@@ -437,5 +446,18 @@ class Session
 			$s2 = '';
 		}
 		return str_shuffle($s2.$s1);
+	}
+
+	/**
+	* Checks whether a user is logged in
+	* Returns: boolean
+	*/
+	public function isLogged()
+	{
+		//TODO review http://php.net/manual/en/features.cookies.php &
+		// http://php.net/manual/en/function.setcookie.php &
+		// http://www.faqs.org/rfcs/rfc6265.html
+		$val = $this->GetConfig('cookie_name');
+		return (isset($_COOKIE[$val]) && $this->CheckSession($_COOKIE[$val]));
 	}
 }
