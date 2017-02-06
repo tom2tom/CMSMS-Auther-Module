@@ -107,7 +107,7 @@ final class Setup
 		return substr($s1, 0, $length);
 	}
 
-	//Returns: enum or FALSE
+	//Returns: enum [1,3..6] or FALSE (2 disabled)
 	private function CheckHandler($handler)
 	{
 		$type = FALSE;
@@ -129,14 +129,14 @@ final class Setup
 				}
 			}
 */
-		} elseif (is_array($handler) && count($handler) == 2) {
+		} elseif (is_array($handler)) { //sized 2 or 3
 			$ob = \cms_utils::get_module($handler[0]);
 			if ($ob) {
 				$dir = $ob->GetModulePath();
 				unset($ob);
 				$fp = $dir.DIRECTORY_SEPARATOR.'action.'.$handler[1].'.php';
-				if (@is_file($fp)) {
-					$type = 3;
+				if (@is_file($fp) && isset($handler[2])) {
+					$type = 3; //NB type 3 needs $handler[2] == originator's $id for DoAction() arg 
 				} elseif (strpos($handler[1],'method.') === 0) {
 					$fp = $dir.DIRECTORY_SEPARATOR.$handler[1].'.php';
 					if (@is_file($fp)) {
@@ -149,7 +149,7 @@ final class Setup
 				if (substr_compare($handler,'.php',-4,4,TRUE) === 0) {
 					$type = 5;
 				}
-			} elseif ($this->workermod->havecurl) { //curl is installed
+			} elseif (function_exists('curl_init')) {
 				$config = \cmsms()->GetConfig();
 				$u = (empty($_SERVER['HTTPS'])) ? $config['root_url'] : $config['ssl_url'];
 				$u .= '/index.php?mact=';
