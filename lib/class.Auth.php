@@ -93,7 +93,14 @@ class Auth extends Session
 	*/
 	public function validateName($name)
 	{
-		//TODO
+		$val = $this->GetConfig('name_required');
+		if ($val && !$name) {
+			return [FALSE, $this->mod->Lang('missing_name')]; //TODO has appended 'yet'
+		}
+		//TODO check as if is password?
+		if (strlen($name) < 2 || preg_match('/\d/', $name)) {
+			return [FALSE, $this->mod->Lang('invalid_type', $this->mod->Lang('name'))];
+		}
 		return [TRUE, ''];
 	}
 
