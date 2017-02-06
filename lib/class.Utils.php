@@ -94,6 +94,7 @@ class Utils
 
 	/**
 	DeleteUser:
+	For admin use, c.f. Auth::deleteUser(), which includes password verification
 	@user: numeric user identifier, or array of them
 	*/
 	public function DeleteUser($user)
