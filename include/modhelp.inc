@@ -3,15 +3,15 @@ It provides several authentication "services" for use by other parts of the webs
 other modules or (after patching relevant core files) admininstrator access.
 Specifically
 <ul>
-<li>Any number of authorisation "contexts" with individual properties</li>
+<li>Any number of authorization "contexts" with individual properties</li>
 <li>Several security levels</li>
 <li>[De]registration of users by self and/or administrator</li>
 <li>Bulk [de]registration of users by administrator</li>
 <li>Login/out of users</li>
-<li>User data change by self or adminstrator</li>
+<li>User data change by self or administrator</li>
 <li>Lost/forgotten data recovery by users</li>
 <li>Optional email notices/confirmations</li>
-<li>Optional 2-factor authorisation</li>
+<li>Optional 2-factor authorization</li>
 <li>Enhanced data security</li>
 <li>UI objects for inclusion in page/form</li>
 </ul>
@@ -39,13 +39,13 @@ $handler = something to receive and process feedback after the form has been pro
 <ul>
 <li>an array [$classname,$methodname] where $methodname is static and the method returns boolean for success</li>
 <li>a string 'classname::methodname' where the method returns boolean for success</li>
-<li>an array [$modulename,$actionname] AND the action should be a 'doer', not a 'shower', returns HTML code</li>
+<li>an array [$modulename,$actionname,$id] AND the action should be a 'doer', not a 'shower', returns HTML code</li>
 <li>an array [$modulename,'method.whatever'] to be included, the code must conclude with variable $res = T/F indicating success</li>
 <li>a string 'absolute-path-to-whatever.php' to be included, the code must conclude with variable $res = T/F indicating success</li>
 <li>an URL like <server-root-url>/index.php?mact=<modulename>,cntnt01,<actionname>,0
  - provided the PHP curl extension is available</li>
 <li><b>BUT NOT</b> a closure in a static context (PHP 5.3+) OR static closure (PHP 5.4+)</li>
-/ul>
+</ul>
 $id = module ID string, as widely used in the CMSModule class<br />
 <i>(if available)</i> $token = identifier provided to $handler by a previous Get()<br />
 $xhtml = displayable content (a form including inputs, buttons etc)<br />
@@ -88,9 +88,7 @@ The module must not be used otherwise than in acccordance with that license.</p>
 <h3>Requirements</h3>
 <ul>
 <li>PHP 5.4+</li>
-<li>PHP GD extension</li>
-<li>PHP Hash extension</li>
-<li>PHP Openssl extension</li>
+<li>PHP extensions: GD, Hash, Openssl</li>
 </ul>
 <h3>Desirables</h3>
 <h3>Styling</h3>
