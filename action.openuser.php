@@ -58,7 +58,9 @@ if (isset($params['cancel'])) {
 
 				switch ($kf) {
 				 case 'name':
-					if (1) {
+//					$val = X::SanitizeName($val); TODO cleanup whitespace etc
+					$status = $funcs->validateName($val);
+					if ($status[0]) {
 						$val = $cfuncs->encrypt_value($this, $val, $t);
 					} else {
 						$msg = $this->Lang('invalid_type', $this->Lang('title_'.$props[$i+1]));

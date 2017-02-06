@@ -167,9 +167,10 @@ class Import
 	 								$data[$k] = trim($one);
 								}
 								break;
+							 case 'name':
+//								$one = X::SanitizeName($one); TODO cleanup whitespace etc
 							 case 'publicid':
 							 case 'privhash':
-							 case 'name':
 							 case 'address':
  								$data[$k] = trim($one);
 								break;
@@ -224,6 +225,8 @@ class Import
 					$res = $this->afuncs->validateLogin($data['publicid']);
 					$save = $res[0];
 					$res = $this->afuncs->validatePassword($data['privhash']);
+					$save = $save && $res[0];
+ 					$res = $this->afuncs->validateName($data['name']);
 					$save = $save && $res[0];
 					$res = $this->afuncs->validateAddress($data['address']);
 					$save = $save && $res[0];
