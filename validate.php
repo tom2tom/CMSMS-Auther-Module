@@ -12,6 +12,51 @@ function ajax_errreport($msg) {
 	die(json_encode(['message'=>$msg, 'focus'=>'']));
 }
 
+// c.f. StripeGate::Payer
+function notify_handler($params, $others)
+{
+	//TODO sanitize $params etc
+	switch ($params['handlertype']) {
+	 case 1: //callable, 2-member array or string like 'ClassName::methodName'
+		$res = call_user_func_array($params['handler'], $params);
+		//TODO handle $res == FALSE
+		break;
+/*	 case 2: //static closure not supported
+		$res = $params['handler']($params);
+		break; */
+	 case 3: //module action
+		$ob = \cms_utils::get_module($params['handler'][0]);
+		$res = $ob->DoAction($params['handler'][1], $params['handler'][2], $params);
+		unset($ob);
+		//TODO handle $res == 400+
+		break;
+	 case 4: //code inclusion
+		$ob = \cms_utils::get_module($params['handler'][0]);
+		$fp = $ob->GetModulePath().DIRECTORY_SEPARATOR.$params['handler'][1].'.php';
+		unset($ob);
+		$res = FALSE;
+		require $fp;
+		break;
+	 case 5: //code inclusion
+		$res = FALSE;
+		require $params['handler'];
+		break;
+	 case 6: //URL
+		$ch = curl_init();
+		//can't be bothered with GET URL construction
+		curl_setopt_array($ch,[
+		 CURLOPT_RETURNTRANSFER => 1,
+		 CURLOPT_URL => $params['handler'],
+		 CURLOPT_POST => 1,
+		 CURLOPT_POSTFIELDS => $params
+		]);
+		$res = curl_exec($ch);
+		//TODO handle $res == 400+
+		curl_close($ch);
+		break;
+	}
+}
+
 //clear all page-content echoed before now
 $handlers = ob_list_handlers();
 if ($handlers) {
@@ -38,7 +83,8 @@ if (empty($_POST[$kn])) {
 	if ($jax) {
 		ajax_errreport($mod->Lang('err_ajax'));
 	} else {
-	//TODO signal something- BUT handler N/A yet
+		//handler N/A yet
+		echo $mod->Lang('err_ajax');
 	}
 	exit;
 }
@@ -60,7 +106,8 @@ if (!$t) {
 	if ($jax) {
 		ajax_errreport($mod->Lang('err_ajax'));
 	} else {
-	//TODO signal something - BUT handler N/A yet
+		//handler N/A yet
+		echo $mod->Lang('err_ajax');
 	}
 	exit;
 }
@@ -70,35 +117,37 @@ if (empty($params) || $params['identity'] !== substr($id, 2, 3)) {
 	if ($jax) {
 		ajax_errreport($mod->Lang('err_ajax'));
 	} else {
-	//TODO signal something
+		//TODO signal something to handler
+		notify_handler($params, $others);
 	}
 	exit;
 }
 
 if (!empty($_POST[$id.'cancel'])) {
 	//TODO pass to handler
-$adbg = $_POST;
-$X = $Y;
+	notify_handler($params, $others);
 }
 
 $iv = base64_decode($_POST[$id.'nearn']);
 $iv = substr($iv, 0, 16); //force correct iv length
 $t = openssl_decrypt($_POST[$id.'sent'], 'AES-256-CBC', $params['far'], 0, $iv);
 if (!$t) {
-	//TODO signal something
 	if ($jax) {
 		ajax_errreport($mod->Lang('err_ajax'));
 	} else {
+		//TODO signal something to handler
+		notify_handler($params, $others);
 	}
 	exit;
 }
 $p = strpos($t, $params['far']) + strlen($params['far']);
 $sent = (array)json_decode(substr($t, $p));
 if (!$sent) {
-	//TODO signal something
 	if ($jax) {
 		ajax_errreport($mod->Lang('err_ajax'));
 	} else {
+		//TODO signal something to handler
+		notify_handler($params, $others);
 	}
 	exit;
 }
@@ -150,7 +199,7 @@ if ($msgs) { //error
 		header('Content-Type: application/json; charset=UTF-8');
 		die($t);
 	} else {
-		//send stuff to $params['handler']
+		notify_handler($params, $others);
 	}
 } elseif (1) { //TODO not-finished-now
 $t = 'I\'m back';
@@ -159,10 +208,10 @@ $t = 'I\'m back';
 		header('Content-Type: application/json; charset=UTF-8');
 		die($t);
 	} else {
-		//send stuff to $params['handler']
+		notify_handler($params, $others);
 	}
 } else {
-	//send stuff to $params['handler']
+	notify_handler($params, $others);
 }
 
 exit;
