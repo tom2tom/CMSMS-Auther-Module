@@ -12,7 +12,6 @@ namespace Auther;
 /* TODO
 2FA support
  captcha?
-
 addUser() race fix
 generic autoloading
 send events  $this->mod->SendEvent('OnX',$parms);
@@ -35,7 +34,7 @@ class Auth extends Session
 	/**
 	* Verifies that @publicid is an acceptable login identifier
 	* @publicid: string user identifier
-	* Returns: array 0=>T/F for success, 1=>message
+	* Returns: array [0]=boolean for success, [1]=message or ''
 	*/
 	public function validateLogin($publicid)
 	{
@@ -66,7 +65,7 @@ class Auth extends Session
 	/**
 	* Verifies that @password respects security requirements
 	* @password: plaintext string
-	* Returns: array 0=>T/F for success, 1=>message
+	* Returns: array [0]=boolean for success, [1]=message or ''
 	*/
 	public function validatePassword($password)
 	{
@@ -90,7 +89,7 @@ class Auth extends Session
 	/**
 	* Verifies that @name is an acceptable user-name
 	* @name: string
-	* Returns: array 0=>T/F for success, 1=>message
+	* Returns: array [0]=boolean for success, [1]=message or ''
 	*/
 	public function validateName($name)
 	{
@@ -101,7 +100,7 @@ class Auth extends Session
 	/**
 	* Verifies that @address is an acceptable contact address
 	* @address: string
-	* Returns: array 0=>T/F for success, 1=>message
+	* Returns: array [0]=boolean for success, [1]=message or ''
 	*/
 	public function validateAddress($address)
 	{
@@ -119,7 +118,7 @@ class Auth extends Session
 	/**
 	* Verifies that @email is an acceptable email address
 	* @email: string
-	* Returns: array 0=>T/F for success, 1=>message
+	* Returns: array [0]=boolean for success, [1]=message or ''
 	*/
 	public function validateEmail($email)
 	{
@@ -145,7 +144,7 @@ class Auth extends Session
 	* @email: email address for notices to the user default = ''
 	* @params: array extra user-parameters for self::addUser() default = empty
 	* @sendmail: bool whether to send email-messages if possible default = NULL
-	* Returns: array 0=>T/F for success, 1=>message
+	* Returns: array [0]=boolean for success, [1]=message or ''
 	*/
 	public function register($publicid, $password, $repeatpassword, $email='', $params=[], $sendmail=NULL)
 	{
@@ -218,7 +217,7 @@ class Auth extends Session
 				return TRUE;
 			}
 			$tries = ($fast) ? 0:1; //TODO $tries from session data
-			return $this->password_check($password, $userdata['privhash'], $tries);
+			return $this->doPasswordCheck($password, $userdata['privhash'], $tries);
 		}
 		if (!$fast) {
 			usleep(500000); //TODO $tries from session data
@@ -234,7 +233,7 @@ class Auth extends Session
 	* @password: plaintext string
 	* @nonce: default = FALSE
 	* @remember: boolean whether to setup session-expiry-time in self::AddSession() default = FALSE
-	* Returns: array, 0=>T/F for success, 1=>message, if success then also session-parameters: 'token','expire'
+	* Returns: array, [0]=boolean for success, [1]=message or '', if [0] then also session-parameters: 'token','expire'
 	*/
 	public function login($publicid, $password, $nonce=FALSE, $remember=FALSE)
 	{
@@ -317,7 +316,7 @@ class Auth extends Session
 	* @type: string 'reset' or 'activate'
 	* @sendmail: boolean reference whether to send confirmation email default=NULL
 	* @fake: boolean whether to treat this as a bogus notice default = FALSE
-	* Returns: array 0=>T/F for success, 1=>message
+	* Returns: array [0]=boolean for success, [1]=message or ''
 	*/
 	protected function addRequest($uid, $publicid, $type, &$sendmail=NULL, $fake=FALSE)
 	{
@@ -435,7 +434,7 @@ class Auth extends Session
 	* Returns request data if @token is valid
 	* @token: 32-byte string from UniqueToken()
 	* @type: string 'reset' or 'activate'
-	* Returns: array 0=>T/F for success, 1=>message, if success then also 'id','uid'
+	* Returns: array [0]=boolean for success, [1]=message or '', if [0] then also 'id','uid'
 	*/
 	public function getRequest($token, $type)
 	{
@@ -472,7 +471,7 @@ class Auth extends Session
 	* Creates a reset-key for @publicid and sends email
 	* @publicid: string user identifier
 	* @sendmail: boolean whether to send confirmation email default = NULL
-	* Returns: array 0=>T/F for success, 1=>message
+	* Returns: array [0]=boolean for success, [1]=message or ''
 	*/
 	public function requestReset($publicid, $sendmail=NULL)
 	{
@@ -515,7 +514,7 @@ class Auth extends Session
 	* Recreates activation email for @publicid and sends that email
 	* @publicid: string user identifier
 	* @sendmail: default = NULL  whether to send email notice
-	* Returns: array 0=>T/F, 1=>message
+	* Returns: array [0]=boolean for success, [1]=message or ''
 	*/
 	public function resendActivation($publicid, $sendmail=NULL)
 	{
@@ -567,7 +566,7 @@ class Auth extends Session
 	* @uid: int user enumerator
 	* @publicid: string user identifier
 	* @password: plaintext string
-	* Returns: array 0=>T/F, 1=>message
+	* Returns: array [0]=boolean for success, [1]=message or ''
 	*/
 	public function changeLogin($uid, $publicid, $password)
 	{
@@ -601,7 +600,7 @@ class Auth extends Session
 			return [FALSE,$this->mod->Lang('system_error').' #14'];
 		}
 
-		if (!$this->password_check($password, $userdata['password']/*, $tries TODO*/)) {
+		if (!$this->doPasswordCheck($password, $userdata['password']/*, $tries TODO*/)) {
 			$this->AddAttempt();
 			return [FALSE,$this->mod->Lang('password_incorrect')];
 		}
@@ -762,7 +761,7 @@ class Auth extends Session
 	/**
 	* Activates a user's account
 	* @token: string 32-byte token
-	* Returns: array 0=>T/F for success, 1=>message
+	* Returns: array [0]=boolean for success, [1]=message or ''
 	*/
 	public function activate($token)
 	{
@@ -807,7 +806,7 @@ class Auth extends Session
 	* @address: email or other type of address for messages, possibly empty
 	* @sendmail:  reference to boolean whether to send confirmation email messages
 	* @params: array of additional params default = empty
-	* Returns: array 0=>T/F for success, 1=>message
+	* Returns: array [0]=boolean for success, [1]=message or ''
 	*/
 	protected function addUser($publicid, $password, $name, $address, &$sendmail, $params=[])
 	{
@@ -854,13 +853,13 @@ class Auth extends Session
 	}
 
 	/**
-	* Deletes a user's data (aka account) TODO
+	* Deletes data for @uid from all tables, if the user is not 'blocked'
 	* c.f. Utils::DeleteUser, Utils::DeleteContextUsers for admin use
 	* @uid: int user enumerator
 	* @password: string plaintext
-	* Returns: array 0=>T/F for success, 1=>message
+	* Returns: array [0]=boolean for success, [1]=message or ''
 	*/
-	public function deleteUser($uid, $password)
+	public function cancelUser($uid, $password)
 	{
 		$block_status = $this->IsBlocked();
 
@@ -886,7 +885,7 @@ class Auth extends Session
 			return [FALSE,$this->mod->Lang(TODO)];
 		}
 
-		if (!$this->password_check($password, $userdata['password']/*, $tries TODO*/)) {
+		if (!$this->doPasswordCheck($password, $userdata['password']/*, $tries TODO*/)) {
 			$this->AddAttempt();
 			return [FALSE,$this->mod->Lang('password_incorrect')];
 		}
@@ -921,7 +920,7 @@ class Auth extends Session
 	* @token: string 32-byte token
 	* @password: plaintext string
 	* @repeatpassword: plaintext string
-	* Returns: array 0=>T/F for success, 1=>message
+	* Returns: array [0]=boolean for success, [1]=message or ''
 	*/
 	public function resetPassword($token, $password, $repeatpassword)
 	{
@@ -964,7 +963,7 @@ class Auth extends Session
 			return [FALSE,$this->mod->Lang('system_error').' #11'];
 		}
 
-		if ($this->password_check($password, $userdata['password']/*, $tries TODO*/)) {
+		if ($this->doPasswordCheck($password, $userdata['password']/*, $tries TODO*/)) {
 			$this->AddAttempt();
 			return [FALSE,$this->mod->Lang('newpassword_match')];
 		}
@@ -986,7 +985,7 @@ class Auth extends Session
 	* @currpass: plaintext string
 	* @newpass: plaintext string
 	* @repeatnewpass: plaintext string
-	* Returns: array 0->T/F, 1=>message
+	* Returns: array [0]=boolean for success, [1]=message or ''
 	*/
 	public function changePassword($uid, $currpass, $newpass, $repeatnewpass)
 	{
@@ -1022,7 +1021,7 @@ class Auth extends Session
 			return [FALSE,$this->mod->Lang('system_error').' #13'];
 		}
 
-		if (!$this->password_check($currpass, $userdata['password']/*, $tries TODO*/)) {
+		if (!$this->doPasswordCheck($currpass, $userdata['password']/*, $tries TODO*/)) {
 			$this->AddAttempt();
 			return [FALSE,$this->mod->Lang('password_incorrect')];
 		}
@@ -1036,6 +1035,7 @@ class Auth extends Session
 
 	/**
 	* Compares @password with the password recorded for @uid
+	* Unlike matchPassword, this returns boolean and without delay on mismatch
 	* @uid: int user enumerator
 	* @password: plaintext string
 	* Returns: boolean indicating match
@@ -1044,9 +1044,8 @@ class Auth extends Session
 	{
 		$sql = 'SELECT privhash FROM '.$this->pref.'module_auth_users WHERE id=?';
 		$hash = $this->db->GetOne($sql, [$uid]);
-
 		if ($hash) {
-			return $this->password_check($password, $hash, 0);
+			return $this->doPasswordCheck($password, $hash, 0);
 		}
 		return FALSE;
 	}
@@ -1055,16 +1054,17 @@ class Auth extends Session
 	* Verifies that @password is valid for @uid
 	* @uid: int user enumerator
 	* @password: plaintext string
-	* Returns: array 0=>T/F for success, 1=>message
+	* Returns: array [0]=boolean for success, [1]=message or ''
 	*/
 	protected function matchPassword($uid, $password)
 	{
-		$userdata = $this->getBaseUser($uid);
-		if (!$userdata) {
+		$sql = 'SELECT privhash FROM '.$this->pref.'module_auth_users WHERE id=?';
+		$hash = $this->db->GetOne($sql, [$uid]);
+		if (!$hash) {
 			return [FALSE,$this->mod->Lang('system_error').' #11'];
 		}
 
-		if (!$this->password_check($password, $userdata['password']/*, $tries TODO*/)) {
+		if (!$this->doPasswordCheck($password, $hash/*, $tries TODO*/)) {
 			return [FALSE,$this->mod->Lang('password_notvalid')];
 		}
 		return [TRUE,''];
@@ -1076,10 +1076,9 @@ class Auth extends Session
 	@passwd: string the password to verify
 	@hash: string the hash to verify against
 	@tries: no. of verification attempts, may be 0 in which case immediate return on mismatch
-
-	Returns: boolean Whether @passwd matches @hash
+	Returns: boolean
 	*/
-	protected function password_check($passwd, $hash, $tries=1)
+	public function doPasswordCheck($passwd, $hash, $tries=1)
 	{
 		if (password_verify($passwd, $hash)) {
 			return TRUE;
@@ -1089,26 +1088,5 @@ class Auth extends Session
 			usleep($t * 1000);
 		}
 		return FALSE;
-	}
-
-	//~~~~~~~~~~~~~ UTILITIES ~~~~~~~~~~~~~~~~~
-
-	/*
-	* CountS the number of bytes in @string
-	*
-	* Vanilla strlen() might be shadowed by the mbstring extension,
-	* in which case strlen() will count the number of characters
-	* per the internal encoding, which count may be < the wanted number.
-	*
-	* @string: the string to be sized
-	*
-	* Returns: int number of bytes
-	*/
-	private function bytelen($string)
-	{
-		if (function_exists('mb_strlen')) {
-			return mb_strlen($string, '8bit');
-		}
-		return strlen($string);
 	}
 }
