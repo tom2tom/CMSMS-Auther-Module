@@ -78,7 +78,7 @@ class Validate
 		$res = $this->afuncs->getBaseUser($uid);
 		if ($res && $res['active']) {
 			$tries = 1; //TODO get from session
-			if ($this->afuncs->password_check($val, $res['privhash'], $tries)) {
+			if ($this->afuncs->doPasswordCheck($val, $res['privhash'], $tries)) {
 				return [TRUE,''];
 			}
 		}
