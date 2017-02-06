@@ -89,8 +89,8 @@ The module must not be used otherwise than in acccordance with that license.</p>
 <ul>
 <li>PHP 5.4+</li>
 <li>PHP GD extension</li>
-<li>PHP Mcrypt extension</li>
-<li>PHP Openssl extension (for multi-factor authorisation)</li>
+<li>PHP Hash extension</li>
+<li>PHP Openssl extension</li>
 </ul>
 <h3>Desirables</h3>
 <h3>Styling</h3>
