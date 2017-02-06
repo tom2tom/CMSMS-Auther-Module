@@ -56,10 +56,10 @@ switch ($lvl) {
 		$msgs[] = $res[1];
 		if (!$focus) { $focus = 'passwd'; }
 	}
-	if (!$jax) { //i.e lengths not matched in browser
+	if (!$jax) { //i.e. lengths not matched in browser
 		$pw2 = trim($_POST[$id.'passwd2']);
 		if ($pw !== $pw2) {
-			$msgs[] = $mod->Lang('newpassword_nomatch');
+			$msgs[] = $mod->Lang('newpassword_nomatch'); //TODO not new
 			if (!$focus) { $focus = 'passwd2'; }
 		}
 	}
@@ -69,12 +69,13 @@ switch ($lvl) {
 
 	$t = trim($_POST[$id.'name']);
 	if ($t) {
-		//check it - properties
-		if (0) {
+//		$t = X::SanitizeName($t); TODO cleanup whitespace etc
+		$res = $afuncs->validateName($t);
+		if ($res[0]) {
+			$flds['name'] = $t; //crypt if/when needed
+		} else {
 			$msgs[] = $res[1];
 			if (!$focus) { $focus = 'name'; }
-		} else {
-			$flds['name'] = $t; //crypt if/when needed
 		}
 	} elseif ($cdata['name_required']) {
 		$msgs[] = $mod->Lang('missing_type', $mod->Lang('name'));
@@ -83,11 +84,11 @@ switch ($lvl) {
 	$t = trim($_POST[$id.'contact']);
 	if ($t) {
 		$res = $afuncs->validateAddress($t);
-		if (!$res[0]) {
+		if ($res[0]) {
+			$flds['address'] = $t; //crypt if/when needed
+		} else {
 			$msgs[] = $res[1];
 			if (!$focus) { $focus = 'contact'; }
-		} else {
-			$flds['address'] = $t; //crypt if/when needed
 		}
 	} elseif ($cdata['address_required']) {
 		$msgs[] = $mod->Lang('missing_type', $mod->Lang('title_contact'));

@@ -20,6 +20,7 @@ $sent array iff ajax-sourced
 [passwd] => "passnow"
 */
 
+//TODO handle force-reset flag for user
 if (empty($_POST[$id.'recover'])) {
 	$flds = [];
 	$lvl = $cdata['security_level'];
@@ -56,22 +57,23 @@ if (empty($_POST[$id.'recover'])) {
 		}
 		$t = trim($_POST[$id.'name']);
 		if ($t) {
-			//check it - properties
-			if (0) {
+//			$t = X::SanitizeName($t); TODO cleanup whitespace etc
+			$res = $afuncs->validateName($t);
+			if ($res[0]) {
+				$flds['name'] = $t; //crypt if/when needed
+			} else {
 				$msgs[] = $res[1];
 				if (!$focus) { $focus = 'name'; }
-			} else {
-				$flds['name'] = $t; //crypt if/when needed
 			}
 		}
 		$t = trim($_POST[$id.'contact']);
 		if ($t) {
 			$res = $afuncs->validateAddress($t);
-			if (!$res[0]) {
+			if ($res[0]) {
+				$flds['address'] = $t; //crypt if/when needed
+			} else {
 				$msgs[] = $res[1];
 				if (!$focus) { $focus = 'contact'; }
-			} else {
-				$flds['address'] = $t; //crypt if/when needed
 			}
 		}
 		switch ($lvl) {
@@ -107,8 +109,14 @@ if (empty($_POST[$id.'recover'])) {
 		}
 	}
 } else { //recovery-request
-	$res = $vfuncs->DoRecover($_POST[$id.'login']); //TODO params
+	$login = trim($_POST[$id.'login']);
+	$token = $params['token'];
+	$res = $vfuncs->DoRecover($login, $token); //might not return
+//TODO update stuff eg token
 	if ($res[0]) {
+		//report success ?
+		exit;
 	} else {
+		$msgs[] = $res[1];
 	}
 }
