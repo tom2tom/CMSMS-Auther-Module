@@ -21,7 +21,7 @@ class Utils
 		$sql = 'SELECT id FROM '.$pre.'module_auth_contexts WHERE id=? OR name=? or alias=?';
 		$db = \cmsms()->GetDB();
 		$id = $db->GetOne($sql, [(int)$context,$context,$context]);
-		if ($id) {
+		if ($id || is_numeric($id)) { //default context 0 is ok
 			return (int)$id;
 		}
 		return FALSE;
@@ -94,7 +94,7 @@ class Utils
 
 	/**
 	DeleteUser:
-	For admin use, c.f. Auth::deleteUser(), which includes password verification
+	For admin use, c.f. Auth::cancelUser(), which includes password verification
 	@user: numeric user identifier, or array of them
 	*/
 	public function DeleteUser($user)
