@@ -136,7 +136,7 @@ final class Setup
 				unset($ob);
 				$fp = $dir.DIRECTORY_SEPARATOR.'action.'.$handler[1].'.php';
 				if (@is_file($fp) && isset($handler[2])) {
-					$type = 3; //NB type 3 needs $handler[2] == originator's $id for DoAction() arg 
+					$type = 3; //NB type 3 needs $handler[2] == originator's $id for DoAction() arg
 				} elseif (strpos($handler[1],'method.') === 0) {
 					$fp = $dir.DIRECTORY_SEPARATOR.$handler[1].'.php';
 					if (@is_file($fp)) {
@@ -419,7 +419,7 @@ EOS;
   <p class="authtitle error">{$wantjs}</p>
  </div>
 {if (!empty($intro))}<p class="authtext">{$intro}</p><br />{/if}
- <form action="{$url}" method="POST" enctype="multipart/form-data">
+ <form id="authform" action="{$url}" method="POST" enctype="multipart/form-data">
   <div style="display:none;">
 {$hidden}
   </div>
