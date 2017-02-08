@@ -64,7 +64,7 @@ switch ($lvl) {
 		}
 	}
 	if (!$msgs) {
-		$flds['privhash'] = $t; //hash if/when needed
+		$flds['privhash'] = $pw; //hash if/when needed
 	}
 
 	$t = trim($_POST[$id.'name']);
@@ -80,7 +80,10 @@ switch ($lvl) {
 	} elseif ($cdata['name_required']) {
 		$msgs[] = $mod->Lang('missing_type', $mod->Lang('name'));
 		if (!$focus) { $focus = 'name'; }
+	} else {
+		$flds['name'] = '';
 	}
+
 	$t = trim($_POST[$id.'contact']);
 	if ($t) {
 		$res = $afuncs->validateAddress($t);
@@ -93,7 +96,10 @@ switch ($lvl) {
 	} elseif ($cdata['address_required']) {
 		$msgs[] = $mod->Lang('missing_type', $mod->Lang('title_contact'));
 		if (!$focus) { $focus = 'contact'; }
+	} else {
+		$flds['address'] = '';
 	}
+
 	switch ($lvl) {
 	 case Auther\Setup::NONCED:
 	//check stuff
@@ -121,7 +127,12 @@ if (!$msgs) {
 	//cache provided data (from $flds[] to session::cache)
 	//initiate challenge
 	} else {
-		$afuncs->register($flds['publicid'], $password, $repeatpassword, $email='', $params=[], $sendmail=NULL);
-		//report success
+		$res = $afuncs->addUser($flds['publicid'], $pw, $flds['name'], $flds['address'], $sendmail, []);
+		if ($res[0]) {
+			$uidnew = $res[1]; //for use by includer
+		} else {
+			$msgs[] = $res[1];
+		}
+
 	}
 }
