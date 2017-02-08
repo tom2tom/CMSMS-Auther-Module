@@ -13,20 +13,32 @@ function ajax_errreport($msg) {
 }
 
 // c.f. StripeGate::Payer
-function notify_handler($params, $others)
+function notify_handler($params, $others=FALSE)
 {
-	//TODO sanitize $params etc
+/*TODO sanitize $others - handlers tolerate any of the following (prefixed):
+need explicit success / user_id / token /$id + the following:
+'success' + 'user_id'
+'repeat' + 'token'
+'message'
+'focus'
+'html'
+'cancel'
+*/
+//	$newparms = ['success'=>1];
+//	$newparms = ['cancel'=>1];
+	$newparms = $others; //TODO
+
 	switch ($params['handlertype']) {
 	 case 1: //callable, 2-member array or string like 'ClassName::methodName'
-		$res = call_user_func_array($params['handler'], $params);
+		$res = call_user_func_array($params['handler'], $newparms);
 		//TODO handle $res == FALSE
 		break;
 /*	 case 2: //static closure not supported
-		$res = $params['handler']($params);
+		$res = $params['handler']($newparms);
 		break; */
 	 case 3: //module action
 		$ob = \cms_utils::get_module($params['handler'][0]);
-		$res = $ob->DoAction($params['handler'][1], $params['handler'][2], $params);
+		$res = $ob->DoAction($params['handler'][1], $params['handler'][2], $newparms);
 		unset($ob);
 		//TODO handle $res == 400+
 		break;
@@ -48,7 +60,7 @@ function notify_handler($params, $others)
 		 CURLOPT_RETURNTRANSFER => 1,
 		 CURLOPT_URL => $params['handler'],
 		 CURLOPT_POST => 1,
-		 CURLOPT_POSTFIELDS => $params
+		 CURLOPT_POSTFIELDS => $newparms
 		]);
 		$res = curl_exec($ch);
 		//TODO handle $res == 400+
@@ -97,6 +109,7 @@ $inc = substr($fp, 0, $c+1).'include.php';
 require $inc;
 
 $mod = cms_utils::get_module('Auther');
+$errmsg = $mod->Lang('err_ajax');
 
 $cfuncs = new Auther\Crypter();
 $pw = $cfuncs->decrypt_preference($mod, 'masterpass');
@@ -104,10 +117,10 @@ $iv = base64_decode($_POST[$id.'IV']);
 $t = openssl_decrypt($_POST[$kn], 'BF-CBC', $pw, 0, $iv);
 if (!$t) {
 	if ($jax) {
-		ajax_errreport($mod->Lang('err_ajax'));
+		ajax_errreport($errmsg);
 	} else {
 		//handler N/A yet
-		echo $mod->Lang('err_ajax');
+		echo $errmsg;
 	}
 	exit;
 }
@@ -115,17 +128,27 @@ if (!$t) {
 $params = unserialize($t);
 if (empty($params) || $params['identity'] !== substr($id, 2, 3)) {
 	if ($jax) {
-		ajax_errreport($mod->Lang('err_ajax'));
+		ajax_errreport($errmsg);
 	} else {
 		//TODO signal something to handler
-		notify_handler($params, $others);
+		if ($params) {
+			notify_handler($params, $errmsg);
+		} else {
+			echo $errmsg;
+		}
 	}
 	exit;
 }
 
 if (!empty($_POST[$id.'cancel'])) {
 	//TODO pass to handler
-	notify_handler($params, $others);
+	notify_handler($params, ['cancel'=>1]);
+	exit;
+}
+if (!empty($_POST[$id.'success'])) {
+	//TODO pass to handler
+	notify_handler($params, ['success'=>1]);
+	exit;
 }
 
 $iv = base64_decode($_POST[$id.'nearn']);
@@ -133,10 +156,10 @@ $iv = substr($iv, 0, 16); //force correct iv length
 $t = openssl_decrypt($_POST[$id.'sent'], 'AES-256-CBC', $params['far'], 0, $iv);
 if (!$t) {
 	if ($jax) {
-		ajax_errreport($mod->Lang('err_ajax'));
+		ajax_errreport($errmsg);
 	} else {
 		//TODO signal something to handler
-		notify_handler($params, $others);
+		notify_handler($params, $errmsg);
 	}
 	exit;
 }
@@ -144,10 +167,10 @@ $p = strpos($t, $params['far']) + strlen($params['far']);
 $sent = (array)json_decode(substr($t, $p));
 if (!$sent) {
 	if ($jax) {
-		ajax_errreport($mod->Lang('err_ajax'));
+		ajax_errreport($errmsg);
 	} else {
 		//TODO signal something to handler
-		notify_handler($params, $others);
+		notify_handler($params, $errmsg);
 	}
 	exit;
 }
@@ -168,50 +191,30 @@ $vfuncs = new Auther\Validate($mod, $afuncs, $cfuncs);
 $msgs = [];
 $focus = '';
 
-/*TODO get & process $_POST array e.g.
-[pA762_cancel]	"Cancel" iff enabled & clicked
-[pA762_IV]	"Ys1ad0tN0JI="
-[pA762_data]	"xD+qbcJIMUA87rNvZuppgYyCb2Ox04ChJj6jma8O7b/lwKuFC7yHoDwFH6buzxhLw2Ur/x0FonEwT6lMCotElxFLUcaHK9zvH1Wquo75vYWqC7pNbkBkonvKATq+semQA0xPCHuDsOw8nMVyFs84ctr0KRv/an3DVozCr8t35B23PWyBlKMv4xIySW3UoZ5942ReppZ99I4QZBma9YVvBwP0nyyL6+odS6bowic1nBgIQXjOYKs+gtqxiciS2DI18eAxWd0K+bJprgPHT000KjTNyxqoF5M+20Sapp5Bn7o6G2BaqLwPIQ=="
-[pA762_jsworks]	"TRUE" iff ajax-sourced
-[pA762_submit]	"Submit" iff NOT ajax-sourced
-[pA762_captcha]	"text" maybe iff NOT ajax-sourced
-[pA762_login]	"rogerrabbit"
-[pA762_nearn]	"AjsxOcOYMMOSw77DkWAmwoAXw53Cun0"
-[pA762_name]	"whatever" iff relevant for the mode
-[pA762_contact]	"whatever" iff relevant for the mode
-[pA762_recover]	"0" OR "1"
-encrypted password(s) in
-[pA762_sent]	"AjsxOcOYMMOSw77DkWAmwnb+nrh+HVJTjx6nelaIfxTfPBeyVqfR83gAhBd59lSk
-y1ePAujBNoQstmmiebMRRAyhPAh5SvNK29Zlr2J77T7efx/y5heYyyf+5jyveKbu"
-THE LATTER BECOMES
-$sent array e.g.
-[passwd] => "s11kul52"
-[passwd2] => "someother" (if relevant)
-*/
-
 require (__DIR__.DIRECTORY_SEPARATOR.'lib'.DIRECTORY_SEPARATOR.'process.'.$params['task'].'.php');
 
 if ($msgs) { //error
-	$msgtext = implode('\n', $msgs); //newline for js alert box
-	$t = json_encode(['message'=>$msgtext, 'focus'=>$focus]);
+	$msgtext = implode("\n", $msgs); //newline for js alert box
+	$t = ['message'=>$msgtext, 'focus'=>$focus];
 	if ($jax) {
 		header('HTTP/1.1 500 Internal Server Error');
-		header('Content-Type: application/json; charset=UTF-8');
-		die($t);
-	} else {
-		notify_handler($params, $others);
 	}
-} elseif (1) { //TODO not-finished-now
-$t = 'I\'m back';
+} elseif (0) { //TODO not-finished-now e.g. challenge
+	$t = ['message'=>'I\'m back']; //TODO
 	if ($jax) {
-		header('HTTP/1.1 204 No Content');
-		header('Content-Type: application/json; charset=UTF-8');
-		die($t);
-	} else {
-		notify_handler($params, $others);
+		header('HTTP/1.1 205 Reset Content');
 	}
 } else {
-	notify_handler($params, $others);
+	$t = ['success'=>1];
+	if ($jax) {
+		header('HTTP/1.1 202 Accepted');
+	}
 }
 
-exit;
+if ($jax) {
+	header('Content-Type: application/json; charset=UTF-8');
+	die(json_encode($t));
+} else {
+	notify_handler($params, $t);
+	exit;
+}
