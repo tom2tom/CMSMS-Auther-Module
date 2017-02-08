@@ -23,6 +23,14 @@ class Auth extends Session
 {
 	const EMAILPATN = '/^.+@.+\..+$/';
 	const STRETCHES = 12; //hence 2**12
+	const NAMEDIR = 'usernames'; //subdir name
+	const PHRASEDIR = 'phrases';
+
+	protected $trainers = ['big.txt', 'good.txt', 'bad.txt', 'matrix.txt'];
+	protected $namepath;
+	protected $phrasepath;
+	protected $nametrained = FALSE;
+	protected $phrasetrained = FALSE;
 
 	public function __construct(&$mod, $context=0)
 	{
@@ -34,18 +42,19 @@ class Auth extends Session
 	/**
 	* Verifies that @publicid is an acceptable login identifier
 	* @publicid: string user identifier
+	* @explicit: optional boolean whether to report login-is-taken or just invalid
 	* Returns: array [0]=boolean for success, [1]=message or ''
 	*/
-	public function validateLogin($publicid)
+	public function validateLogin($publicid, $explicit=FALSE)
 	{
 		$val = (int)$this->GetConfig('login_min_length');
 		if ($val > 0 && strlen($publicid) < $val) {
-			return [FALSE,$this->mod->Lang('login_short')];
+			return [FALSE, $this->mod->Lang('login_short')];
 		}
 
 		$val = (int)$this->GetConfig('login_max_length');
 		if ($val > 0 && strlen($publicid) > $val) {
-			return [FALSE,$this->mod->Lang('login_long')];
+			return [FALSE, $this->mod->Lang('login_long')];
 		}
 
 		if (preg_match(self::EMAILPATN, $publicid)) {
@@ -58,7 +67,39 @@ class Auth extends Session
 				}
 			}
 		}
-		//TODO duplication check
+
+		$sql = 'SELECT id FROM '.$this->pref.'module_auth_users WHERE publicid=? AND context_id=?';
+		if ($this->db->GetOne($sql, [$publicid, $this->context])) {
+			$key = ($explicit) ? 'login_taken' : 'login_notvalid';
+			return [FALSE, $this->mod->Lang($key)];
+		}
+
+		return [TRUE,''];
+	}
+
+	/**
+	* Verifies (somewhat slowly) that @publicid is not 'gibberish'
+	* @publicid: string user identifier
+	* Returns: array [0]=boolean for success, [1]=message or ''
+	*/
+	public function supervalidateLogin($publicid)
+	{
+		if (!$this->nametrained) {
+			$fp = [];
+			$this->namepath = __DIR__.DIRECTORY_SEPARATOR.self::NAMEDIR.DIRECTORY_SEPARATOR;
+			foreach ($this->trainers as $fn) {
+				$fp[] = $this->namepath.$fn;
+			}
+			$this->nametrained = Gibberish::train($fp[0], $fp[1], $fp[2], $fp[3]);
+		}
+		if ($this->nametrained) {
+			$t = strtolower($publicid); //too bad about mb
+			$fp = $this->namepath.$this->trainers[3];
+			$val = Gibberish::test($t, $fp, FALSE); //TODO get & evaluate raw score
+			if (!$val) {
+				return [FALSE, $this->mod->Lang('login_notvalid')];
+			}
+		}
 		return [TRUE,''];
 	}
 
@@ -97,9 +138,33 @@ class Auth extends Session
 		if ($val && !$name) {
 			return [FALSE, $this->mod->Lang('missing_name')]; //TODO has appended 'yet'
 		}
-		//TODO check as if is password?
-		if (strlen($name) < 2 || preg_match('/\d/', $name)) {
+		if (strlen($name) < 2 || preg_match('/[\d=|"-\,\?]/', $name)) {
 			return [FALSE, $this->mod->Lang('invalid_type', $this->mod->Lang('name'))];
+		}
+		return [TRUE, ''];
+	}
+
+	/**
+	* Verifies (somewhat slowly) that @name is not 'gibberish'
+	* @name: string
+	* Returns: array [0]=boolean for success, [1]=message or ''
+	*/
+	public function supervalidateName($name)
+	{
+		if (!$this->phrasetrained) {
+			$fp = [];
+			$this->phrasepath = __DIR__.DIRECTORY_SEPARATOR.self::PHRASEDIR.DIRECTORY_SEPARATOR;
+			foreach ($this->trainers as $fn) {
+				$fp[] = $this->phrasepath.$fn;
+			}
+			$this->phrasetrained = Gibberish::train($fp[0], $fp[1], $fp[2], $fp[3]);
+		}
+		if ($this->phrasetrained) {
+			$fp = $this->phrasepath.$this->trainers[3];
+			$val = Gibberish::test($name, $fp, FALSE);
+			if (!$val) { //TODO
+				return [FALSE, $this->mod->Lang('invalid_type', $this->mod->Lang('name'))];
+			}
 		}
 		return [TRUE, ''];
 	}
@@ -815,10 +880,9 @@ class Auth extends Session
 	* @params: array of additional params default = empty
 	* Returns: array [0]=boolean for success, [1]=message or ''
 	*/
-	protected function addUser($publicid, $password, $name, $address, &$sendmail, $params=[])
+	public function addUser($publicid, $password, $name, $address, &$sendmail, $params=[])
 	{
 		$uid = $this->db->GenID($this->pref.'module_auth_users_seq');
-		$publicid = htmlentities($publicid); //TODO encoding management
 
 		if ($sendmail) { //TODO
 			$status = $this->addRequest($uid, $publicid, 'activate', $sendmail);
@@ -846,9 +910,9 @@ class Auth extends Session
 			$address = NULL;
 		}
 		//TODO any others?
-		$sql = 'INSERT INTO '.$this->pref.'module_auth_users (id,publicid,privhash,name,address,context_id,active) VALUES (?,?,?,?,?,?,?)';
+		$sql = 'INSERT INTO '.$this->pref.'module_auth_users (id,publicid,privhash,name,address,context_id,addwhen,active) VALUES (?,?,?,?,?,?,?,?)';
 
-		if (!$this->db->Execute($sql, [$uid, $publicid, $password, $name, $address, $this->context, $isactive])) {
+		if (!$this->db->Execute($sql, [$uid, $publicid, $password, $name, $address, $this->context, time(), $isactive])) {
 			$this->deleteRequest($status[$TODO]);
 			return [FALSE,$this->mod->Lang('system_error').' #03'];
 		}
