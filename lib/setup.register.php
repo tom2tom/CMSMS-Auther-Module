@@ -268,28 +268,34 @@ EOS;
     data: parms,
     dataType: 'json',
     global: false,
-    success: function(data, status, jqXHR) {
-     if (status=='success') {
-//TODO maybe submit the form? jqXHR.status == 204 do nothing
-   //stuff
-//      var details = JSON.parse(jqXHR.responseText);
-//      ajaxresponse (details, false);
-     } else {
-   //stuff e.g. show jqXHR.responseText, jqXHR.statusText
+    success: function(data,status,jqXHR) {
+     switch (jqXHR.status) {
+      case 202:
+       var \$el = $('#authform');
+       \$el.find(':input:not([type=hidden])').removeAttr('name');
+	   \$el.prepend('<input type="hidden" name="{$id}success" value="1" />');
+       \$el.trigger('submit');
+       break;
+      case 205:
+       details = JSON.parse(jqXHR.responseText);
+       ajaxresponse (details, somemsg);
+       break;
+      default:
+       break;
      }
-     $(btn).prop('disabled', false);
+     $(btn).prop('disabled',false);
      //document.body.style.cursor = 'auto';
     },
-    error: function(jqXHR, status, errmsg) {
+    error: function(jqXHR,status,errmsg) {
      details = JSON.parse(jqXHR.responseText);
-     ajaxresponse (details, errmsg);
-     $(btn).prop('disabled', false);
+     ajaxresponse (details,errmsg);
+     $(btn).prop('disabled',false);
      //document.body.style.cursor = 'auto';
     }
    });
   } else {
    setTimeout(function() {
-    $(btn).prop('disabled', false);
+    $(btn).prop('disabled',false);
     //document.body.style.cursor = 'auto';
    },10);
   }

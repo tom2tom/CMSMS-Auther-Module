@@ -110,18 +110,17 @@ function transfers(\$inputs) {
  $('#{$id}nearn').val(GibberAES.Base64.encode(iv));
  $('#authcontainer input:hidden').add(\$inputs).each(function() {
   var \$el = $(this),
-   v = \$el.val(),
-   t, n;
-  if (v) {
-   t = \$el.attr('type');
-   if (t == 'password') {
-    return;
-   } else if (t == 'checkbox' && !\$el.is(':checked')) {
-    v = '0';
-   }
-   n = \$el.attr('name');
-   parms[n] = v;
+   t = \$el.attr('type'),
+   n, v;
+  if (t == 'password') {
+   return;
+  } else if (t == 'checkbox' && !\$el.is(':checked')) {
+   v = '0';
+  } else {
+   v = \$el.val();
   }
+  n = \$el.attr('name');
+  parms[n] = v;
  });
  return parms;
 }
@@ -234,25 +233,32 @@ EOS;
     data: parms,
     dataType: 'json',
     global: false,
-    success: function(data, status, jqXHR) {
-     if (status=='success') {
-   //stuff
-     var details = JSON.parse(jqXHR.responseText);
-     ajaxresponse (details, false);
-     } else {
-   //stuff e.g. show jqXHR.responseText, jqXHR.statusText
+    success: function(data,status,jqXHR) {
+     switch (jqXHR.status) {
+      case 202:
+       var \$el = $('#authform');
+       \$el.find(':input:not([type=hidden])').removeAttr('name');
+	   \$el.prepend('<input type="hidden" name="{$id}success" value="1" />');
+       \$el.trigger('submit');
+       break;
+      case 205:
+       details = JSON.parse(jqXHR.responseText);
+       ajaxresponse (details, somemsg);
+       break;
+      default:
+       break;
      }
-     $(btn).prop('disabled', false);
+     $(btn).prop('disabled',false);
     },
-    error: function(jqXHR, status, errmsg) {
+    error: function(jqXHR,status,errmsg) {
      details = JSON.parse(jqXHR.responseText);
-     ajaxresponse (details, errmsg);
-     $(btn).prop('disabled', false);
+     ajaxresponse (details,errmsg);
+     $(btn).prop('disabled',false);
     }
    });
   } else {
     setTimeout(function() {
-     $(btn).prop('disabled', false);
+     $(btn).prop('disabled',false);
     },10);
   }
   return false;
