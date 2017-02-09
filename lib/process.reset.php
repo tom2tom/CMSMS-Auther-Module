@@ -47,7 +47,7 @@ switch ($lvl) {
 		$msgs[] = $res[1];
 		if (!$focus) { $focus = 'passwd2'; }
 	}
-	if (!$jax) {
+	if (!$jax) { //i.e lengths not matched in browser
 		if ($pw2 !== trim($_POST[$id.'passwd3'])) {
 			$msgs[] = $mod->Lang('newpassword_nomatch');
 			if (!$focus) { $focus = 'passwd2'; }
