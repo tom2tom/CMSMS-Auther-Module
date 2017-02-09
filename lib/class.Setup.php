@@ -266,6 +266,7 @@ final class Setup
 		 case 'login':
 		 case 'register':
 		 case 'reset':
+		 case 'recover':
 		 case 'change':
 			break;
 		 default:
@@ -425,9 +426,11 @@ EOS;
   </div>
   <div id="authelements">
 {foreach from=$components item='elem'}
+{if !empty($elem->prehtml)}{$elem->prehtml}{/if}
 {if !empty($elem->title)}<p class="authtitle">{$elem->title}</p>{/if}
 {if !empty($elem->input)}<div class="authinput">{$elem->input}</div>{/if}
 {if !empty($elem->extra)}<div class="authtext">{$elem->extra}</div>{/if}
+{if !empty($elem->posthtml)}{$elem->posthtml}{/if}
 {/foreach}
 {if !empty($captcha)}
 <div class="hidejs">
