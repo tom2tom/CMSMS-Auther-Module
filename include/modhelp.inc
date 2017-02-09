@@ -33,6 +33,7 @@ $mode = mode-descriptor string, one of
 <li>'login'</li>
 <li>'register'</li>
 <li>'reset'</li>
+<li>'recover'</li>
 <li>'change'</li>
 </ul>
 $handler = something to receive and process feedback after the form has been processed, one of
