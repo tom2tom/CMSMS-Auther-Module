@@ -82,7 +82,7 @@ class Auth extends Session
 	* @publicid: string user identifier
 	* Returns: array [0]=boolean for success, [1]=message or ''
 	*/
-	public function supervalidateLogin($publicid)
+	public function sensibleLogin($publicid)
 	{
 		if (!$this->nametrained) {
 			$fp = [];
@@ -149,7 +149,7 @@ class Auth extends Session
 	* @name: string
 	* Returns: array [0]=boolean for success, [1]=message or ''
 	*/
-	public function supervalidateName($name)
+	public function sensibleName($name)
 	{
 		if (!$this->phrasetrained) {
 			$fp = [];
@@ -985,6 +985,15 @@ class Auth extends Session
 	}
 
 	//~~~~~~~~~~~~~ PASSWORD OPERATIONS ~~~~~~~~~~~~~~~~~
+
+	/**
+	* Gets whether password-recovery is supported
+	* Returns: boolean
+	*/
+	public function isResettable()
+	{
+		return ($this->GetConfig('password_rescue') > 0);
+	}
 
 	/**
 	* Allows a user to reset her/his password after requesting a reset
