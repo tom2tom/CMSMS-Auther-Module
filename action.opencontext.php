@@ -35,7 +35,7 @@ if (!function_exists('getContextProperties')) {
 	'password_min_length',	1, 3, 1,
 	'password_min_score',	1, 3, 1,
 	'default_password',		4, 50, 1,
-	'forget_rescue',		0, 0, 0,
+	'password_rescue',		0, 0, 0,
 
 	'name_required',		0, 0, 0,
 	'address_required',		0, 0, 0,
