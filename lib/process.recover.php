@@ -22,8 +22,6 @@ $sent array iff ajax-sourced
 [passwd2] => "someother" new
 */
 
-$flds = [];
-$pass1 = TRUE; //TODO
 $lvl = $cdata['security_level'];
 switch ($lvl) {
  case Auther\Setup::NOBOT:
@@ -32,6 +30,8 @@ switch ($lvl) {
  case Auther\Setup::LOSEC:
  case Auther\Setup::NONCED:
  case Auther\Setup::CHALLENGED:
+	$flds = [];
+	$pass1 = $_POST[$id.'phase'] == 'who'; //might otherwisse be 'pass'
 	//common stuff
 	$login = trim($_POST[$id.'login']);
 	if ($login) {
@@ -48,8 +48,7 @@ switch ($lvl) {
 				$msgs[] = $res[1];
 				$focus = 'login';
 			}
-//		} else {
-// TODO IGNORE UNKOWN TO HINDER FORCERS
+//		} else { ignore if unkown, to hinder forcers
 //			$msgs[] = $mod->Lang('login_notvalid');
 //			$focus = 'login';
 		}
@@ -64,28 +63,29 @@ switch ($lvl) {
 
 	$pw = ($jax) ? $sent['passwd'] : trim($_POST[$id.'passwd']);
 	$data = json_decode($sdata['cache']);
-	if (!$afuncs->doPasswordCheck($pw, $data['temppass'], $sdata['attempts']) {
+	if (!$afuncs->doPasswordCheck($pw, $data['temppass'], $sdata['attempts'])) {
 		$afuncs->AddAttempt();
-		$msgs[] = $mod->Lang('password_incorrect'); //TODO 'temporary')
+		$msgs[] = $mod->Lang('password_incorrect'); //TODO 'temporary' qualifier
 		break;
 	}
 
 	$t = ($jax) ? $sent['passwd2'] : $_POST[$id.'passwd2'];
 	$pw2 = trim($t);
 	$res = $afuncs->validatePassword($pw2);
-	if (!$res[0]) {
+	if ($res[0]) {
+		$flds['privhash'] = $pw2; //hash when required
+	} else {
 		$msgs[] = $res[1];
 		if (!$focus) { $focus = 'passwd2'; }
 	}
 	if (!$jax) { //i.e. passwords not matched in browser
 		if ($pw2 !== trim($_POST[$id.'passwd3'])) {
+			unset($flds['privhash']);
 			$msgs[] = $mod->Lang('newpassword_nomatch');
 			if (!$focus) { $focus = 'passwd2'; }
 		}
 	}
-	if (!$msgs) {
-		$flds['privhash'] = $pw2; //hash when required
-	}
+
 	switch ($lvl) {
 	 case Auther\Setup::NONCED:
 	//check stuff
@@ -111,29 +111,39 @@ switch ($lvl) {
 if ($msgs) {
 	$afuncs->AddAttempt();
 } elseif ($pass1) {
-	//TODO func($lvl) - maybe a temp password instead of an URL
-	$pw = $afuncs->UniqueToken($afuncs->GetConfig('password_min_length'));
-	$hash = password_hash($pw, PASSWORD_DEFAULT);
-	$data = json_encode(['temppass'=>$hash]);
-	$sql = 'UPDATE '.$pref.'module_auth_sessions SET cache=? WHERE token=?';
-	$db->Execute($sql, [$data, $token]);
-	$sendmail = TRUE;
-	$res = $afuncs->addRequest($sdata['user_id'], $login, 'reset', $sendmail, $fake);
-	if (!$res[0]) {
-		$msgs[] = $res[1];	
-	} elseif (!$sendmail) {
-		$msgs[] = 'TODO';
-	} else {
-		//TODO setup for 'good' report
-		//message, unhide stuff
+	if (!$fake) {
+		$pw = $afuncs->UniqueToken($afuncs->GetConfig('password_min_length'));
+		$hash = password_hash($pw, PASSWORD_DEFAULT);
+		$data = json_encode(['temppass'=>$hash]);
+		$sql = 'UPDATE '.$pref.'module_auth_sessions SET cache=? WHERE token=?';
+		$db->Execute($sql, [$data, $token]);
+		$sendmail = TRUE; //ignore context property!
+		$res = $afuncs->addRequest($sdata['user_id'], $login, 'reset', $sendmail, $fake, $pw);
+		if (!$res[0]) {
+			$msgs[] = $res[1];
+		} elseif (!$sendmail) {
+			$msgs[] = $mod->Lang('TODO');
+		}
+	}
+	if (!$msgs) {
+		$t = ['focus'=>'authfeedback', 'html'=>$mod->Lang('temp_sent')];
+		if ($jax) {
+			header('HTTP/1.1 200 OK');
+			header('Content-Type: application/json; charset=UTF-8');
+			die(json_encode($t));
+		} else {
+			notify_handler($params, $t);
+			exit;
+		}
 	}
 } else {
 	if ($lvl == Auther\Setup::CHALLENGED) {
 		//cache $login, provided data (from $flds[])
-		$enc = $cfuncs->encrypt_value('TODO');
+		$data = json_encode($TODO);
+		$enc = $cfuncs->encrypt_value($mod, $data);
 		$sql = 'UPDATE '.$pref.'module_auth_sessions SET cache=? WHERE token=?';
 		$db->Execute($sql, [$enc, $token]);
-		//initiate challenge
+		//TODO initiate challenge
 	} else {
 		$afuncs->resetPassword($token, $pw2, $pw2);
 	}
