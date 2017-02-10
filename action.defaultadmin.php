@@ -24,7 +24,7 @@ if (!function_exists('getModulePrefs')) {
 	'password_min_score',		1, 3, 1,
 	'password_forget',			1, 16, 0,
 	'default_password',			4, 50, 1,
-	'forget_rescue',			0, 0, 0,
+	'password_rescue',			0, 0, 0,
 
 	'name_required',			0, 0, 0,
 	'address_required',			0, 0, 0,
@@ -453,7 +453,7 @@ EOS;
 //DEBUG
 $funcs = new Auther\Setup();
 $token = FALSE;
-list($authhtm,$authjs) = $funcs->GetPanel(1, 'register', ['Auther','dummy'], TRUE, $token);
+list($authhtm,$authjs) = $funcs->GetPanel(1, 'recover', ['Auther','dummy',$id], TRUE, $token);
 $tplvars['authform'] = $authhtm;
 //$tplvars['authform'] = NULL;
 
