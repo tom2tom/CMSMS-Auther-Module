@@ -96,7 +96,7 @@ class Validate
 	 * @passwd may be FALSE, so as to check only the login
 	 * Returns: 2-member array, [0] = boolean indicating success, [1] = error message or ''
 	 */
-	public function IsKnown($login, $passwd, $failkey='authority_failed')
+/*	public function IsKnown($login, $passwd, $failkey='authority_failed')
 	{
 		$res = $this->afuncs->isRegistered($login, $passwd);
 		if ($res[0]) {
@@ -110,7 +110,7 @@ class Validate
 		}
 		return [FALSE, $msg];
 	}
-
+*/
 	/**
 	 * Checks whether a message can be sent to the user represented by @login
 	 * @login: user indentifier
@@ -122,7 +122,7 @@ class Validate
 		if ($uid) {
 			$pref = \cms_db_prefix();
 			$sql = 'SELECT publicid,address FROM '.$pref.'module_auth_users WHERE user_id=?';
-			$row = $this->db->GetRow($sql, [$uid]);
+			$row = \cmsms()->GetDb()->GetRow($sql, [$uid]);
 			if ($row) {
 				if ($this->afuncs->GetConfig('email_required')) {
 					$test = ['publicid', 'address'];
@@ -146,6 +146,45 @@ class Validate
 		return [FALSE, $msg];
 	}
 
+	/**
+	 * Checks whether a user has been flagged for a forced password-reset
+	 * The user's active flag is ignored
+	 * Must supply valid @uid, or @login and @cid
+	 * @uid: user identifier or FALSE
+	 * @login: optional alternative user identifier or FALSE
+	 * @cid: optional numeric context indentifier for use with @login
+	 * Returns: boolean
+	 */
+	public function IsForced($uid, $login=FALSE, $cid=FALSE)
+	{
+		$pref = \cms_db_prefix();
+		if ($uid) {
+			$sql = 'SELECT id FROM '.$pref.'module_auth_users WHERE id=? AND privreset>0';
+			$args = [$uid];
+		} else {
+			$sql = 'SELECT id FROM '.$pref.'module_auth_users WHERE publicid=? AND context_id=? AND privreset>0';
+			$args = [$login, $cid];
+		}
+		return \cmsms()->GetDb()->GetOne($sql, $args);
+	}
+
+	public function SetForced($state, $uid, $login=FALSE, $cid=FALSE)
+	{
+		$pref = \cms_db_prefix();
+		if ($uid) {
+			$sql = 'UPDATE '.$pref.'module_auth_users SET privreset=? WHERE id=?';
+			$args = [$state, $uid];
+		} else {
+			$sql = 'UPDATE '.$pref.'module_auth_users SET privreset=? WHERE publicid=? AND context_id=?';
+			$args = [$state, $login, $cid];
+		}
+		\cmsms()->GetDb()->Execute($sql, $args);
+	}
+
+	/**
+	 * Cleans up @name
+	 * Returns: string
+	 */
 	public function SanitizeName($name)
 	{
 		$t = trim($name);
@@ -159,13 +198,13 @@ class Validate
 	}
 
 	/**
-	* Initiate password recovery if the supplied login is known
-	* Normally do not provide $failkey
-	* Returns: 2-member array, [0] = boolean indicating success, [1] = error message or ''
-	*/
+	 * Initiate password recovery if the supplied login is known
+	 * Normally do not provide $failkey
+	 * Returns: 2-member array, [0] = boolean indicating success, [1] = error message or ''
+	 */
 /*	public function DoRecover($login, &$token, $failkey='err_parm')
 	{
-		$res = $this->IsKnown($login, FALSE, $failkey);
+		$res = $this->IsKnown($login, FALSE, $failkey); OR isRegistered() ??
 		if ($res[0]) {
 			if ($this->afuncs->GetConfig('send_reset_message')) {
 				$userdata = $this->afuncs->getPublicUser($login);
