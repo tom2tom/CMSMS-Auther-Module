@@ -388,7 +388,7 @@ class Auth extends Session
 
 		if (!$sessiondata) {
 			$this->mod->SendEvent('OnLoginFail', $parms);
-			return [FALSE,$this->mod->Lang('system_error').' #01'];
+			return [FALSE,$this->mod->Lang('system_error','#01')];
 		}
 
 		$this->mod->SendEvent('OnLogin', $parms);
@@ -427,7 +427,7 @@ class Auth extends Session
 	public function addRequest($uid, $publicid, $type, &$sendmail=NULL, $fake=FALSE, $password=FALSE)
 	{
 		if (!($type == 'activate' || $type == 'reset')) {
-			return [FALSE,$this->mod->Lang('system_error').' #02'];
+			return [FALSE,$this->mod->Lang('system_error','#02')];
 		}
 
 		if ($sendmail === NULL) {
@@ -465,7 +465,7 @@ class Auth extends Session
 			}
 		} else {
 			$sendmail = FALSE;
-			return [FALSE, $this->mod->Lang('system_error').' #03'];
+			return [FALSE, $this->mod->Lang('system_error','#03')];
 		}
 
 		$sql = 'SELECT id,expire FROM '.$this->pref.'module_auth_requests WHERE user_id=? AND type=?';
@@ -498,7 +498,7 @@ class Auth extends Session
 			$sql = 'INSERT INTO '.$this->pref.'module_auth_requests (id,user_id,expire,rkey,type) VALUES (?,?,?,?,?)';
 
 			if (!$this->db->Execute($sql, [$request_id, $uid, $expiretime, $token, $type])) {
-				return [FALSE,$this->mod->Lang('system_error').' #04'];
+				return [FALSE,$this->mod->Lang('system_error','#04')];
 			}
 		}
 
@@ -513,7 +513,7 @@ class Auth extends Session
 			} else {
 				$sendmail = FALSE;
 				$this->deleteRequest($request_id);
-				return [FALSE,$this->mod->Lang('system_error').' CMSMailer N/A'];
+				return [FALSE,$this->mod->Lang('system_error','CMSMailer N/A')];
 			}
 		} else {
 			$mlr = new \cms_mailer();
@@ -723,7 +723,7 @@ class Auth extends Session
 
 		if (!$userdata) {
 			$this->AddAttempt();
-			return [FALSE,$this->mod->Lang('system_error').' #14'];
+			return [FALSE,$this->mod->Lang('system_error','#05')];
 		}
 
 		if (!$this->doPasswordCheck($password, $userdata['password']/*, $tries TODO*/)) {
@@ -740,7 +740,7 @@ class Auth extends Session
 		$res = $this->db->Execute($sql, [$publicid, $uid]);
 
 		if ($res == FALSE) {
-			return [FALSE,$this->mod->Lang('system_error').' #15'];
+			return [FALSE,$this->mod->Lang('system_error','#06')];
 		}
 
 		return [TRUE,$this->mod->Lang('login_changed')];
@@ -913,7 +913,7 @@ class Auth extends Session
 		if ($userdata['active']) {
 			$this->AddAttempt();
 			$this->deleteRequest($data['id']);
-			return [FALSE,$this->mod->Lang('system_error').' #05'];
+			return [FALSE,$this->mod->Lang('system_error','#07')];
 		}
 
 		$sql = 'UPDATE '.$this->pref.'module_auth_users SET active=1 WHERE id=?';
@@ -968,7 +968,7 @@ class Auth extends Session
 
 		if (!$this->db->Execute($sql, [$uid, $publicid, $password, $name, $address, $this->context, time(), $isactive])) {
 			$this->deleteRequest($status[$TODO]);
-			return [FALSE,$this->mod->Lang('system_error').' #06'];
+			return [FALSE,$this->mod->Lang('system_error','#08')];
 		}
 
 		if (is_array($params) && count($params) > 0) { //TODO
@@ -1018,19 +1018,19 @@ class Auth extends Session
 		$sql = 'DELETE FROM '.$this->pref.'module_auth_users WHERE id=?';
 
 		if (!$this->db->Execute($sql, [$uid])) {
-			return [FALSE,$this->mod->Lang('system_error').' #07'];
+			return [FALSE,$this->mod->Lang('system_error','#09')];
 		}
 
 		$sql = 'DELETE FROM '.$this->pref.'module_auth_sessions WHERE user_id=?';
 
 		if (!$this->db->Execute($sql, [$uid])) {
-			return [FALSE,$this->mod->Lang('system_error').' #08'];
+			return [FALSE,$this->mod->Lang('system_error','#10')];
 		}
 
 		$sql = 'DELETE FROM '.$this->pref.'module_auth_requests WHERE user_id=?';
 
 		if (!$this->db->Execute($sql, [$uid])) {
-			return [FALSE,$this->mod->Lang('system_error').' #09'];
+			return [FALSE,$this->mod->Lang('system_error','#11')];
 		}
 
 		$this->mod->SendEvent('OnDeregister', $parms);
@@ -1094,7 +1094,7 @@ class Auth extends Session
 		if (!$userdata) {
 			$this->AddAttempt();
 			$this->deleteRequest($data['id']);
-			return [FALSE,$this->mod->Lang('system_error').' #11'];
+			return [FALSE,$this->mod->Lang('system_error','#12')];
 		}
 
 		if ($this->doPasswordCheck($password, $userdata['password']/*, $tries TODO*/)) {
@@ -1110,7 +1110,7 @@ class Auth extends Session
 			$this->deleteRequest($data['id']);
 			return [TRUE,$this->mod->Lang('password_reset')];
 		}
-		return [FALSE,$this->mod->Lang('system_error').' #12'];
+		return [FALSE,$this->mod->Lang('system_error','#13')];
 	}
 
 	/**
@@ -1152,7 +1152,7 @@ class Auth extends Session
 
 		if (!$userdata) {
 			$this->AddAttempt();
-			return [FALSE,$this->mod->Lang('system_error').' #13'];
+			return [FALSE,$this->mod->Lang('system_error','#14')];
 		}
 
 		if (!$this->doPasswordCheck($currpass, $userdata['password']/*, $tries TODO*/)) {
@@ -1195,7 +1195,7 @@ class Auth extends Session
 		$sql = 'SELECT privhash FROM '.$this->pref.'module_auth_users WHERE id=?';
 		$hash = $this->db->GetOne($sql, [$uid]);
 		if (!$hash) {
-			return [FALSE,$this->mod->Lang('system_error').' #11'];
+			return [FALSE,$this->mod->Lang('system_error','#15')];
 		}
 
 		if (!$this->doPasswordCheck($password, $hash/*, $tries TODO*/)) {
