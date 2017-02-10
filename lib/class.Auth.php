@@ -485,17 +485,18 @@ class Auth extends Session
 			}
 		}
 
+		//TODO merge requests into sessions - 
 		$dt = new \DateTime('@'.time(), NULL);
 		$val = $this->GetConfig('request_key_expiration');
 		$dt->modify('+'.$val);
 		$expiretime = $dt->getTimestamp();
 
-		$token = $this->UniqueToken(32);
+		$token = $this->UniqueToken(24);
 
 		$request_id = $this->db->GenID($this->pref.'module_auth_requests_seq');
 
 		if (!$fake) {
-			$sql = 'INSERT INTO '.$this->pref.'module_auth_requests (id,user_id,expire,rkey,type) VALUES (?,?,?,?,?)';
+			$sql = 'INSERT INTO '.$this->pref.'module_auth_requests (id,user_id,expire,token,type) VALUES (?,?,?,?,?)';
 
 			if (!$this->db->Execute($sql, [$request_id, $uid, $expiretime, $token, $type])) {
 				return [FALSE,$this->mod->Lang('system_error','#04')];
@@ -530,20 +531,33 @@ class Auth extends Session
 
 		$mlr->IsHTML(TRUE);
 
-		//construct frontend-url (so no admin publicid is needed)
-		$u = $this->mod->create_url('cntnt01', 'validate', '', [
-				'cauthc'=>$token,
-				'rauthr'=>$request_id]);
-		$url = strtr($u, '&amp;', '&');
-
 		if ($type == 'activate') {
 			$mlr->SetSubject($this->mod->Lang('email_activation_subject', $site_name));
-			$mlr->SetBody($this->mod->Lang('email_activation_body', $url, $site_name));
-			$mlr->SetAltBody($this->mod->Lang('email_activation_altbody', $url, $site_name));
-		} else { //reset
+		} else {
 			$mlr->SetSubject($this->mod->Lang('email_reset_subject', $site_name));
-			$mlr->SetBody($this->mod->Lang('email_reset_body', $url, $site_name));
-			$mlr->SetAltBody($this->mod->Lang('email_reset_altbody', $url, $site_name));
+		}
+		if ($password) {
+			if ($type == 'activate') {
+				$mlr->SetBody($this->mod->Lang('email_activation2_body', $url, $site_name));
+				$mlr->SetAltBody($this->mod->Lang('email_activation2_altbody', $url, $site_name));
+			} else { //reset
+				$mlr->SetBody($this->mod->Lang('email_reset2_body', $url, $site_name));
+				$mlr->SetAltBody($this->mod->Lang('email_reset2_altbody', $url, $site_name));
+			}
+		} else {
+			//construct frontend-url (so no admin publicid is needed)
+			$u = $this->mod->create_url('cntnt01', 'validate', '', [
+					'cauthc'=>$token,
+					'rauthr'=>$request_id]);
+			$url = strtr($u, '&amp;', '&');
+		
+			if ($type == 'activate') {
+				$mlr->SetBody($this->mod->Lang('email_activation_body', $url, $site_name));
+				$mlr->SetAltBody($this->mod->Lang('email_activation_altbody', $url, $site_name));
+			} else { //reset
+				$mlr->SetBody($this->mod->Lang('email_reset_body', $url, $site_name));
+				$mlr->SetAltBody($this->mod->Lang('email_reset_altbody', $url, $site_name));
+			}
 		}
 
 		$res = $mlr->Send();
@@ -558,13 +572,13 @@ class Auth extends Session
 
 	/**
 	* Returns request data if @token is valid
-	* @token: 32-byte string from UniqueToken()
+	* @token: 24-byte string from UniqueToken()
 	* @type: string 'reset' or 'activate'
 	* Returns: array [0]=boolean for success, [1]=message or '', if [0] then also 'id','uid'
 	*/
 	public function getRequest($token, $type)
 	{
-		$sql = 'SELECT id,user_id,expire FROM '.$this->pref.'module_auth_requests WHERE rkey=? AND type=?';
+		$sql = 'SELECT id,user_id,expire FROM '.$this->pref.'module_auth_requests WHERE token=? AND type=?';
 		$row = $this->db->GetRow($sql, [$token, $type]);
 
 		if (!$row) {
@@ -886,7 +900,7 @@ class Auth extends Session
 
 	/**
 	* Activates a user's account
-	* @token: string 32-byte token
+	* @token: string 24-byte token
 	* Returns: array [0]=boolean for success, [1]=message or ''
 	*/
 	public function activate($token)
@@ -897,7 +911,7 @@ class Auth extends Session
 			return [FALSE,$this->mod->Lang('user_blocked')];
 		}
 
-		if (strlen($token) !== 32) {
+		if (strlen($token) !== 24) {
 			$this->AddAttempt();
 			return [FALSE,$this->mod->Lang('activationkey_invalid')];
 		}
@@ -1051,7 +1065,7 @@ class Auth extends Session
 
 	/**
 	* Allows a user to reset her/his password after requesting a reset
-	* @token: string 32-byte token
+	* @token: string 24-byte token
 	* @password: plaintext string
 	* @repeatpassword: plaintext string
 	* Returns: array [0]=boolean for success, [1]=message or ''
@@ -1068,7 +1082,7 @@ class Auth extends Session
 			return [FALSE,$this->mod->Lang('user_blocked')];
 		}
 
-		if (strlen($token) != 32) {
+		if (strlen($token) != 24) {
 			return [FALSE,$this->mod->Lang('resetkey_invalid')];
 		}
 
