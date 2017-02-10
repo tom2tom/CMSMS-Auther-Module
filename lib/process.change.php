@@ -20,103 +20,105 @@ $sent array iff ajax-sourced
 [passwd] => "passnow"
 */
 
-//TODO handle force-reset flag for user
-if (empty($_POST[$id.'recover'])) {
+$lvl = $cdata['security_level'];
+switch ($lvl) {
+ case Auther\Setup::NOBOT:
+	//nothing to do
+	break;
+ case Auther\Setup::LOSEC:
+ case Auther\Setup::NONCED:
+ case Auther\Setup::CHALLENGED:
 	$flds = [];
-	$lvl = $cdata['security_level'];
-	switch ($lvl) {
-	 case Auther\Setup::NOBOT:
-		//nothing to do
-		break;
-	 case Auther\Setup::LOSEC:
-	 case Auther\Setup::NONCED:
-	 case Auther\Setup::CHALLENGED:
-		//common stuff
-		$login = trim($_POST[$id.'login']);
-		$t = ($jax) ? $sent['passwd'] : $_POST[$id.'passwd'];
-		$pw = trim($t);
-		$res = $vfuncs->IsKnown($login, $pw);
-		if (!$res[0]) {
-			$msgs[] = $res[1];
-			$focus = 'login';
-		}
-		$t = trim($_POST[$id.'login2']);
-		if ($t) {
-			$res = $afuncs->validateLogin($t);
-			if ($res[0]) {
-				if ($afuncs->isLoginTaken($t)) {
-					$msgs[] = $mod->Lang('login_notvalid'); //NOT explicit in-use message!
-					$focus = 'login2';
-				} else {
-					$flds['publicid'] = $t;
-				}
-			} else {
-				$msgs[] = $res[1];
-				if (!$focus) { $focus = 'login2'; }
-			}
-		}
-		$t = trim($_POST[$id.'name']);
-		if ($t) {
-//			$t = X::SanitizeName($t); TODO cleanup whitespace etc
-			$res = $afuncs->validateName($t);
-			if ($res[0]) {
-				$flds['name'] = $t; //crypt if/when needed
-			} else {
-				$msgs[] = $res[1];
-				if (!$focus) { $focus = 'name'; }
-			}
-		}
-		$t = trim($_POST[$id.'contact']);
-		if ($t) {
-			$res = $afuncs->validateAddress($t);
-			if ($res[0]) {
-				$flds['address'] = $t; //crypt if/when needed
-			} else {
-				$msgs[] = $res[1];
-				if (!$focus) { $focus = 'contact'; }
-			}
-		}
-		switch ($lvl) {
-		 case Auther\Setup::NONCED:
-		//check stuff
-			if (!$jax) {
-				if ($params['captcha'] !== $_POST[$id.'captcha']) {
-					$msgs[] = $mod->Lang('err_captcha');
-					if (!$focus) { $focus = 'captcha'; }
-				}
-			}
-			break;
-		 case Auther\Setup::CHALLENGED:
-		//check stuff
-			if (!$jax) {
-			}
-			break;
-		}
-		break;
-	 case Auther\Setup::HISEC:
-	 //TODO
-		break;
-	}
-
-	if (!$msgs) {
-		if ($lvl == Auther\Setup::CHALLENGED) {
-		//cache provided data (from $flds[] to session::cache)
-		//also current login etc or uid
-		//initiate challenge
-		} else {
-		//record requested changes
-		//report success
-		}
-	}
-} else { //recovery-request
+	//common stuff
 	$login = trim($_POST[$id.'login']);
-	$token = $params['token'];
-	$res = $vfuncs->DoRecover($login, $token); //might not return
-//TODO update stuff eg token
+	$t = ($jax) ? $sent['passwd'] : $_POST[$id.'passwd'];
+	$pw = trim($t);
+	$res = $vfuncs->IsKnown($login, $pw);
 	if ($res[0]) {
-		//report success ?
-		exit;
+//TODO handle force-reset flag for user
 	} else {
 		$msgs[] = $res[1];
+		$focus = 'login';
+	}
+	$t = trim($_POST[$id.'login2']);
+	if ($t) {
+		$res = $afuncs->validateLogin($t);
+		if ($res[0]) {
+			if (0) { //TODO extra test criterion
+				$res = $afuncs->sensibleLogin($t);
+			}
+		}
+		if ($res[0]) {
+			if ($afuncs->isLoginTaken($t)) {
+				$msgs[] = $mod->Lang('login_notvalid'); //NOT explicit in-use message!
+				$focus = 'login2';
+			} else {
+				$flds['publicid'] = $t;
+			}
+		} else {
+			$msgs[] = $res[1];
+			if (!$focus) { $focus = 'login2'; }
+		}
+	}
+	$t = trim($_POST[$id.'name']);
+	if ($t) {
+		$t = $vfuncs->SanitizeName($t);
+		$res = $afuncs->validateName($t);
+		if ($res[0]) {
+			if (0) { //TODO extra test criterion
+				$res = $afuncs->sensibleName($t);
+			}
+		}
+		if ($res[0]) {
+			$flds['name'] = $t; //crypt if/when needed
+		} else {
+			$msgs[] = $res[1];
+			if (!$focus) { $focus = 'name'; }
+		}
+	}
+	$t = trim($_POST[$id.'contact']);
+	if ($t) {
+		$res = $afuncs->validateAddress($t);
+		if ($res[0]) {
+			$flds['address'] = $t; //crypt if/when needed
+		} else {
+			$msgs[] = $res[1];
+			if (!$focus) { $focus = 'contact'; }
+		}
+	}
+	switch ($lvl) {
+	 case Auther\Setup::NONCED:
+	//check stuff
+		if (!$jax) {
+			if ($params['captcha'] !== $_POST[$id.'captcha']) {
+				$msgs[] = $mod->Lang('err_captcha');
+				if (!$focus) { $focus = 'captcha'; }
+			}
+		}
+		break;
+	 case Auther\Setup::CHALLENGED:
+	//check stuff
+		if (!$jax) {
+		}
+		break;
+	}
+	break;
+ case Auther\Setup::HISEC:
+ //TODO
+	break;
+}
+
+if (!$msgs) {
+	if ($lvl == Auther\Setup::CHALLENGED) {
+		//cache $login, provided data (from $flds[])
+		$enc = $cfuncs->encrypt_value('TODO');
+		$sql = 'UPDATE '.$pref.'module_auth_sessions SET cache=? WHERE token=?';
+		$db->Execute($sql, [$enc, $token]);
+		//TODO initiate challenge
+	} else {
+	//TODO record requested changes
+	//$fillers = str_repeat('%s=?,', count($flds)-1).'%s=?';
+	//$sql = 'UPDATE '.$pref.'module_auth_users SET '.$fillers.' WHERE id=?'
+	//$db->Execute($sql, []);
 	}
 }

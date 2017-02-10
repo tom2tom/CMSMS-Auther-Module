@@ -20,7 +20,6 @@ $sent array iff ajax-sourced
 [passwd2] => "text" should match
 */
 
-$flds = [];
 $lvl = $cdata['security_level'];
 switch ($lvl) {
  case Auther\Setup::NOBOT:
@@ -29,10 +28,16 @@ switch ($lvl) {
  case Auther\Setup::LOSEC:
  case Auther\Setup::NONCED:
  case Auther\Setup::CHALLENGED:
+	$flds = [];
 	//common stuff
 	$t = trim($_POST[$id.'login']);
 	if ($t) {
 		$res = $afuncs->validateLogin($t);
+		if ($res[0]) {
+			if (0) { //TODO extra test criterion
+				$res = $afuncs->sensibleLogin($t);
+			}
+		}
 		if ($res[0]) {
 			if ($afuncs->isLoginTaken($t)) {
 				$msgs[] = $mod->Lang('login_notvalid'); //NOT explicit in-use message!
@@ -69,8 +74,13 @@ switch ($lvl) {
 
 	$t = trim($_POST[$id.'name']);
 	if ($t) {
-//		$t = X::SanitizeName($t); TODO cleanup whitespace etc
+		$t = $vfuncs->SanitizeName($t);
 		$res = $afuncs->validateName($t);
+		if ($res[0]) {
+			if (0) { //TODO extra test criterion
+				$res = $afuncs->sensibleName($t);
+			}
+		}
 		if ($res[0]) {
 			$flds['name'] = $t; //crypt if/when needed
 		} else {
@@ -124,9 +134,14 @@ switch ($lvl) {
 
 if (!$msgs) {
 	if ($lvl == Auther\Setup::CHALLENGED) {
-	//cache provided data (from $flds[] to session::cache)
-	//initiate challenge
+		//cache $login, provided data (from $flds[])
+		$data = json_encode($TODO);
+		$enc = $cfuncs->encrypt_value($mod, $data);
+		$sql = 'UPDATE '.$pref.'module_auth_sessions SET cache=? WHERE token=?';
+		$db->Execute($sql, [$enc, $token]);
+		//TODO initiate challenge
 	} else {
+		$sendmail = NULL; //hence context-property determines whether to send confirmation-request
 		$res = $afuncs->addUser($flds['publicid'], $pw, $flds['name'], $flds['address'], $sendmail, []);
 		if ($res[0]) {
 			$uidnew = $res[1]; //for use by includer

@@ -27,6 +27,7 @@ switch ($lvl) {
  case Auther\Setup::LOSEC:
  case Auther\Setup::NONCED:
  case Auther\Setup::CHALLENGED:
+	$flds = [];
 	//common stuff
 	$login = trim($_POST[$id.'login']);
 	$t = ($jax) ? $sent['passwd'] : $_POST[$id.'passwd'];
@@ -43,18 +44,18 @@ switch ($lvl) {
 		if (!$focus) { $focus = 'passwd2'; }
 	}
 	$res = $afuncs->validatePassword($pw2);
-	if (!$res[0]) {
+	if ($res[0]) {
+		$flds['privhash'] = $pw2; //hash when required
+	} else {
 		$msgs[] = $res[1];
 		if (!$focus) { $focus = 'passwd2'; }
 	}
-	if (!$jax) { //i.e lengths not matched in browser
+	if (!$jax) { //i.e. passwords not matched in browser
 		if ($pw2 !== trim($_POST[$id.'passwd3'])) {
+			unset($flds['privhash']);
 			$msgs[] = $mod->Lang('newpassword_nomatch');
 			if (!$focus) { $focus = 'passwd2'; }
 		}
-	}
-	if (!$msgs) {
-		$flds['privhash'] = $pw2; //hash when required
 	}
 	switch ($lvl) {
 	 case Auther\Setup::NONCED:
@@ -81,17 +82,14 @@ switch ($lvl) {
 if (!$msgs) {
 	$t = trim($_POST[$id.'login']);
 	if ($lvl == Auther\Setup::CHALLENGED) {
-	//cache provided data (from $flds[] to session::cache)
-	//also $login etc for rediscovery
-		if (!$sdata) {
-			$uid = $afuncs->getUID($t);
-			$token = $afuncs->Y($uid);
-		}
-		//update session parameters
-	//initiate challenge
+		//cache $login, provided data (from $flds[])
+		$data = json_encode($TODO);
+		$enc = $cfuncs->encrypt_value($mod, $data);
+		$sql = 'UPDATE '.$pref.'module_auth_sessions SET cache=? WHERE token=?';
+		$db->Execute($sql, [$enc, $token]);
+		//TODO initiate challenge
 	} else {
 		$uid = $afuncs->getUID($t);
 		$afuncs->changePassword($uid, $pw, $pw2, $pw2);
-	//report success
 	}
 }
