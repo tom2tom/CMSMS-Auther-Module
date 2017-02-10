@@ -276,9 +276,8 @@ EOS;
 	   \$el.prepend('<input type="hidden" name="{$id}success" value="1" />');
        \$el.trigger('submit');
        break;
-      case 205:
-       details = JSON.parse(jqXHR.responseText);
-       ajaxresponse (details, somemsg);
+      case 200:
+       ajaxresponse(jqXHR.responseJSON,somemsg);
        break;
       default:
        break;
