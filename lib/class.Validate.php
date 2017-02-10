@@ -98,7 +98,8 @@ class Validate
 	 */
 	public function IsKnown($login, $passwd, $failkey='authority_failed')
 	{
-		if ($this->afuncs->isRegistered($login, $passwd)) {
+		$res = $this->afuncs->isRegistered($login, $passwd);
+		if ($res[0]) {
 			return [TRUE,''];
 		}
 
@@ -111,11 +112,58 @@ class Validate
 	}
 
 	/**
+	 * Checks whether a message can be sent to the user represented by @login
+	 * @login: user indentifier
+	 * Returns: 2-member array, [0] = boolean indicating success, [1] = error message or ''
+	 */
+	public function IsTellable($login, $failkey='not_contactable')
+	{
+		$uid = $this->afuncs->getUID($login);
+		if ($uid) {
+			$pref = \cms_db_prefix();
+			$sql = 'SELECT publicid,address FROM '.$pref.'module_auth_users WHERE user_id=?';
+			$row = $this->db->GetRow($sql, [$uid]);
+			if ($row) {
+				if ($this->afuncs->GetConfig('email_required')) {
+					$test = ['publicid', 'address'];
+				} else {
+					$test = ['address', 'publicid'];
+				}
+				foreach ($test as $k) {
+					$t = $row[$k];
+					if ($t && preg_match(Auth::EMAILPATN, $t)) {
+						return [TRUE,''];
+					}
+				}
+			}
+		}
+
+		if (is_array($failkey)) {
+			$msg = $this->CompoundMessage($failkey);
+		} else {
+			$msg = $this->mod->Lang($failkey);
+		}
+		return [FALSE, $msg];
+	}
+
+	public function SanitizeName($name)
+	{
+		$t = trim($name);
+		$t = preg_replace('/\s{1,}/', ' ', $t);
+		if (extension_loaded('mbstring')) {
+			$t = mb_convert_case($t, MB_CASE_TITLE, 'UTF-8');
+		} else {
+			$t = ucwords($t);
+		}
+		return $t;
+	}
+
+	/**
 	* Initiate password recovery if the supplied login is known
 	* Normally do not provide $failkey
 	* Returns: 2-member array, [0] = boolean indicating success, [1] = error message or ''
 	*/
-	public function DoRecover($login, &$token, $failkey='err_parm')
+/*	public function DoRecover($login, &$token, $failkey='err_parm')
 	{
 		$res = $this->IsKnown($login, FALSE, $failkey);
 		if ($res[0]) {
@@ -174,4 +222,5 @@ class Validate
 			return [FALSE, $res[1]];
 		}
 	}
+*/
 }
