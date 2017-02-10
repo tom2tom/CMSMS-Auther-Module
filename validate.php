@@ -176,11 +176,11 @@ if (!$sent) {
 }
 
 $db = $gCms->GetDb(); //var defined by inclusion
-$pre = cms_db_prefix();
-$cdata = $db->GetRow('SELECT * FROM '.$pre.'module_auth_contexts WHERE id=?', [$params['context']]);
+$pref = cms_db_prefix();
+$cdata = $db->GetRow('SELECT * FROM '.$pref.'module_auth_contexts WHERE id=?', [$params['context']]);
 if (!empty($params['token'])) {
 	$token = $params['token'];
-	$sdata = $db->GetRow('SELECT * FROM '.$pre.'module_auth_sessions WHERE token=?', [$token]);
+	$sdata = $db->GetRow('SELECT * FROM '.$pref.'module_auth_sessions WHERE token=?', [$token]);
 } else {
 	$token = FALSE; //may be updated by included code
 	$sdata = FALSE;
@@ -191,7 +191,8 @@ $vfuncs = new Auther\Validate($mod, $afuncs, $cfuncs);
 $msgs = [];
 $focus = '';
 
-require (__DIR__.DIRECTORY_SEPARATOR.'lib'.DIRECTORY_SEPARATOR.'process.'.$params['task'].'.php');
+$task = (empty($_POST[$id.'recover'])) ? $params['task'] : 'recover';
+require (__DIR__.DIRECTORY_SEPARATOR.'lib'.DIRECTORY_SEPARATOR.'process.'.$task.'.php');
 
 if ($msgs) { //error
 	$msgtext = implode("\n", $msgs); //newline for js alert box
@@ -202,7 +203,7 @@ if ($msgs) { //error
 } elseif (0) { //TODO not-finished-now e.g. challenge
 	$t = ['message'=>'I\'m back']; //TODO
 	if ($jax) {
-		header('HTTP/1.1 205 Reset Content');
+		header('HTTP/1.1 200 OK');
 	}
 } else {
 	$t = ['success'=>1];
