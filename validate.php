@@ -190,9 +190,13 @@ $afuncs = new Auther\Auth($mod, $params['context']);
 $vfuncs = new Auther\Validate($mod, $afuncs, $cfuncs);
 $msgs = [];
 $focus = '';
+$forcereset = FALSE;
 
 $task = (empty($_POST[$id.'recover'])) ? $params['task'] : 'recover';
 require (__DIR__.DIRECTORY_SEPARATOR.'lib'.DIRECTORY_SEPARATOR.'process.'.$task.'.php');
+if ($forcereset) {
+	//TODO
+}
 
 if ($msgs) { //error
 	$msgtext = implode("\n", $msgs); //newline for js alert box
