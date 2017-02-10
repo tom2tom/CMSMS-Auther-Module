@@ -538,11 +538,11 @@ class Auth extends Session
 		}
 		if ($password) {
 			if ($type == 'activate') {
-				$mlr->SetBody($this->mod->Lang('email_activation2_body', $url, $site_name));
-				$mlr->SetAltBody($this->mod->Lang('email_activation2_altbody', $url, $site_name));
+				$mlr->SetBody($this->mod->Lang('email_activation2_body', $password, $site_name));
+				$mlr->SetAltBody($this->mod->Lang('email_activation2_altbody', $password, $site_name));
 			} else { //reset
-				$mlr->SetBody($this->mod->Lang('email_reset2_body', $url, $site_name));
-				$mlr->SetAltBody($this->mod->Lang('email_reset2_altbody', $url, $site_name));
+				$mlr->SetBody($this->mod->Lang('email_reset2_body', $password, $site_name));
+				$mlr->SetAltBody($this->mod->Lang('email_reset2_altbody', $password, $site_name));
 			}
 		} else {
 			//construct frontend-url (so no admin publicid is needed)
