@@ -72,28 +72,41 @@ class Session
 	}
 
 	/**
-	* Creates a session for user @uid
+	* Gets session data for user @uid and/or source @ip
+ 	* Returns: array or FALSE
+	*/
+	protected function SessionExists($uid, $ip)
+	{
+		$nowtime = time();
+		$sql = 'SELECT * FROM '.$this->pref.'module_auth_sessions WHERE (ip=? OR user_id=?) AND expire>=? AND context_id=?';
+		return $this->db->GetRow($sql, [$uid, $ip, $nowtime, $this->context]);
+	}
+
+	/**
+	* Creates a session for user @uid, with 1 attempt
 	* Returns: string session-token
 	*/
 	public function MakeUserSession($uid, $remember=TRUE)
 	{
 		$ip = $this->GetIp();
 		$data = $this->AddSession($uid, $ip, $remember);
+		$this->AddAttempt();
 		return $data['token'];
 	}
 
 	/**
-	* Creates a session for source @ip
+	* Creates a session for source @ip, with 1 attempt
 	* Returns: string session-token
 	*/
 	public function MakeSourceSession($ip, $remember=TRUE)
 	{
 		$data = $this->AddSession(FALSE, $ip, $remember);
+		$this->AddAttempt();
 		return $data['token'];
 	}
 
 	/**
-	* Creates a session for user @uid/source @ip
+	* Creates a session for user @uid/source @ip, with 0 attempts
 	* @uid: int user enumerator or FALSE
 	* @ip: source ip address (V4 or 6)
 	* @remember: boolean whether to setup an expiry time for the session
@@ -128,7 +141,6 @@ class Session
 			$data['expiretime'] = 0;
 		}
 
-		$cid = $TODO;
 		$stat = ($uid) ? self::NEW_FOR_USER : self::NEW_FOR_IP;
 		if (!$uid) {
 			$uid = NULL;
@@ -137,7 +149,7 @@ class Session
 
 		$sql = 'INSERT INTO '.$this->pref.
 'module_auth_sessions (token,ip,user_id,context_id,expire,lastmode,attempts,cookie_hash,agent) VALUES (?,?,?,?,?,?,?,?,?)';
-		$args = [$token, $ip, $uid, $this->context, $data['expire'], $stat, 1, $data['cookie_token'], $agent];
+		$args = [$token, $ip, $uid, $this->context, $data['expire'], $stat, 0, $data['cookie_token'], $agent];
 
 		if (!$this->db->Execute($sql, $args)) {
 			return FALSE;
@@ -166,7 +178,7 @@ class Session
 	protected function DeleteSourceSessions($ip)
 	{
 		$sql = 'DELETE FROM '.$this->pref.'module_auth_sessions WHERE ip=?';
-		$res = $this->db->Execute($sql, [$uid]);
+		$res = $this->db->Execute($sql, [$ip]);
 		return ($res != FALSE);
 	}
 
@@ -358,7 +370,7 @@ class Session
 	* @propkey: string property-name or array of them (not validated here)
 	* Returns: property value or assoc. array of them
 	*/
-	protected function GetConfig($propkey)
+	public function GetConfig($propkey)
 	{
 		if ($this->context) {
 			if (is_array($propkey)) {
@@ -428,24 +440,23 @@ class Session
 
 	/**
 	* Returns a random(ish) string (not as diverse as from Setup::UniqueToken())
-	* @length: int wanted byte-count (>=13) for the string
+	* @length: int wanted byte-count for the string
 	* Returns: string
 	*/
 	public function UniqueToken($length)
 	{
 		$s1 = uniqid();
-		$l1 = strlen($s1);
-		$l2 = $length - $l1;
+		$l2 = $length - strlen($s1);
 		if ($l2 > 0) {
 			$chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 			$s2 = str_repeat('0', $l2);
 			for ($i = 0; $i < $l2; $i++) {
 				$s2[$i] = $chars[mt_rand(0, 71)];
 			}
+			return str_shuffle($s2.$s1);
 		} else {
-			$s2 = '';
+			return substr(str_shuffle($s1), 0, $length);
 		}
-		return str_shuffle($s2.$s1);
 	}
 
 	/**
