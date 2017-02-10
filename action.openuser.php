@@ -155,6 +155,7 @@ if (empty($msg)) {
 		'publicid' => $this->Lang('missing_name'),
 		'context_id' => $params['ctx_id'],
 		'privhash' => '',
+		'privreset' => 0,
 		'active' => 1,
 		];
 	}
