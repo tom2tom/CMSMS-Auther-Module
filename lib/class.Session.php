@@ -425,7 +425,7 @@ class Session
 		$sql = 'SELECT COUNT(1) AS tries FROM '.$this->pref.'module_auth_attempts WHERE ip=?';
 		$tries = $this->db->GetOne($sql, [$ip]);
 
-		$val = (int)$this->GetConfig('attempts_before_verify');
+		$val = (int)$this->GetConfig('attempts_before_action');
 		if ($val > 0 && $tries < $val) {
 			return 'allow';
 		}

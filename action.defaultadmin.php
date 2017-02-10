@@ -34,7 +34,7 @@ if (!function_exists('getModulePrefs')) {
 	'email_subdomains',			1, 60, 0,
 	'email_topdomains',			1, 60, 0,
 
-	'attempts_before_verify',	1, 3, 0,
+	'attempts_before_action',	1, 3, 0,
 	'attempts_before_ban',		1, 3, 0,
 	'attack_mitigation_span',	1, 16, 1,
 	'request_key_expiration',	1, 16, 1,

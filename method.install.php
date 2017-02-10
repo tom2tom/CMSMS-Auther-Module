@@ -25,7 +25,7 @@ default_password B,
 request_key_expiration C(16) DEFAULT \'10 minutes\',
 attack_mitigation_span C(16) DEFAULT \'30 minutes\',
 attempts_before_ban I(1) DEFAULT 10,
-attempts_before_verify I(1) DEFAULT 5,
+attempts_before_action I(1) DEFAULT 3,
 context_sender C(48),
 context_address C(96),
 cookie_name C(32) DEFAULT \'CMSMSauthID\',
@@ -144,7 +144,7 @@ $this->SetPreference('recaptcha_secret','');
 $this->SetPreference('address_required', 1);
 $this->SetPreference('attack_mitigation_span', '30 minutes');
 $this->SetPreference('attempts_before_ban', 10);
-$this->SetPreference('attempts_before_verify', 5);
+$this->SetPreference('attempts_before_action', 3);
 $this->SetPreference('context_sender', NULL); //for email messages TODO site-name
 $this->SetPreference('context_address', NULL); //ditto
 

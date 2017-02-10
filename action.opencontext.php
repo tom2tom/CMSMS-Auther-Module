@@ -41,7 +41,7 @@ if (!function_exists('getContextProperties')) {
 	'address_required',		0, 0, 0,
 	'email_banlist',		0, 0, 0,
 
-	'attempts_before_verify',1, 3, 0,
+	'attempts_before_action',1, 3, 0,
 	'attempts_before_ban',	1, 3, 0,
 	'attack_mitigation_span',1, 16, 0,
 	'request_key_expiration',1, 16, 1,
