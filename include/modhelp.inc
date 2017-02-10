@@ -90,6 +90,7 @@ The module must not be used otherwise than in acccordance with that license.</p>
 <ul>
 <li>PHP 5.4+</li>
 <li>PHP extensions: GD, Hash, Openssl</li>
+<li>ATM, password management uses the deprecated PHP MCrypt extension</li>
 </ul>
 <h3>Desirables</h3>
 <h3>Styling</h3>
