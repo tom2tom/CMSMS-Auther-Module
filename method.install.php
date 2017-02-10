@@ -63,11 +63,12 @@ $sql = $dict->CreateTableSQL($tblname, $flds, $taboptarray);
 $dict->ExecuteSQLArray($sql);
 */
 
+//TODO merge requests into sessions - expire >> timeout token >> token type ('activate' or 'reset') >> cache
 $flds = '
 id I KEY,
 user_id I(4) NOTNULL,
 expire I,
-rkey C(32) NOTNULL,
+token C(24) NOTNULL,
 type C(16) NOTNULL
 ';
 $tblname = $pref.'module_auth_requests';
