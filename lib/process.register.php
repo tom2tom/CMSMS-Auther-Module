@@ -54,22 +54,23 @@ switch ($lvl) {
 		$msgs[] = $mod->Lang('missing_type', $mod->Lang($t));
 		$focus = 'login';
 	}
+
 	$pw = ($jax) ? $sent['passwd'] : $_POST[$id.'passwd'];
 	$pw = trim($pw);
 	$res = $afuncs->validatePassword($pw);
-	if (!$res[0]) {
+	if ($res[0]) {
+		$flds['privhash'] = $pw;
+	} else {
 		$msgs[] = $res[1];
 		if (!$focus) { $focus = 'passwd'; }
 	}
 	if (!$jax) { //i.e. lengths not matched in browser
 		$pw2 = trim($_POST[$id.'passwd2']);
 		if ($pw !== $pw2) {
+			unset($flds['privhash']);
 			$msgs[] = $mod->Lang('newpassword_nomatch'); //TODO not new
 			if (!$focus) { $focus = 'passwd2'; }
 		}
-	}
-	if (!$msgs) {
-		$flds['privhash'] = $pw; //hash if/when needed
 	}
 
 	$t = trim($_POST[$id.'name']);
@@ -125,29 +126,28 @@ switch ($lvl) {
 		if (!$jax) {
 		}
 		break;
-	}
+	} //switch $lvl
 	break;
  case Auther\Setup::HISEC:
  //TODO
 	break;
-}
+} //switch $lvl
 
 if (!$msgs) {
 	if ($lvl == Auther\Setup::CHALLENGED) {
-		//cache $login, provided data (from $flds[])
-		$data = json_encode($TODO);
-		$enc = $cfuncs->encrypt_value($mod, $data);
+		$enc = $cfuncs->encrypt_value($mod, json_encode($flds));
 		$sql = 'UPDATE '.$pref.'module_auth_sessions SET cache=? WHERE token=?';
 		$db->Execute($sql, [$enc, $token]);
-		//TODO initiate challenge
+//TODO initiate challenge
 	} else {
 		$sendmail = NULL; //hence context-property determines whether to send confirmation-request
 		$res = $afuncs->addUser($flds['publicid'], $pw, $flds['name'], $flds['address'], $sendmail, []);
 		if ($res[0]) {
 			$uidnew = $res[1]; //for use by includer
+			$afuncs->ResetAttempts();
 		} else {
 			$msgs[] = $res[1];
+//TODO		$afuncs->AddAttempt();
 		}
-
 	}
 }

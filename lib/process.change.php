@@ -31,15 +31,44 @@ switch ($lvl) {
 	$flds = [];
 	//common stuff
 	$login = trim($_POST[$id.'login']);
-	$t = ($jax) ? $sent['passwd'] : $_POST[$id.'passwd'];
-	$pw = trim($t);
-	$res = $vfuncs->IsKnown($login, $pw);
-	if ($res[0]) {
-//TODO handle force-reset flag for user
-	} else {
-		$msgs[] = $res[1];
+	if (!$login) {
+		$t = ($cdata['email_required']) ? 'title_email':'title_identifier';
+		$msgs[] = $mod->Lang('missing_type', $mod->Lang($t));
 		$focus = 'login';
 	}
+	$t = ($jax) ? $sent['passwd'] : $_POST[$id.'passwd'];
+	$pw = trim($t);
+	if (!$pw) {
+		$msgs[] = $mod->Lang('missing_type', $mod->Lang('password'));
+		if (!$focus) { $focus = 'passwd'; }
+	} elseif ($login) {
+		$res = $afuncs->isRegistered($login, $pw);
+		$fake = !$res[0];
+		$sdata = $res[1];
+		if ($res[0]) {
+			if ($vfuncs->IsForced(FALSE, $login, $cdata['id'])) {
+				$forcereset = TRUE;
+				break;
+			}
+		} else {
+			$n = $afuncs->GetConfig('attempts_before_ban');
+			if ($sdata['attempts'] >= $n) {
+//TODO status 'blocked'
+				$vfuncs->SetForced(1, FALSE, $login, $cdata['id']);
+				$forcereset = TRUE;
+				$msgs[] = $mod->Lang('reregister2');
+			} else {
+				$n = $afuncs->GetConfig('attempts_before_action');
+				if ($sdata['attempts'] >= $n) {
+					$msgs[] = $mod->Lang('reregister');
+// SILENT		} else {
+//					$msgs[] = $mod->Lang('login_notvalid');
+				}
+				$focus = 'login';
+			}
+		}
+	}
+
 	$t = trim($_POST[$id.'login2']);
 	if ($t) {
 		$res = $afuncs->validateLogin($t);
@@ -101,24 +130,41 @@ switch ($lvl) {
 		if (!$jax) {
 		}
 		break;
-	}
+	} //switch $lvl
 	break;
  case Auther\Setup::HISEC:
  //TODO
 	break;
-}
+} //switch $lvl
 
-if (!$msgs) {
+if ($msgs || $fake) {
+	$afuncs->AddAttempt();
+} else {
 	if ($lvl == Auther\Setup::CHALLENGED) {
-		//cache $login, provided data (from $flds[])
-		$enc = $cfuncs->encrypt_value('TODO');
+		$flds['login'] = $login; //original value
+		$flds['passwd'] = $pw;
+		$enc = $cfuncs->encrypt_value($mod, json_encode($flds));
 		$sql = 'UPDATE '.$pref.'module_auth_sessions SET cache=? WHERE token=?';
 		$db->Execute($sql, [$enc, $token]);
-		//TODO initiate challenge
+//TODO initiate challenge
 	} else {
-	//TODO record requested changes
-	//$fillers = str_repeat('%s=?,', count($flds)-1).'%s=?';
-	//$sql = 'UPDATE '.$pref.'module_auth_users SET '.$fillers.' WHERE id=?'
-	//$db->Execute($sql, []);
+		$namers = [];
+		$args[] = [];
+		foreach ($flds as $field=>$val) {
+			$namers[] = $field.'=?';
+			switch ($field) {
+			 case 'publicid':
+				$args[] = $val;
+			 case 'name':
+			 case 'address':
+			 	$args[] = $cfuncs->encrypt_value($mod, $val);
+			}
+		}
+		$fillers = implode(',',$namers);
+		$sql = 'UPDATE '.$pref.'module_auth_users SET '.$fillers.' WHERE id=?';
+		$args[] = $afuncs->getUID($login);
+		$db->Execute($sql, [$args]);
+
+		$afuncs->ResetAttempts();
 	}
 }

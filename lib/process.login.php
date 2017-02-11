@@ -42,14 +42,42 @@ switch ($lvl) {
  case Auther\Setup::CHALLENGED:
 	//common stuff
 	$login = trim($_POST[$id.'login']);
+	if (!$login) {
+		$t = ($cdata['email_required']) ? 'title_email':'title_identifier';
+		$msgs[] = $mod->Lang('missing_type', $mod->Lang($t));
+		$focus = 'login';
+	}
 	$t = ($jax) ? $sent['passwd'] : $_POST[$id.'passwd'];
 	$pw = trim($t);
-	$res = $vfuncs->IsKnown($login, $pw);
-	if ($res[0]) {
-//TODO handle force-reset flag for user
-	} else {
-		$msgs[] = $res[1];
-		$focus = 'login';
+	if (!$pw) {
+		$msgs[] = $mod->Lang('missing_type', $mod->Lang('password'));
+		if (!$focus) { $focus = 'passwd'; }
+	} elseif ($login) {
+		$res = $afuncs->isRegistered($login, $pw);
+		$fake = !$res[0];
+		$sdata = $res[1];
+		if ($res[0]) {
+			if ($vfuncs->IsForced(FALSE, $login, $cdata['id'])) {
+				$forcereset = TRUE;
+				break;
+			}
+		} else {
+			$n = $afuncs->GetConfig('attempts_before_ban');
+			if ($sdata['attempts'] >= $n) {
+//TODO status 'blocked'
+				$vfuncs->SetForced(1, FALSE, $login, $cdata['id']);
+				$forcereset = TRUE;
+				$msgs[] = $mod->Lang('reregister2');
+			} else {
+				$n = $afuncs->GetConfig('attempts_before_action');
+				if ($sdata['attempts'] >= $n) {
+					$msgs[] = $mod->Lang('reregister');
+// SILENT		} else {
+//					$msgs[] = $mod->Lang('login_notvalid');
+				}
+				$focus = 'login';
+			}
+		}
 	}
 	switch ($lvl) {
 	 case Auther\Setup::NONCED:
@@ -66,23 +94,24 @@ switch ($lvl) {
 		if (!$jax) {
 		}
 		break;
-	}
-
-	if (!$msgs) {
-		$t = trim($_POST[$id.'login']);
-		if ($lvl == Auther\Setup::CHALLENGED) {
-			//cache $login, provided data (from $flds[])
-			$data = json_encode($TODO);
-			$enc = $cfuncs->encrypt_value($mod, $data);
-			$sql = 'UPDATE '.$pref.'module_auth_sessions SET cache=? WHERE token=?';
-			$db->Execute($sql, [$enc, $token]);
-			//TODO initiate challenge
-		} else {
-			$afuncs->login($t, $pw, FALSE, TRUE);
-		}
-	}
+	} //switch $lvl
 	break;
  case Auther\Setup::HISEC:
  //TODO
 	break;
+} //switch $lvl
+
+if ($msgs || $fake) {
+	$afuncs->AddAttempt();
+} else {
+	if ($lvl == Auther\Setup::CHALLENGED) {
+		$flds = ['login' => $login, 'passwd' => $pw];
+		$enc = $cfuncs->encrypt_value($mod, json_encode($flds));
+		$sql = 'UPDATE '.$pref.'module_auth_sessions SET cache=? WHERE token=?';
+		$db->Execute($sql, [$enc, $token]);
+//TODO initiate challenge
+	} else {
+		$afuncs->login($login, $pw, FALSE, TRUE);
+		$afuncs->ResetAttempts();
+	}
 }

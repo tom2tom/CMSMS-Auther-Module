@@ -48,9 +48,22 @@ switch ($lvl) {
 				$msgs[] = $res[1];
 				$focus = 'login';
 			}
-//		} else { ignore if unkown, to hinder forcers
-//			$msgs[] = $mod->Lang('login_notvalid');
-//			$focus = 'login';
+		} else {
+			$n = $afuncs->GetConfig('attempts_before_ban');
+			if ($sdata['attempts'] >= $n) {
+//TODO status 'blocked'
+				$vfuncs->SetForced(1, FALSE, $login, $cdata['id']);
+				$forcereset = TRUE;
+				$msgs[] = $mod->Lang('reregister2');
+			} else {
+				$n = $afuncs->GetConfig('attempts_before_action');
+				if ($sdata['attempts'] >= $n) {
+					$msgs[] = $mod->Lang('reregister');
+// SILENT		} else {
+//					$msgs[] = $mod->Lang('login_notvalid');
+				}
+				$focus = 'login';
+			}
 		}
 	} else {
 		$t = ($cdata['email_required']) ? 'title_email':'title_identifier';
@@ -64,7 +77,6 @@ switch ($lvl) {
 	$pw = ($jax) ? $sent['passwd'] : trim($_POST[$id.'passwd']);
 	$data = json_decode($sdata['cache']);
 	if (!$afuncs->doPasswordCheck($pw, $data['temppass'], $sdata['attempts'])) {
-		$afuncs->AddAttempt();
 		$msgs[] = $mod->Lang('password_incorrect'); //TODO 'temporary' qualifier
 		break;
 	}
@@ -108,22 +120,20 @@ switch ($lvl) {
 	break;
 } //switch $lvl
 
-if ($msgs) {
+if ($msgs || $fake) {
 	$afuncs->AddAttempt();
 } elseif ($pass1) {
-	if (!$fake) {
-		$pw = $afuncs->UniqueToken($afuncs->GetConfig('password_min_length'));
-		$hash = password_hash($pw, PASSWORD_DEFAULT);
-		$data = json_encode(['temppass'=>$hash]);
-		$sql = 'UPDATE '.$pref.'module_auth_sessions SET cache=? WHERE token=?';
-		$db->Execute($sql, [$data, $token]);
-		$sendmail = TRUE; //ignore context property!
-		$res = $afuncs->addRequest($sdata['user_id'], $login, 'reset', $sendmail, $fake, $pw);
-		if (!$res[0]) {
-			$msgs[] = $res[1];
-		} elseif (!$sendmail) {
-			$msgs[] = $mod->Lang('TODO');
-		}
+	$pw = $afuncs->UniqueToken($afuncs->GetConfig('password_min_length'));
+	$hash = password_hash($pw, PASSWORD_DEFAULT);
+	$data = json_encode(['temppass'=>$hash]);
+	$sql = 'UPDATE '.$pref.'module_auth_sessions SET cache=? WHERE token=?';
+	$db->Execute($sql, [$data, $token]);
+	$sendmail = TRUE; //ignore context property!
+	$res = $afuncs->addRequest($sdata['user_id'], $login, 'reset', $sendmail, $fake, $pw);
+	if (!$res[0]) {
+		$msgs[] = $res[1];
+	} elseif (!$sendmail) {
+		$msgs[] = $mod->Lang('TODO');
 	}
 	if (!$msgs) {
 		$t = ['focus'=>'authfeedback', 'html'=>$mod->Lang('temp_sent')];
@@ -138,13 +148,15 @@ if ($msgs) {
 	}
 } else {
 	if ($lvl == Auther\Setup::CHALLENGED) {
-		//cache $login, provided data (from $flds[])
-		$data = json_encode($TODO);
-		$enc = $cfuncs->encrypt_value($mod, $data);
+		$flds['login'] = $login; //original value
+		$flds['passwd'] = $pw;
+		$enc = $cfuncs->encrypt_value($mod, json_encode($flds));
 		$sql = 'UPDATE '.$pref.'module_auth_sessions SET cache=? WHERE token=?';
 		$db->Execute($sql, [$enc, $token]);
-		//TODO initiate challenge
+//TODO initiate challenge
 	} else {
 		$afuncs->resetPassword($token, $pw2, $pw2);
+		$afuncs->ResetAttempts();
+		$vfuncs->SetForced(0, FALSE, $login, $sdata['id']);
 	}
 }
