@@ -56,7 +56,7 @@ $db->CreateSequence($pref.'module_auth_contexts_seq');
 $flds = '
 id I AUTO KEY,
 ip C(40) NOTNULL,
-expire I
+expire I(8)
 ';
 $tblname = $pref.'module_auth_attempts';
 $sql = $dict->CreateTableSQL($tblname, $flds, $taboptarray);
@@ -67,7 +67,7 @@ $dict->ExecuteSQLArray($sql);
 $flds = '
 id I KEY,
 user_id I(4) NOTNULL,
-expire I,
+expire I(8),
 token C(24) NOTNULL,
 type C(16) NOTNULL
 ';
@@ -83,8 +83,8 @@ token C(24) NOTNULL,
 ip C(40),
 user_id I(4),
 context_id I(2),
-expire I,
-timeout I,
+expire I(8),
+timeout I(8),
 lastmode I(1),
 status I(1) DEFAULT 0,
 defunct I(1) DEFAULT 0,
@@ -108,8 +108,8 @@ privhash B,
 name B,
 address B,
 context_id I(2),
-addwhen I,
-lastuse I,
+addwhen I(8),
+lastuse I(8),
 nameswap I(1) DEFAULT 0,
 privreset I(1) DEFAULT 0,
 active I(1) DEFAULT 1
