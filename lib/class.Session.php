@@ -323,13 +323,30 @@ class Session
 	}
 
 	/**
-	* Deletes expired|all attempts for a given IP from session(s) data
-	* @ip: string source ip address
+	 * Sets from session(s) data attempts-count to 1 for the given IP
+	 * @ip: optional string source ip address, default = FALSE
+	 * Returns: nothing
+	 */
+	public function ResetAttempts($ip=FALSE)
+	{
+		if (!$ip) {
+			$ip = $this->GetIp();
+		}
+		$sql = 'UPDATE '.$this->pref.'module_auth_sessions SET attempts=1 WHERE ip=?';
+		$this->db->Execute($sql, [$ip]);
+	}
+
+	/**
+	* Deletes expired|all attempts for the given IP from session(s) data
+	* @ip: optional string source ip address, default = FALSE
 	* @all: optional boolean whether to delete only expired attempts, default = FALSE
 	* Returns: boolean indicating success
 	*/
-	public function DeleteAttempts($ip, $all=FALSE)
+	public function DeleteAttempts($ip=FALSE, $all=FALSE)
 	{
+		if (!$ip) {
+			$ip = $this->GetIp();
+		}
 		if ($all) {
 			$sql = 'UPDATE '.$this->pref.'module_auth_sessions SET attempts=0 WHERE ip=?';
 			$res = $this->db->Execute($sql, [$ip]);
