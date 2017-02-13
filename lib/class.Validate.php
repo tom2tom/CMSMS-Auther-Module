@@ -75,7 +75,7 @@ class Validate
 	public function CheckPassword($val, $session, $failkey='err_parm')
 	{
 		$uid = 22; //TODO get from session
-		$res = $this->afuncs->getBaseUser($uid);
+		$res = $this->afuncs->getUserBase($uid);
 		if ($res && $res['active']) {
 			$tries = 1; //TODO get from session
 			if ($this->afuncs->doPasswordCheck($val, $res['privhash'], $tries)) {
@@ -118,7 +118,7 @@ class Validate
 	 */
 	public function IsTellable($login, $failkey='not_contactable')
 	{
-		$uid = $this->afuncs->getUID($login);
+		$uid = $this->afuncs->getUserID($login);
 		if ($uid) {
 			$pref = \cms_db_prefix();
 			$sql = 'SELECT publicid,address FROM '.$pref.'module_auth_users WHERE user_id=?';
@@ -207,7 +207,7 @@ class Validate
 		$res = $this->IsKnown($login, FALSE, $failkey); OR isRegistered() ??
 		if ($res[0]) {
 			if ($this->afuncs->GetConfig('send_reset_message')) {
-				$userdata = $this->afuncs->getPublicUser($login);
+				$userdata = $this->afuncs->getUserPublic($login);
 				if (preg_match(Auther::EMAILPATN, $userdata['address'])) {
 					$sendmail = $userdata['address'];
 				} elseif (preg_match(Auther::EMAILPATN, $login)) {
