@@ -57,6 +57,9 @@ in whatever manner is appropriate.<br /><br />
 You can roll-your-own user-interface, and work with the Auth-class API directly.<br /><br />
 This approach would be appropriate if authority must be checked without an actual login, for example.
 <h4>API</h4>
+<h3>Styling</h3>
+The following are defaults, which you might like to adapt and/or introduce where the authentication is initialised.<br /><br />
+<code>%s</code>
 <h3>Permissions</h3>
 <h4>Modify Authentication Module Properties</h4>
 <h4>Modify Authentication Contexts</h4>
@@ -68,6 +71,13 @@ This approach would be appropriate if authority must be checked without an actua
 <h4>AuthLogin</h4>
 <h4>AuthLoginFail</h4>
 <h4>AuthLogout</h4>
+<h3>Requirements</h3>
+<ul>
+<li>PHP 5.4+</li>
+<li>PHP extensions: GD, Hash, Openssl</li>
+<li>ATM, password management uses the deprecated PHP MCrypt extension</li>
+</ul>
+<h3>Desirables</h3>
 <h3>Support</h3>
 <p>This module is provided as-is. Please read the text of the license for the full disclaimer.
 Just to be clear, there's no guarantee of support. However, there are some resources available
@@ -86,13 +96,3 @@ All rights reserved.</p>
 <p>This module has been released under version 3 of the
 <a href="http://www.gnu.org/licenses/licenses.html#AGPL">GNU Affero Public License</a>.
 The module must not be used otherwise than in acccordance with that license.</p>
-<h3>Requirements</h3>
-<ul>
-<li>PHP 5.4+</li>
-<li>PHP extensions: GD, Hash, Openssl</li>
-<li>ATM, password management uses the deprecated PHP MCrypt extension</li>
-</ul>
-<h3>Desirables</h3>
-<h3>Styling</h3>
-The following are defaults, which you might like to adapt and/or introduce where
-the authentication is initialised.<br /><br />
