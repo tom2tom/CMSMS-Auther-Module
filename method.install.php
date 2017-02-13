@@ -37,6 +37,7 @@ login_min_length I(1) DEFAULT 5,
 password_rescue I(1) DEFAULT 1,
 address_required I(1) DEFAULT 1,
 email_required I(1) DEFAULT 0,
+email_login I(1) DEFAULT 0,
 email_banlist I(1) DEFAULT 1,
 message_charset C(16),
 password_forget C(16),
@@ -85,7 +86,6 @@ user_id I(4),
 context_id I(2),
 expire I(8),
 lastmode I(1),
-type I(1) DEFAULT 0,
 status I(1) DEFAULT 0,
 defunct I(1) DEFAULT 0,
 attempts I(1) DEFAULT 0,
@@ -162,6 +162,7 @@ $this->SetPreference('email_banlist', 1);
 $this->SetPreference('email_domains', ''); //specific/complete domains for initial check
 $this->SetPreference('email_subdomains', ''); //partial domains for secondary check
 $this->SetPreference('email_topdomains', 'biz,co,com,edu,gov,info,mil,name,net,org'); //for final check
+$this->SetPreference('email_login', 0);
 $this->SetPreference('email_required', 0);
 
 $this->SetPreference('login_max_length', 48);
