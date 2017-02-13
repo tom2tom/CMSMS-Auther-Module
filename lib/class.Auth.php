@@ -19,11 +19,13 @@ include __DIR__.DIRECTORY_SEPARATOR.'password.php';
 
 class Auth extends Session
 {
-	const EMAILPATN = '/^.+@.+\..+$/';
+	const PATNEMAIL = '/^.+@.+\..+$/';
 	const STRETCHES = 12; //hence 2**12
 	const NAMEDIR = 'usernames'; //subdir name
 	const PHRASEDIR = 'phrases';
 
+	public loginisemail;
+	public addressisemail;
 	protected $trainers = ['big.txt', 'good.txt', 'bad.txt', 'matrix.txt'];
 	protected $namepath;
 	protected $phrasepath;
@@ -55,7 +57,16 @@ class Auth extends Session
 			return [FALSE, $this->mod->Lang('login_long')];
 		}
 
-		if (preg_match(self::EMAILPATN, $login)) {
+		$val = $this->GetConfig('email_login');
+		if ($val) {
+			if (!preg_match(self::PATNEMAIL, $login)) {
+				return [FALSE, $this->mod->Lang('invalid','TODO')];
+			}
+		} else {
+			$val = preg_match(self::PATNEMAIL, $login);
+		}
+		if ($val) {
+			$this->loginisemail = TRUE;
 			$val = $this->GetConfig('email_banlist');
 			if ($val) {
 				$parts = explode('@', $login);
@@ -64,6 +75,8 @@ class Auth extends Session
 					return [FALSE,$this->mod->Lang('email_banned')];
 				}
 			}
+		} else {
+			$this->loginisemail = FALSE;
 		}
 
 		$sql = 'SELECT id FROM '.$this->pref.'module_auth_users WHERE publicid=? AND context_id=?';
@@ -173,6 +186,7 @@ class Auth extends Session
 
 	/**
 	* Verifies that @address is an acceptable contact address
+	* Must be called after login is validated
 	* @address: string
 	* Returns: array [0]=boolean for success, [1]=message or ''
 	*/
@@ -184,7 +198,11 @@ class Auth extends Session
 		}
 		$val = $this->GetConfig('email_required');
 		if ($val) {
-			return $this->validateEmail($address);
+			$res = $this->validateEmail($address);
+			$this->addressisemail = $res[0];
+			if (!$res[0] && empty($this->loginisemail)) {
+				return [FALSE, $res[1]];
+			}
 		}
 		return [TRUE,''];
 	}
@@ -196,7 +214,7 @@ class Auth extends Session
 	*/
 	public function validateEmail($email)
 	{
-		if (!$email || !preg_match(self::EMAILPATN, $email)) {
+		if (!$email || !preg_match(self::PATNEMAIL, $email)) {
 			return [FALSE,$this->mod->Lang('email_invalid')];
 		}
 		//always check for ban
@@ -464,11 +482,11 @@ class Auth extends Session
 		$row = $this->db->GetRow($sql, [$uid]);
 		if ($row) {
 			$t = $row['address'];
-			if ($t && preg_match(self::EMAILPATN, $t)) {
+			if ($t && preg_match(self::PATNEMAIL, $t)) {
 				$email = $t;
 			} else {
 				$t = $row['publicid'];
-				if ($t && preg_match(self::EMAILPATN, $t)) {
+				if ($t && preg_match(self::PATNEMAIL, $t)) {
 					$email = $t;
 				} else {
 					$sendmail = FALSE;
@@ -480,8 +498,8 @@ class Auth extends Session
 			return [FALSE, $this->mod->Lang('system_error','#03')];
 		}
 
-		$itype = ($type == 'activate') ? 1:2;
-		$sql = 'SELECT token,expire FROM '.$this->pref.'module_auth_cache WHERE user_id=? AND type=?';
+		$itype = ($type == 'activate') ? parent::REQUEST_ACTIV : parent::REQUEST_RESET; //extra 'interim' identifier, pending token
+		$sql = 'SELECT token,expire FROM '.$this->pref.'module_auth_cache WHERE user_id=? AND lastmode=?';
 		$row = $this->db->GetRow($sql, [$uid, $itype]);
 
 		if ($row) {
@@ -510,7 +528,7 @@ class Auth extends Session
 		$token = $this->UniqueToken(24);
 
 		if (!$fake) {
-			$sql = 'INSERT INTO '.$this->pref.'module_auth_cache (token,user_id,expire,type) VALUES (?,?,?,?)';
+			$sql = 'INSERT INTO '.$this->pref.'module_auth_cache (token,user_id,expire,lastmode) VALUES (?,?,?,?)';
 
 			if (!$this->db->Execute($sql, [$token, $uid, $expiretime, $itype])) {
 				return [FALSE,$this->mod->Lang('system_error','#04')];
@@ -582,7 +600,7 @@ class Auth extends Session
 	/**
 	* Returns request data if @token is valid
 	* @token: 24-byte string from UniqueToken()
-	* @type: string 'reset' or 'activate' for error-message namespacing
+	* @type: string 'reset' or 'activate', only for error-message namespacing
 	* Returns: array [0]=boolean for success, [1]=message or '', if [0] then also 'uid'
 	*/
 	public function getRequest($token, $type)
@@ -592,16 +610,16 @@ class Auth extends Session
 
 		if (!$row) {
 			$this->AddAttempt();
-			return [FALSE,$this->mod->Lang($type.'key_incorrect')];
+			return [FALSE, $this->mod->Lang($type.'key_incorrect')];
 		}
 
 		if ($row['expire'] < time()) {
 			$this->AddAttempt();
 			$this->deleteRequest($token);
-			return [FALSE,$this->mod->Lang($type.'key_expired')];
+			return [FALSE, $this->mod->Lang($type.'key_expired')];
 		}
 
-		return [0=>TRUE,1=>'','uid'=>$row['uid']];
+		return [0=>TRUE, 1=>'', 'uid'=>$row['uid']];
 	}
 
 	/**
