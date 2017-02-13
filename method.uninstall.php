@@ -13,16 +13,7 @@ $tblname = $pref.'module_auth_contexts';
 $sql = $dict->DropTableSQL($tblname);
 $dict->ExecuteSQLArray($sql);
 
-/*
-$tblname = $pref.'module_auth_attempts';
-$sql = $dict->DropTableSQL($tblname);
-$dict->ExecuteSQLArray($sql);
-*/
-$tblname = $pref.'module_auth_requests';
-$sql = $dict->DropTableSQL($tblname);
-$dict->ExecuteSQLArray($sql);
-
-$tblname = $pref.'module_auth_sessions';
+$tblname = $pref.'module_auth_cache';
 $sql = $dict->DropIndexSQL('idx_'.$tblname, $tblname);
 $dict->ExecuteSQLArray($sql);
 $sql = $dict->DropTableSQL($tblname);
@@ -41,7 +32,6 @@ $sql = $dict->DropTableSQL($tblname);
 $dict->ExecuteSQLArray($sql);
 
 $db->DropSequence($pref.'module_auth_contexts_seq');
-$db->DropSequence($pref.'module_auth_requests_seq');
 $db->DropSequence($pref.'module_auth_users_seq');
 
 $this->RemovePreference();
