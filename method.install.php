@@ -52,7 +52,7 @@ $dict->ExecuteSQLArray($sql);
 
 $db->CreateSequence($pref.'module_auth_contexts_seq');
 
-/* attempts now in sessions table
+/* attempts now in cache table
 $flds = '
 id I AUTO KEY,
 ip C(40) NOTNULL,
@@ -63,8 +63,8 @@ $sql = $dict->CreateTableSQL($tblname, $flds, $taboptarray);
 $dict->ExecuteSQLArray($sql);
 */
 
-//TODO merge requests into sessions - expire >> timeout token >> token type ('activate' or 'reset') >> cache
-$flds = '
+/* requests now in cache table type ('activate' or 'reset') >> type 1 or 2
+/*$flds = '
 id I KEY,
 user_id I(4) NOTNULL,
 expire I(8),
@@ -76,7 +76,7 @@ $sql = $dict->CreateTableSQL($tblname, $flds, $taboptarray);
 $dict->ExecuteSQLArray($sql);
 
 $db->CreateSequence($pref.'module_auth_requests_seq');
-
+*/
 $flds = '
 id I AUTO KEY,
 token C(24) NOTNULL,
@@ -84,17 +84,17 @@ ip C(40),
 user_id I(4),
 context_id I(2),
 expire I(8),
-timeout I(8),
 lastmode I(1),
+type I(1) DEFAULT 0,
 status I(1) DEFAULT 0,
 defunct I(1) DEFAULT 0,
 attempts I(1) DEFAULT 0,
 challenge C(64),
 cookie_hash C(40),
 agent C(200),
-cache B
+data B
 ';
-$tblname = $pref.'module_auth_sessions';
+$tblname = $pref.'module_auth_cache';
 $sql = $dict->CreateTableSQL($tblname, $flds, $taboptarray);
 $dict->ExecuteSQLArray($sql);
 
