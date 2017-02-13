@@ -64,7 +64,12 @@ class Import
 		} else {
 			$name = $context;
 		}
-		$t = strtolower(preg_replace(['/\s+/', '/__+/'], ['_', '_'], $name));
+		$t = preg_replace(['/\s+/', '/__+/'], ['_', '_'], $name);
+		if (extension_loaded('mbstring')) {
+			$t = mb_convert_case($t, MB_CASE_LOWER, 'UTF-8');
+		} else {
+			$t = strtolower($t);
+		}
 		$alias = substr($t, 0, 16);
 		$pw = $this->cfuncs->decrypt_preference($mod, 'default_password');
 		$hash = $this->cfuncs->encrypt_value($mod, $pw);
