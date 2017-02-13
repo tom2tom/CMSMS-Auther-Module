@@ -50,6 +50,7 @@ class Gibberish
 	// Return only the subset of chars from accepted_chars.
 	// This helps keep the  model relatively small by ignoring punctuation,
 	// infrequenty symbols, etc.
+	// Currently uses english text only, so not mb_convert_case(,MB_CASE_LOWER,)
 	protected static function _normalise($line)
 	{
 		return preg_replace('/[^a-z\ ]/', '', strtolower($line));
