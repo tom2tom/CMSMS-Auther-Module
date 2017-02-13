@@ -276,7 +276,7 @@ namespace PasswordCompat\binary {
 		 */
 		function _strlen($binary_string)
 		{
-			if (function_exists('mb_strlen')) {
+			if (extension_loaded('mbstring')) {
 				return mb_strlen($binary_string, '8bit');
 			}
 			return strlen($binary_string);
@@ -296,7 +296,7 @@ namespace PasswordCompat\binary {
 		 */
 		function _substr($binary_string, $start, $length)
 		{
-			if (function_exists('mb_substr')) {
+			if (extension_loaded('mbstring')) {
 				return mb_substr($binary_string, $start, $length, '8bit');
 			}
 			return substr($binary_string, $start, $length);
