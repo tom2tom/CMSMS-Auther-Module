@@ -933,6 +933,65 @@ class Auth extends Session
 	}
 
 	/**
+	* Gets specified user-data for @login
+	* @login: string user identifier, or array of them
+	* @props: optional string table field-name, or '*' or array of field names, default = '*'
+	* @active: optional boolean whether the user(s) is/are required to be active, default = TRUE
+	* Returns: associative array or else FALSE
+	*/
+	public function getUserProperties($login, $props='*', $active=TRUE)
+	{
+		if (is_array($props)) {
+			$namers = implode(',',$props);
+		} elseif ($props == '*') {
+			$namers = 'id,publicid,name,address,addwhen,lastuse,nameswap,active'; //exclude a few of the fields
+		} else {
+			$namers = $props;
+		}
+		$sql = 'SELECT '.$namers.' FROM '.$this->pref.'module_auth_users WHERE context_id=?';
+		$args = [$this->context];
+
+		if (is_array($login)) {
+			$fillers = str_repeat('?,', count($login) - 1);
+			$sql .= ' AND publicid IN ('.$fillers.'?)';
+			$args = array_merge($args,$login);
+		} else {
+			$sql .= ' AND publicid=?';
+			$args[] = $login;
+		}		
+
+		if ($active) {
+			$sql .= ' AND active>0';
+		}
+		$data = $this->db->GetArray($sql, $args);
+	
+		if ($data) {
+			$funcs = new Crypter();
+//TODO zone offset
+			$dt = new \DateTime('@0',NULL);
+			foreach ($data as &$one) {
+				if (!empty($one['name']) {
+					$one['name'] = $funcs->decrypt_value($this->mod, $one['name']);
+				}
+				if (!empty($one['address']) {
+					$one['address'] = $funcs->decrypt_value($this->mod, $one['address']);
+				}
+				if (!empty($one['addwhen']) {
+					$dt->setTimestamp($one['addwhen']);
+					$one['addwhen'] = $dt->format('Y-m-d H:i:s');
+				}
+				if (!empty($one['lastuse']) {
+					$dt->setTimestamp($one['lastuse']);
+					$one['lastuse'] = $dt->format('Y-m-d H:i:s');
+				}
+			}
+			unset($one);
+			return $data;
+		}
+		return FALSE;
+	}
+
+	/**
 	* Gets some data for all active users of the current context
 	* Returns: associative array, each member of which is uid=>login, or else FALSE
 	*/
@@ -943,7 +1002,7 @@ class Auth extends Session
 	}
 
 	/**
-	* Gets some data for all, or all active, users of the current context
+	* Gets some specific data for all, or all active, users of the current context
 	* @active: optional boolean, whether to report for active-users only, default = TRUE
 	* @raw: optional boolean, whether to return encrypted data as-is, default = FALSE
 	* Returns: array, each member of which has user_id,publicid,name,address,nameswap or else FALSE
