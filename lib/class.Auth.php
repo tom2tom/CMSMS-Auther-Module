@@ -40,27 +40,27 @@ class Auth extends Session
 	//~~~~~~~~~~~~~ PARAMETER VALIDATION ~~~~~~~~~~~~~~~~~
 
 	/**
-	* Verifies that @publicid is an acceptable login identifier
-	* @publicid: string user identifier
-	* @explicit: optional boolean whether to report login-is-taken or just invalid
+	* Verifies that @login is an acceptable login identifier
+	* @login: string user identifier
+	* @explicit: optional boolean whether to report login-is-taken or just invalid default = FALSE
 	* Returns: array [0]=boolean for success, [1]=message or ''
 	*/
-	public function validateLogin($publicid, $explicit=FALSE)
+	public function validateLogin($login, $explicit=FALSE)
 	{
 		$val = (int)$this->GetConfig('login_min_length');
-		if ($val > 0 && strlen($publicid) < $val) {
+		if ($val > 0 && strlen($login) < $val) {
 			return [FALSE, $this->mod->Lang('login_short')];
 		}
 
 		$val = (int)$this->GetConfig('login_max_length');
-		if ($val > 0 && strlen($publicid) > $val) {
+		if ($val > 0 && strlen($login) > $val) {
 			return [FALSE, $this->mod->Lang('login_long')];
 		}
 
-		if (preg_match(self::EMAILPATN, $publicid)) {
+		if (preg_match(self::EMAILPATN, $login)) {
 			$val = $this->GetConfig('email_banlist');
 			if ($val) {
-				$parts = explode('@', $publicid);
+				$parts = explode('@', $login);
 				$bannedDomains = json_decode(file_get_contents(__DIR__.DIRECTORY_SEPARATOR.'domains.json'));
 				if (in_array(strtolower($parts[1]), $bannedDomains)) {
 					return [FALSE,$this->mod->Lang('email_banned')];
@@ -69,7 +69,7 @@ class Auth extends Session
 		}
 
 		$sql = 'SELECT id FROM '.$this->pref.'module_auth_users WHERE publicid=? AND context_id=?';
-		if ($this->db->GetOne($sql, [$publicid, $this->context])) {
+		if ($this->db->GetOne($sql, [$login, $this->context])) {
 			$key = ($explicit) ? 'login_taken' : 'login_notvalid';
 			return [FALSE, $this->mod->Lang($key)];
 		}
@@ -78,11 +78,11 @@ class Auth extends Session
 	}
 
 	/**
-	* Verifies (somewhat slowly) that @publicid is not 'gibberish'
-	* @publicid: string user identifier
+	* Verifies (somewhat slowly) that @login is not 'gibberish'
+	* @login: string user identifier
 	* Returns: array [0]=boolean for success, [1]=message or ''
 	*/
-	public function sensibleLogin($publicid)
+	public function sensibleLogin($login)
 	{
 		if (!$this->nametrained) {
 			$fp = [];
@@ -93,7 +93,11 @@ class Auth extends Session
 			$this->nametrained = Gibberish::train($fp[0], $fp[1], $fp[2], $fp[3]);
 		}
 		if ($this->nametrained) {
-			$t = strtolower($publicid); //too bad about mb
+			if (extension_loaded('mbstring')) {
+				$t = mb_convert_case($login, MB_CASE_LOWER, 'UTF-8'); //TODO first encoding?
+			} else {
+				$t = strtolower($login);
+			}
 			$fp = $this->namepath.$this->trainers[3];
 			$val = Gibberish::test($t, $fp, FALSE); //TODO get & evaluate raw score
 			if (!$val) {
@@ -210,15 +214,15 @@ class Auth extends Session
 
 	/**
 	* Creates and records a user
-	* @publicid: string user identifier
+	* @login: string user identifier
 	* @password: plaintext string
-	* @repeatpassword: plaintext string
+	* @repeatpass: plaintext string
 	* @email: email address for notices to the user default = ''
 	* @params: array extra user-parameters for self::addUser() default = empty
 	* @sendmail: bool whether to send email-messages if possible default = NULL
 	* Returns: array [0]=boolean for success, [1]=message or ''
 	*/
-	public function register($publicid, $password, $repeatpassword, $email='', $params=[], $sendmail=NULL)
+	public function register($login, $password, $repeatpass, $email='', $params=[], $sendmail=NULL)
 	{
 		$block_status = $this->IsBlocked();
 
@@ -231,12 +235,12 @@ class Auth extends Session
 		}
 
 		// Validate publicid
-		$status = $this->validateLogin($publicid);
+		$status = $this->validateLogin($login);
 		if (!$status[0]) {
 			return $status;
 		}
 
-		if ($this->isLoginTaken($publicid)) {
+		if ($this->isLoginTaken($login)) {
 			return [FALSE,$this->mod->Lang('login_taken')];
 		}
 
@@ -246,7 +250,7 @@ class Auth extends Session
 			return $status;
 		}
 
-		if ($password !== $repeatpassword) {
+		if ($password !== $repeatpass) {
 			return [FALSE,$this->mod->Lang('password_nomatch')];
 		}
 
@@ -258,7 +262,7 @@ class Auth extends Session
 			}
 		}
 
-		$status = $this->addUser($publicid, $password, $email, $sendmail, $params);
+		$status = $this->addUser($login, $password, $email, $sendmail, $params);
 		if (!$status[0]) {
 			return $status;
 		}
@@ -272,18 +276,18 @@ class Auth extends Session
 	}
 
 	/**
-	* Checks whether @publicid is recorded for current context and active, and
+	* Checks whether @login is recorded for current context and active, and
 	*  @password (if not FALSE) is valid. A session is created/updated as appropriate
-	* @publicid: string user identifier
+	* @login: string user identifier
 	* @password: plaintext string, or FALSE to skip password-validation
 	* @active: optional boolean whether to check for active user, default TRUE
 	* @fast: optional boolean whether to return immediately if not recognized, default FALSE
 	* Returns: 2-member array [0]=boolean indicating success [1]=array of data from row of session table
 	*/
-	public function isRegistered($publicid, $password, $active=TRUE, $fast=FALSE)
+	public function isRegistered($login, $password, $active=TRUE, $fast=FALSE)
 	{
 		$sql = 'SELECT id,privhash,active FROM '.$this->pref.'module_auth_users WHERE publicid=? AND context_id=?';
-		$userdata = $this->db->GetRow($sql, [$publicid, $this->context]);
+		$userdata = $this->db->GetRow($sql, [$login, $this->context]);
 		$uid = ($userdata) ? $userdata['id'] : -1;
 		$ip = $this->GetIp();
 		$sdata = $this->SessionExists($uid, $ip);
@@ -334,13 +338,13 @@ class Auth extends Session
 
 	/**
 	* Logs a user in
-	* @publicid: string user identifier
+	* @login: string user identifier
 	* @password: plaintext string
 	* @nonce: default = FALSE
 	* @remember: boolean whether to setup session-expiry-time in self::AddSession() default = FALSE
 	* Returns: array, [0]=boolean for success, [1]=message or '', if [0] then also session-parameters: 'token','expire'
 	*/
-	public function login($publicid, $password, $nonce=FALSE, $remember=FALSE)
+	public function login($login, $password, $nonce=FALSE, $remember=FALSE)
 	{
 		$block_status = $this->IsBlocked();
 
@@ -354,7 +358,7 @@ class Auth extends Session
 			return [FALSE,$this->mod->Lang('user_blocked')];
 		}
 
-		$uid = $this->getUID($publicid);
+		$uid = $this->getUserID($login);
 
 		if (!$uid) {
 			$this->AddAttempt();
@@ -362,7 +366,7 @@ class Auth extends Session
 			return [FALSE,$this->mod->Lang('login_incorrect')];
 		}
 
-		$userdata = $this->getBaseUser($uid);
+		$userdata = $this->getUserBase($uid);
 
 		if (!$userdata['active']) {
 			$this->AddAttempt();
@@ -417,14 +421,14 @@ class Auth extends Session
 	/**
 	* Creates an activation entry and sends publicid to user
 	* @uid: int user enumerator
-	* @publicid: string user identifier
+	* @login: string user identifier
 	* @type: string 'reset' or 'activate'
 	* @sendmail: optional boolean reference whether to send confirmation email default=NULL i.e. per context prop
 	* @fake: optional boolean whether to treat this as a bogus notice default = FALSE
 	* @password: optional plaintext password to be advised instead of URL, default = FALSE
 	* Returns: array [0]=boolean for success, [1]=message or '' @sendmail may be altered e.g. FALSE if not sent
 	*/
-	public function addRequest($uid, $publicid, $type, &$sendmail=NULL, $fake=FALSE, $password=FALSE)
+	public function addRequest($uid, $login, $type, &$sendmail=NULL, $fake=FALSE, $password=FALSE)
 	{
 		if (!($type == 'activate' || $type == 'reset')) {
 			return [FALSE,$this->mod->Lang('system_error','#02')];
@@ -479,7 +483,7 @@ class Auth extends Session
 		}
 
 		if ($type == 'activate') {
-			$userdata = $this->getBaseUser($uid);
+			$userdata = $this->getUserBase($uid);
 			if ($userdata['active']) {
 				return [FALSE,$this->mod->Lang('already_activated')];
 			}
@@ -608,12 +612,12 @@ class Auth extends Session
 	}
 
 	/**
-	* Creates a reset-key for @publicid and sends email
-	* @publicid: string user identifier
+	* Creates a reset-key for @login and sends email
+	* @login: string user identifier
 	* @sendmail: boolean whether to send confirmation email default = NULL
 	* Returns: array [0]=boolean for success, [1]=message or ''
 	*/
-	public function requestReset($publicid, $sendmail=NULL)
+	public function requestReset($login, $sendmail=NULL)
 	{
 		$block_status = $this->IsBlocked();
 
@@ -621,23 +625,23 @@ class Auth extends Session
 			return [FALSE,$this->mod->Lang('user_blocked')];
 		}
 
-		$status = $this->validateLogin($publicid);
+		$status = $this->validateLogin($login);
 
 		if (!$status[0]) {
-			//TODO minimise impact of $publicid brute-forcing
+			//TODO minimise impact of $login brute-forcing
 			return [FALSE,$this->mod->Lang('login_invalid')];
 		}
 
 		$sql = 'SELECT id FROM '.$this->pref.'module_auth_users WHERE publicid=?';
-		$id = $this->db->GetOne($sql, [$publicid]);
+		$id = $this->db->GetOne($sql, [$login]);
 
 		if (!$id) {
-			//TODO minimise impact of $publicid brute-forcing
+			//TODO minimise impact of $login brute-forcing
 			$this->AddAttempt();
 			return [FALSE,$this->mod->Lang('login_incorrect')];
 		}
 
-		$status = $this->addRequest($id, $publicid, 'reset', $sendmail);
+		$status = $this->addRequest($id, $login, 'reset', $sendmail);
 
 		if (!$status[0]) {
 			$this->AddAttempt();
@@ -651,12 +655,12 @@ class Auth extends Session
 	}
 
 	/**
-	* Recreates activation email for @publicid and sends that email
-	* @publicid: string user identifier
+	* Recreates activation email for @login and sends that email
+	* @login: string user identifier
 	* @sendmail: default = NULL  whether to send email notice
 	* Returns: array [0]=boolean for success, [1]=message or ''
 	*/
-	public function resendActivation($publicid, $sendmail=NULL)
+	public function resendActivation($login, $sendmail=NULL)
 	{
 		$block_status = $this->IsBlocked();
 
@@ -668,28 +672,28 @@ class Auth extends Session
 			return [FALSE,$this->mod->Lang('function_disabled')];
 		}
 
-		$status = $this->validateLogin($publicid);
+		$status = $this->validateLogin($login);
 
 		if (!$status[0]) {
 			return $status;
 		}
 
 		$sql = 'SELECT id FROM '.$this->pref.'module_auth_users WHERE publicid=? AND context_id=?';
-		$id = $this->db->GetOne($sql, [$publicid, $this->context]);
+		$id = $this->db->GetOne($sql, [$login, $this->context]);
 
 		if ($id == FALSE) {
 			$this->AddAttempt();
 			return [FALSE,$this->mod->Lang('login_incorrect')];
 		}
 
-		$userdata = $this->getBaseUser($id);
+		$userdata = $this->getUserBase($id);
 
 		if ($userdata['active']) {
 			$this->AddAttempt();
 			return [FALSE,$this->mod->Lang('already_activated')];
 		}
 
-		$status = $this->addRequest($id, $publicid, 'activate', $sendmail);
+		$status = $this->addRequest($id, $login, 'activate', $sendmail);
 
 		if (!$status[0]) {
 			$this->AddAttempt();
@@ -702,13 +706,53 @@ class Auth extends Session
 	//~~~~~~~~~~~~~ USER OPERATIONS ~~~~~~~~~~~~~~~~~
 
 	/**
+	* Activates a user's account
+	* @token: string 24-byte token
+	* Returns: array [0]=boolean for success, [1]=message or ''
+	*/
+	public function activate($token)
+	{
+		$block_status = $this->IsBlocked();
+
+		if ($block_status == 'block') {
+			return [FALSE,$this->mod->Lang('user_blocked')];
+		}
+
+		if (strlen($token) !== 24) {
+			$this->AddAttempt();
+			return [FALSE,$this->mod->Lang('activationkey_invalid')];
+		}
+
+		$data = $this->getRequest($token, 'activate');
+
+		if (!$data[0]) {
+			$this->AddAttempt();
+			return $data;
+		}
+
+		$userdata = $this->getUserBase($data['uid']);
+		if ($userdata['active']) {
+			$this->AddAttempt();
+			$this->deleteRequest($data['id']);
+			return [FALSE,$this->mod->Lang('system_error','#07')];
+		}
+
+		$sql = 'UPDATE '.$this->pref.'module_auth_users SET active=1 WHERE id=?';
+		$this->db->Execute($sql, [$data['uid']]);
+
+		$this->deleteRequest($data['id']);
+
+		return [TRUE,$this->mod->Lang('account_activated')];
+	}
+
+	/**
 	* Changes a user's login name
 	* @uid: int user enumerator
-	* @publicid: string user identifier
+	* @login: string user identifier
 	* @password: plaintext string
 	* Returns: array [0]=boolean for success, [1]=message or ''
 	*/
-	public function changeLogin($uid, $publicid, $password)
+	public function changeLogin($uid, $login, $password)
 	{
 		$block_status = $this->IsBlocked();
 
@@ -720,7 +764,7 @@ class Auth extends Session
 			return [FALSE,$this->mod->Lang('user_blocked')];
 		}
 
-		$status = $this->validateLogin($publicid);
+		$status = $this->validateLogin($login);
 
 		if (!$status[0]) {
 			return $status;
@@ -733,7 +777,7 @@ class Auth extends Session
 			return $status;
 		}
 
-		$userdata = $this->getBaseUser($uid);
+		$userdata = $this->getUserBase($uid);
 
 		if (!$userdata) {
 			$this->AddAttempt();
@@ -745,13 +789,13 @@ class Auth extends Session
 			return [FALSE,$this->mod->Lang('password_incorrect')];
 		}
 
-		if ($publicid == $userdata['publicid']) {
+		if ($login == $userdata['publicid']) {
 			$this->AddAttempt();
 			return [FALSE,$this->mod->Lang('newlogin_match')];
 		}
 
 		$sql = 'UPDATE '.$this->pref.'module_auth_users SET publicid=? WHERE id=?';
-		$res = $this->db->Execute($sql, [$publicid, $uid]);
+		$res = $this->db->Execute($sql, [$login, $uid]);
 
 		if ($res == FALSE) {
 			return [FALSE,$this->mod->Lang('system_error','#06')];
@@ -762,43 +806,15 @@ class Auth extends Session
 
 	/**
 	* Method for preventing duplicates and user-recognition checks
-	* Checks whether @publicid is recorded for current context
-	* @publicid: string user identifier
+	* Checks whether @login is recorded for current context
+	* @login: string user identifier
 	* Returns: boolean
 	*/
-	public function isLoginTaken($publicid)
+	public function isLoginTaken($login)
 	{
 		$sql = 'SELECT id FROM '.$this->pref.'module_auth_users WHERE publicid=? AND context_id=?';
-		$num = $this->db->GetOne($sql, [$publicid, $this->context]);
+		$num = $this->db->GetOne($sql, [$login, $this->context]);
 		return ($num > 0);
-	}
-
-	/**
-	* Gets user-enumerator for @publicid (whether or not currently active)
-	* @publicid: string user identifier
-	* Returns: user enumerator
-	*/
-	public function getUID($publicid)
-	{
-		$sql = 'SELECT id FROM '.$this->pref.'module_auth_users WHERE publicid=? AND context_id=?';
-		return $this->db->GetOne($sql, [$publicid, $this->context]);
-	}
-
-	/**
-	* Gets basic user-data for the given UID
-	* @uid: int user enumerator
-	* Returns: array with members uid,publicid,privhash,active or else FALSE
-	*/
-	protected function getBaseUser($uid)
-	{
-		$sql = 'SELECT publicid,privhash,active FROM '.$this->pref.'module_auth_users WHERE id=?';
-		$data = $this->db->GetRow($sql, [$uid]);
-
-		if ($data) {
-			$data['uid'] = $uid;
-			return $data;
-		}
-		return FALSE;
 	}
 
 	/**
@@ -835,18 +851,70 @@ class Auth extends Session
 	}
 
 	/**
-	* Gets publicly-accessible user-data for @publicid
-	* @publicid: string user identifier
-	* @active: optional boolean whether the user is required to be active default = TRUE
-	* Returns: array with members publicid,name,address,addwhen,lastuse or else FALSE
+	* Gets password for @uid
+	* @uid: int user enumerator
+	* @raw: whether to encode the value, default = FALSE
+	* Returns: string, raw or H-packed password, or else FALSE
 	*/
-	public function getPublicUser($publicid, $active=TRUE)
+	public function getUserPassword($uid, $raw=FALSE)
 	{
-		$sql = 'SELECT name,address,addwhen,lastuse FROM '.$this->pref.'module_auth_users WHERE publicid=? AND context_id=?';
+		$sql = 'SELECT privhash FROM '.$this->pref.'module_auth_users WHERE id=?';
+		$data = $this->db->GetOne($sql, [$uid]);
+
+		if ($data) {
+			if ($raw) {
+				return $data;
+			}
+			return pack('H*', $data);
+		}
+		return FALSE;
+	}
+
+	/**
+	* Get user-enumerator for @login (whether or not currently active)
+	* @login: string user/account identifier
+	* Returns: enumerator or FALSE
+	*/
+	public function getUserID($login)
+	{
+		$sql = 'SELECT id FROM '.$this->pref.'module_auth_users WHERE publicid=? AND context_id=?';
+		return $this->db->GetOne($sql, [$login, $this->context]);
+	}
+
+	/**
+	* Gets some user-data for @uid
+	* @uid: int user enumerator
+	* Returns: array with members uid,publicid,privhash,active or else FALSE
+	*/
+	protected function getUserBase($uid)
+	{
+		$sql = 'SELECT publicid,privhash,active FROM '.$this->pref.'module_auth_users WHERE id=?';
+		$data = $this->db->GetRow($sql, [$uid]);
+
+		if ($data) {
+			$data['uid'] = $uid;
+			return $data;
+		}
+		return FALSE;
+	}
+
+	/**
+	* Gets publicly-accessible user-data for @login
+	* @login: string user identifier
+	* @active: optional boolean whether the user is required to be active default = TRUE
+	* Returns: array with members publicid,name,address,addwhen,lastuse[,active] or else FALSE
+	*/
+	public function getUserPublic($login, $active=TRUE)
+	{
+		$sql = 'SELECT name,address,addwhen,lastuse';
+		if (!$active) {
+			$sql .= ',active'
+		}
+		$sql .= ' FROM '.$this->pref.'module_auth_users WHERE publicid=? AND context_id=?';
 		if ($active) {
 			$sql .= ' AND active>0';
 		}
-		$data = $this->db->GetRow($sql, [$publicid, $this->context]);
+		$data = $this->db->GetRow($sql, [$login, $this->context]);
 
 		if ($data) {
 			$funcs = new Crypter();
@@ -858,15 +926,15 @@ class Auth extends Session
 			$data['addwhen'] = $dt->format('Y-m-d H:i:s');
 			$dt->setTimestamp($data['lastuse']);
 			$data['lastuse'] = $dt->format('Y-m-d H:i:s');
-			$data['publicid'] = $publicid;
+			$data['publicid'] = $login;
 			return $data;
 		}
 		return FALSE;
 	}
 
 	/**
-	* Gets some data for all active users of current context
-	* Returns: associative array each member of which is uid=>publicid, or FALSE
+	* Gets some data for all active users of the current context
+	* Returns: associative array, each member of which is uid=>login, or else FALSE
 	*/
 	public function getActiveUsers()
 	{
@@ -875,12 +943,14 @@ class Auth extends Session
 	}
 
 	/**
-	* Gets some data for all, or all active, users of current context
-	* Returns: array each member of which has user_id,login,name,address,nameswap,nameswap or else FALSE
+	* Gets some data for all, or all active, users of the current context
+	* @active: optional boolean, whether to report for active-users only, default = TRUE
+	* @raw: optional boolean, whether to return encrypted data as-is, default = FALSE
+	* Returns: array, each member of which has user_id,publicid,name,address,nameswap or else FALSE
 	*/
-	public function getUsersPublic($active=TRUE, $raw=FALSE)
+	public function getPublicUsers($active=TRUE, $raw=FALSE)
 	{
-		$sql = 'SELECT id,publicid,name,address FROM '.$this->pref.'module_auth_users WHERE context_id=?';
+		$sql = 'SELECT id,publicid,name,address,nameswap FROM '.$this->pref.'module_auth_users WHERE context_id=?';
 		if ($active) {
 			$sql .= ' AND active>0';
 		}
@@ -899,48 +969,8 @@ class Auth extends Session
 	}
 
 	/**
-	* Activates a user's account
-	* @token: string 24-byte token
-	* Returns: array [0]=boolean for success, [1]=message or ''
-	*/
-	public function activate($token)
-	{
-		$block_status = $this->IsBlocked();
-
-		if ($block_status == 'block') {
-			return [FALSE,$this->mod->Lang('user_blocked')];
-		}
-
-		if (strlen($token) !== 24) {
-			$this->AddAttempt();
-			return [FALSE,$this->mod->Lang('activationkey_invalid')];
-		}
-
-		$data = $this->getRequest($token, 'activate');
-
-		if (!$data[0]) {
-			$this->AddAttempt();
-			return $data;
-		}
-
-		$userdata = $this->getBaseUser($data['uid']);
-		if ($userdata['active']) {
-			$this->AddAttempt();
-			$this->deleteRequest($data['id']);
-			return [FALSE,$this->mod->Lang('system_error','#07')];
-		}
-
-		$sql = 'UPDATE '.$this->pref.'module_auth_users SET active=1 WHERE id=?';
-		$this->db->Execute($sql, [$data['uid']]);
-
-		$this->deleteRequest($data['id']);
-
-		return [TRUE,$this->mod->Lang('account_activated')];
-	}
-
-	/**
 	* Records a new user
-	* @publicid: string user identifier
+	* @login: string user identifier
 	* @password: plaintext string
 	* @name: string user name
 	* @address: email or other type of address for messages, possibly empty
@@ -948,12 +978,12 @@ class Auth extends Session
 	* @params: array of additional params default = empty
 	* Returns: array [0]=boolean for success, [1]=message or ''
 	*/
-	public function addUser($publicid, $password, $name, $address, &$sendmail, $params=[])
+	public function addUser($login, $password, $name, $address, &$sendmail, $params=[])
 	{
 		$uid = $this->db->GenID($this->pref.'module_auth_users_seq');
 
 		if ($sendmail) { //TODO
-			$status = $this->addRequest($uid, $publicid, 'activate', $sendmail);
+			$status = $this->addRequest($uid, $login, 'activate', $sendmail);
 
 			if (!$status[0]) {
 				return $status;
@@ -980,7 +1010,7 @@ class Auth extends Session
 		//TODO any others?
 		$sql = 'INSERT INTO '.$this->pref.'module_auth_users (id,publicid,privhash,name,address,context_id,addwhen,active) VALUES (?,?,?,?,?,?,?,?)';
 
-		if (!$this->db->Execute($sql, [$uid, $publicid, $password, $name, $address, $this->context, time(), $isactive])) {
+		if (!$this->db->Execute($sql, [$uid, $login, $password, $name, $address, $this->context, time(), $isactive])) {
 			$this->deleteRequest($status[$TODO]);
 			return [FALSE,$this->mod->Lang('system_error','#08')];
 		}
@@ -1017,7 +1047,7 @@ class Auth extends Session
 			return $status;
 		}
 
-		$userdata = $this->getBaseUser($uid);
+		$userdata = $this->getUserBase($uid);
 
 		if (!$userdata) {
 			$this->AddAttempt();
@@ -1066,11 +1096,11 @@ class Auth extends Session
 	/**
 	* Allows a user to reset her/his password after requesting a reset
 	* @token: string 24-byte token
-	* @password: plaintext string
-	* @repeatpassword: plaintext string
+	* @newpass: plaintext string
+	* @repeatnewpass: plaintext string
 	* Returns: array [0]=boolean for success, [1]=message or ''
 	*/
-	public function resetPassword($token, $password, $repeatpassword)
+	public function resetPassword($token, $newpass, $repeatnewpass)
 	{
 		$block_status = $this->IsBlocked();
 
@@ -1092,18 +1122,18 @@ class Auth extends Session
 			return $data;
 		}
 
-		$status = $this->matchPassword($data['uid'], $password);
+		$status = $this->matchPassword($data['uid'], $newpass);
 
 		if (!$status[0]) {
 			return $status;
 		}
 
-		if ($password !== $repeatpassword) {
+		if ($newpass !== $repeatnewpass) {
 			// Passwords don't match
 			return [FALSE,$this->mod->Lang('newpassword_nomatch')];
 		}
 
-		$userdata = $this->getBaseUser($data['uid']);
+		$userdata = $this->getUserBase($data['uid']);
 
 		if (!$userdata) {
 			$this->AddAttempt();
@@ -1111,14 +1141,14 @@ class Auth extends Session
 			return [FALSE,$this->mod->Lang('system_error','#12')];
 		}
 
-		if ($this->doPasswordCheck($password, $userdata['password']/*, $tries TODO*/)) {
+		if ($this->doPasswordCheck($newpass, $userdata['password']/*, $tries TODO*/)) {
 			$this->AddAttempt();
 			return [FALSE,$this->mod->Lang('newpassword_match')];
 		}
 
-		$password = password_hash($password, PASSWORD_DEFAULT);
+		$newpass = password_hash($newpass, PASSWORD_DEFAULT);
 		$sql = 'UPDATE '.$this->pref.'module_auth_users SET privhash=? WHERE id=?';
-		$res = $this->db->Execute($sql, [$password, $data['uid']]);
+		$res = $this->db->Execute($sql, [$newpass, $data['uid']]);
 
 		if ($res) {
 			$this->deleteRequest($data['id']);
@@ -1130,12 +1160,12 @@ class Auth extends Session
 	/**
 	* Changes a user's password
 	* @uid: int user enumerator
-	* @currpass: plaintext string
+	* @password: plaintext string current password
 	* @newpass: plaintext string
 	* @repeatnewpass: plaintext string
 	* Returns: array [0]=boolean for success, [1]=message or ''
 	*/
-	public function changePassword($uid, $currpass, $newpass, $repeatnewpass)
+	public function changePassword($uid, $password, $newpass, $repeatnewpass)
 	{
 		$block_status = $this->IsBlocked();
 
@@ -1147,7 +1177,7 @@ class Auth extends Session
 			return [FALSE,$this->mod->Lang('user_blocked')];
 		}
 
-		$status = $this->matchPassword($uid, $currpass);
+		$status = $this->matchPassword($uid, $password);
 
 		if (!$status[0]) {
 			$this->AddAttempt();
@@ -1162,14 +1192,14 @@ class Auth extends Session
 			return [FALSE,$this->mod->Lang('newpassword_nomatch')];
 		}
 
-		$userdata = $this->getBaseUser($uid);
+		$userdata = $this->getUserBase($uid);
 
 		if (!$userdata) {
 			$this->AddAttempt();
 			return [FALSE,$this->mod->Lang('system_error','#14')];
 		}
 
-		if (!$this->doPasswordCheck($currpass, $userdata['password']/*, $tries TODO*/)) {
+		if (!$this->doPasswordCheck($password, $userdata['password']/*, $tries TODO*/)) {
 			$this->AddAttempt();
 			return [FALSE,$this->mod->Lang('password_incorrect')];
 		}
@@ -1221,14 +1251,14 @@ class Auth extends Session
 	/**
 	Checks whether @passwd matches @hash
 
-	@passwd: string the password to verify
+	@password: string the password to verify
 	@hash: string the hash to verify against
 	@tries: no. of verification attempts, may be 0 in which case immediate return on mismatch
 	Returns: boolean
 	*/
-	public function doPasswordCheck($passwd, $hash, $tries=1)
+	public function doPasswordCheck($password, $hash, $tries=1)
 	{
-		if (password_verify($passwd, $hash)) {
+		if (password_verify($password, $hash)) {
 			return TRUE;
 		}
 		$t = min(2000, $tries * 500);
