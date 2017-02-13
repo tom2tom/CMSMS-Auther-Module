@@ -93,7 +93,12 @@ if (isset($params['cancel'])) {
 				switch ($kn) {
 				 case 'alias':
 					if (!$val) {
-						$t = strtolower(preg_replace(['/\s+/', '/__+/'], ['_', '_'], $params['name']));
+						$t = preg_replace(['/\s+/', '/__+/'], ['_', '_'], $params['name']);
+						if (extension_loaded('mbstring')) {
+							$t = mb_convert_case($t, MB_CASE_LOWER, 'UTF-8');
+						} else {
+							$t = strtolower($t);
+						}
 						$val = substr($t, 0, 16); //NB no check for alias duplication
 					}
 					break;
