@@ -18,6 +18,8 @@ class Session
 	const ATTEMPT_FAILED = 10;
 	const BAD_IP = 11;
 	const BLOCKED_IP = 12;
+	const REQUEST_ACTIV = 61;
+	const REQUEST_RESET = 62; //c.f. RESET_REQUESTED?
 
 	protected $mod;
 	protected $db;
