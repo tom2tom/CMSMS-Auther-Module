@@ -126,9 +126,9 @@ if ($msgs || $fake) {
 	$pw = $afuncs->UniqueToken($afuncs->GetConfig('password_min_length'));
 	$hash = password_hash($pw, PASSWORD_DEFAULT);
 	$data = json_encode(['temppass'=>$hash]);
-	$sql = 'UPDATE '.$pref.'module_auth_sessions SET cache=? WHERE token=?';
+	$sql = 'UPDATE '.$pref.'module_auth_cache SET data=? WHERE token=?';
 	$db->Execute($sql, [$data, $token]);
-	$sendmail = TRUE; //ignore context property!
+	$sendmail = TRUE; //hence ignore context property!
 	$res = $afuncs->addRequest($sdata['user_id'], $login, 'reset', $sendmail, $fake, $pw);
 	if (!$res[0]) {
 		$msgs[] = $res[1];
@@ -151,7 +151,7 @@ if ($msgs || $fake) {
 		$flds['login'] = $login; //original value
 		$flds['passwd'] = $pw;
 		$enc = $cfuncs->encrypt_value($mod, json_encode($flds));
-		$sql = 'UPDATE '.$pref.'module_auth_sessions SET cache=? WHERE token=?';
+		$sql = 'UPDATE '.$pref.'module_auth_cache SET data=? WHERE token=?';
 		$db->Execute($sql, [$enc, $token]);
 //TODO initiate challenge
 	} else {

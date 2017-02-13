@@ -180,7 +180,7 @@ $pref = cms_db_prefix();
 $cdata = $db->GetRow('SELECT * FROM '.$pref.'module_auth_contexts WHERE id=?', [$params['context']]);
 if (!empty($params['token'])) {
 	$token = $params['token'];
-	$sdata = $db->GetRow('SELECT * FROM '.$pref.'module_auth_sessions WHERE token=?', [$token]);
+	$sdata = $db->GetRow('SELECT * FROM '.$pref.'module_auth_cache WHERE token=?', [$token]);
 } else {
 	$token = FALSE; //may be updated by included code
 	$sdata = FALSE;

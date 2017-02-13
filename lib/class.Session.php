@@ -47,7 +47,7 @@ class Session
 	*/
 	public function GetUserSession($uid)
 	{
-		$sql = 'SELECT token FROM '.$this->pref.'module_auth_sessions WHERE user_id=? AND context_id=?';
+		$sql = 'SELECT token FROM '.$this->pref.'module_auth_cache WHERE user_id=? AND context_id=?';
 		return $this->db->GetOne($sql, [$uid, $this->context]);
 	}
 
@@ -57,7 +57,7 @@ class Session
 	*/
 	public function GetSourceSession($ip)
 	{
-		$sql = 'SELECT token FROM '.$this->pref.'module_auth_sessions WHERE ip=? AND context_id=?';
+		$sql = 'SELECT token FROM '.$this->pref.'module_auth_cache WHERE ip=? AND context_id=?';
 		return $this->db->GetOne($sql,  [$ip, $this->context]);
 	}
 
@@ -67,7 +67,7 @@ class Session
 	*/
 	public function GetSessionData($token)
 	{
-		$sql = 'SELECT * FROM '.$this->pref.'module_auth_sessions WHERE token=?';
+		$sql = 'SELECT * FROM '.$this->pref.'module_auth_cache WHERE token=?';
 		return $this->db->GetRow($sql, [$token]);
 	}
 
@@ -78,7 +78,7 @@ class Session
 	protected function SessionExists($uid, $ip)
 	{
 		$nowtime = time();
-		$sql = 'SELECT * FROM '.$this->pref.'module_auth_sessions WHERE (ip=? OR user_id=?) AND expire>=? AND context_id=?';
+		$sql = 'SELECT * FROM '.$this->pref.'module_auth_cache WHERE (ip=? OR user_id=?) AND expire>=? AND context_id=?';
 		return $this->db->GetRow($sql, [$uid, $ip, $nowtime, $this->context]);
 	}
 
@@ -148,7 +148,7 @@ class Session
 		$agent = $_SERVER['HTTP_USER_AGENT'];
 
 		$sql = 'INSERT INTO '.$this->pref.
-'module_auth_sessions (token,ip,user_id,context_id,expire,lastmode,attempts,cookie_hash,agent) VALUES (?,?,?,?,?,?,?,?,?)';
+'module_auth_cache (token,ip,user_id,context_id,expire,lastmode,attempts,cookie_hash,agent) VALUES (?,?,?,?,?,?,?,?,?)';
 		$args = [$token, $ip, $uid, $this->context, $data['expire'], $stat, 0, $data['cookie_token'], $agent];
 
 		if (!$this->db->Execute($sql, $args)) {
@@ -165,7 +165,7 @@ class Session
 	*/
 	protected function DeleteUserSessions($uid)
 	{
-		$sql = 'DELETE FROM '.$this->pref.'module_auth_sessions WHERE user_id=?';
+		$sql = 'DELETE FROM '.$this->pref.'module_auth_cache WHERE user_id=?';
 		$res = $this->db->Execute($sql, [$uid]);
 		return ($res != FALSE);
 	}
@@ -177,7 +177,7 @@ class Session
 	*/
 	protected function DeleteSourceSessions($ip)
 	{
-		$sql = 'DELETE FROM '.$this->pref.'module_auth_sessions WHERE ip=?';
+		$sql = 'DELETE FROM '.$this->pref.'module_auth_cache WHERE ip=?';
 		$res = $this->db->Execute($sql, [$ip]);
 		return ($res != FALSE);
 	}
@@ -189,7 +189,7 @@ class Session
 	*/
 	protected function DeleteSession($token)
 	{
-		$sql = 'DELETE FROM '.$this->pref.'module_auth_sessions WHERE token=?';
+		$sql = 'DELETE FROM '.$this->pref.'module_auth_cache WHERE token=?';
 		$res = $this->db->Execute($sql, [$token]);
 		return ($res != FALSE);
 	}
@@ -211,7 +211,7 @@ class Session
 			return FALSE;
 		}
 
-		$sql = 'SELECT id,user_id,expire,ip,agent,cookie_token FROM '.$this->pref.'module_auth_sessions WHERE token=?';
+		$sql = 'SELECT id,user_id,expire,ip,agent,cookie_token FROM '.$this->pref.'module_auth_cache WHERE token=?';
 		$row = $this->db->GetRow($sql, [$token]);
 
 		if (!$row) {
@@ -240,9 +240,9 @@ class Session
 	*/
 	public function setSessionUID($token, $uid)
 	{
-		$sql = 'UPDATE '.$this->pref.'module_auth_sessions SET user_id=? WHERE token=?';
+		$sql = 'UPDATE '.$this->pref.'module_auth_cache SET user_id=? WHERE token=?';
 		$this->db->Execute($sql, [$uid, $token]);
-		$sql = 'UPDATE '.$this->pref.'module_auth_sessions SET lastmode=? WHERE token=? AND lastmode=?';
+		$sql = 'UPDATE '.$this->pref.'module_auth_cache SET lastmode=? WHERE token=? AND lastmode=?';
 		$this->db->Execute($sql, [self::NEW_FOR_USER, $token, self::NEW_FOR_IP]); //maybe does nothing
 	}
 
@@ -253,7 +253,7 @@ class Session
 	*/
 	public function getSessionUID($token)
 	{
-		$sql = 'SELECT user_id FROM '.$this->pref.'module_auth_sessions WHERE token=?';
+		$sql = 'SELECT user_id FROM '.$this->pref.'module_auth_cache WHERE token=?';
 		return $this->db->GetOne($sql, [$token]);
 	}
 
@@ -270,12 +270,12 @@ class Session
 				$st = 0; //TODO convert from Ymd His string
 			}
 			$sql = 'UPDATE '.$this->pref.'module_auth_users U JOIN '.$this->pref.
-			'module_auth_sessions S ON U.id = S.user_id SET set U.lastuse=? WHERE S.token=?';
+			'module_auth_cache C ON U.id = C.user_id SET set U.lastuse=? WHERE C.token=?';
 			$this->db->Execute($sql, [$st, $token]);
 		} else {
 			//TODO CHECK can there be >1 session for the user?
 			$sql = 'SELECT U.lastuse FROM '.$this->pref.'module_auth_users U JOIN '.
-			$this->pref.'module_auth_sessions S ON U.id = S.user_id WHERE S.token=?';
+			$this->pref.'module_auth_cache C ON U.id = C.user_id WHERE C.token=?';
 			$st = $this->db->GetOne($sql, [$token]);
 			if ($raw) {
 				return $st;
@@ -288,13 +288,13 @@ class Session
 
 	public function GetAttempts($token)
 	{
-		$sql = 'SELECT attempts FROM '.$this->pref.'module_auth_sessions WHERE token=?';
+		$sql = 'SELECT attempts FROM '.$this->pref.'module_auth_cache WHERE token=?';
 		return $this->db->GetOne($sql, [$token]);
 	}
 
 	public function BumpAttempts($token)
 	{
-		$sql = 'UPDATE '.$this->pref.'module_auth_sessions SET attempts=attempts+1 WHERE token=?';
+		$sql = 'UPDATE '.$this->pref.'module_auth_cache SET attempts=attempts+1 WHERE token=?';
 		$this->db->Execute($sql, [$token]);
 	}
 
@@ -313,11 +313,11 @@ class Session
 		$token = $this->GetSourceSession($ip);
 		if ($token) {
 		//SESSION STATUS CHANGE?
-			$sql = 'UPDATE '.$this->pref.'module_auth_sessions SET expire=?, attempts=attempts+1 WHERE token=?';
+			$sql = 'UPDATE '.$this->pref.'module_auth_cache SET expire=?, attempts=attempts+1 WHERE token=?';
 			$this->db->Execute($sql, [$expiry, $token]);
 		} else {
 			$token = $this->MakeSourceSession($ip);
-			$sql = 'UPDATE '.$this->pref.'module_auth_sessions SET expire=? WHERE token=?';
+			$sql = 'UPDATE '.$this->pref.'module_auth_cache SET expire=? WHERE token=?';
 			$this->db->Execute($sql, [$expiry, $token]);
 		}
 	}
@@ -332,7 +332,7 @@ class Session
 		if (!$ip) {
 			$ip = $this->GetIp();
 		}
-		$sql = 'UPDATE '.$this->pref.'module_auth_sessions SET attempts=1 WHERE ip=?';
+		$sql = 'UPDATE '.$this->pref.'module_auth_cache SET attempts=1 WHERE ip=?';
 		$this->db->Execute($sql, [$ip]);
 	}
 
@@ -348,10 +348,10 @@ class Session
 			$ip = $this->GetIp();
 		}
 		if ($all) {
-			$sql = 'UPDATE '.$this->pref.'module_auth_sessions SET attempts=0 WHERE ip=?';
+			$sql = 'UPDATE '.$this->pref.'module_auth_cache SET attempts=0 WHERE ip=?';
 			$res = $this->db->Execute($sql, [$ip]);
 		} else {
-			$sql = 'UPDATE '.$this->pref.'module_auth_sessions SET attempts=0 WHERE ip=? AND expire<?';
+			$sql = 'UPDATE '.$this->pref.'module_auth_cache SET attempts=0 WHERE ip=? AND expire<?';
 			$nowtime = time();
 			$res = $this->db->Execute($sql, [$ip, $nowtime]);
 		}
