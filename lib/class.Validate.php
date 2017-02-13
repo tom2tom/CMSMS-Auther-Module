@@ -124,7 +124,7 @@ class Validate
 			$sql = 'SELECT publicid,address FROM '.$pref.'module_auth_users WHERE user_id=?';
 			$row = \cmsms()->GetDb()->GetRow($sql, [$uid]);
 			if ($row) {
-				if ($this->afuncs->GetConfig('email_required')) {
+				if ($this->afuncs->GetConfig('email_login')) {
 					$test = ['publicid', 'address'];
 				} else {
 					$test = ['address', 'publicid'];
