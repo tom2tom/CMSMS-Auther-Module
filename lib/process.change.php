@@ -162,7 +162,7 @@ if ($msgs || $fake) {
 		}
 		$fillers = implode(',',$namers);
 		$sql = 'UPDATE '.$pref.'module_auth_users SET '.$fillers.' WHERE id=?';
-		$args[] = $afuncs->getUID($login);
+		$args[] = $afuncs->getUserID($login);
 		$db->Execute($sql, [$args]);
 
 		$afuncs->ResetAttempts();

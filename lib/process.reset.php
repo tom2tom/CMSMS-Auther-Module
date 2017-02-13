@@ -117,7 +117,7 @@ if ($msgs || $fake) {
 		$db->Execute($sql, [$enc, $token]);
 //TODO initiate challenge
 	} else {
-		$uid = $afuncs->getUID($login);
+		$uid = $afuncs->getUserID($login);
 		$afuncs->changePassword($uid, $pw, $pw2, $pw2);
 		$afuncs->ResetAttempts();
 		$vfuncs->SetForced(0, $uid);
