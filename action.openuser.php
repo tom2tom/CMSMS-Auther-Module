@@ -170,7 +170,7 @@ if (empty($msg)) {
 	}
 }
 
-$cdata = $db->GetRow('SELECT name,password_min_length,password_min_score,address_required,email_required,name_required FROM '.$pre.'module_auth_contexts WHERE id=?', [$data['context_id']]);
+$cdata = $db->GetRow('SELECT name,password_min_length,password_min_score,address_required,email_login,email_required,name_required FROM '.$pre.'module_auth_contexts WHERE id=?', [$data['context_id']]);
 
 $tplvars = ['mod' => $pmod];
 $tplvars['pagenav'] = $utils->BuildNav($this,$id,$returnid,$params);
@@ -277,7 +277,7 @@ for ($i = 0; $i < $c; $i += 6) {
 }
 
 $options['name']->must = ($cdata['name_required'] > 0);
-$options['publicid']->must = ($cdata['address_required'] > 0 || $cdata['email_required'] > 0);
+$options['publicid']->must = ($cdata['address_required'] > 0 || $cdata['email_login'] > 0);
 
 if ($pmod) {
 	$jsincs[] = <<<EOS

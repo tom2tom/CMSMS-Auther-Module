@@ -38,7 +38,7 @@ EOS;
 	$hidden[] = $mod->CreateInputHidden($id, 'phase', 'who'); //TODO or 'pass' iff ?
 
 	$one = new \stdClass();
-	if ($cdata['email_required']) {
+	if ($cdata['email_login']) {
 		$one->title = $mod->Lang('title_email');
 		$one->input = $this->GetInputText($id, 'login', 'login', $tabindex++, '', 32, 96);
         $logtype = 0;

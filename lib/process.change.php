@@ -31,8 +31,12 @@ switch ($lvl) {
 	$flds = [];
 	//common stuff
 	$login = trim($_POST[$id.'login']);
-	if (!$login) {
-		$t = ($cdata['email_required']) ? 'title_email':'title_identifier';
+	if ($login) {
+		if ($cdata['email_required']) {
+			$afuncs->validateLogin($login); //in case we need either/or check
+		}
+	} else {
+		$t = ($cdata['email_login']) ? 'title_email':'title_identifier';
 		$msgs[] = $mod->Lang('missing_type', $mod->Lang($t));
 		$focus = 'login';
 	}
@@ -51,14 +55,14 @@ switch ($lvl) {
 				break;
 			}
 		} else {
-			$n = $afuncs->GetConfig('attempts_before_ban');
+			$n = $cdata['attempts_before_ban'];
 			if ($sdata['attempts'] >= $n) {
 //TODO status 'blocked'
 				$vfuncs->SetForced(1, FALSE, $login, $cdata['id']);
 				$forcereset = TRUE;
 				$msgs[] = $mod->Lang('reregister2');
 			} else {
-				$n = $afuncs->GetConfig('attempts_before_action');
+				$n = $cdata['attempts_before_action'];
 				if ($sdata['attempts'] >= $n) {
 					$msgs[] = $mod->Lang('reregister');
 // SILENT		} else {

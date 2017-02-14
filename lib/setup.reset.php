@@ -36,7 +36,7 @@ EOS;
  case self::NONCED:
  case self::CHALLENGED:
 	$one = new \stdClass();
-	if ($cdata['email_required']) {
+	if ($cdata['email_login']) {
 		$one->title = $mod->Lang('title_email');
 		$one->input = $this->GetInputText($id, 'login', 'login', $tabindex++, '', 32, 96);
         $logtype = 0;

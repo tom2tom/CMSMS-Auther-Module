@@ -66,7 +66,7 @@ switch ($lvl) {
 			}
 		}
 	} else {
-		$t = ($cdata['email_required']) ? 'title_email':'title_identifier';
+		$t = ($cdata['email_login']) ? 'title_email':'title_identifier';
 		$msgs[] = $mod->Lang('missing_type', $mod->Lang($t));
 		$focus = 'login';
 	}
