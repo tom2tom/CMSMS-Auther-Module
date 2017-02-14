@@ -240,12 +240,12 @@ final class Encryption
 		$length = openssl_cipher_iv_length($this->method);
 		if ($length > 0) {
 			//CBC-mode (at least) requires data to be a multiple of block length
-			$datalen = $this->bytelen($data);
+			$datalen = ($data) ? $this->bytelen($data) : 0;
 			$padAmount = $length - $datalen % $length;
 			if ($padAmount == 0) {
 				$padAmount = $length;
 			}
-			$n = ord($data[$datalen - 1]);
+			$n = ($data) ? ord($data[$datalen - 1]) : mt_rand(0, 255);
 			$pad = str_repeat(chr($padAmount), $padAmount);
 			$padAmount--;
 			for ($i = 0; $i < $padAmount; $i++,$n++) {
