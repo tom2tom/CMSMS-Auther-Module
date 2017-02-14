@@ -20,7 +20,6 @@ include __DIR__.DIRECTORY_SEPARATOR.'password.php';
 class Auth extends Session
 {
 	const PATNEMAIL = '/^.+@.+\..+$/';
-	const STRETCHES = 12; //hence 2**12
 	const NAMEDIR = 'usernames'; //subdir name
 	const PHRASEDIR = 'phrases';
 
@@ -448,13 +447,12 @@ class Auth extends Session
 	* This is a low-level method, without blockage check
 	* @login: string user identifier
 	* @type: string 'reset' or 'activate'
-	* @sendmail: optional boolean reference whether to send confirmation email, default=NULL hence check context property
-	* @fake: optional boolean whether to treat this as a bogus notice default = FALSE
+	* @sendmail: reference to flag whether to send confirmation email, boolean, or NULL to check context property
 	* @password: optional plaintext password to be advised instead of URL, default = FALSE
 	* Returns: array [0]=boolean for success, [1]=message or '' or request-token
 	*  @sendmail may be altered e.g. FALSE if not sent
 	*/
-	public function addRequest($login, $type, &$sendmail=NULL, $fake=FALSE, $password=FALSE)
+	protected function addRequest($login, $type, &$sendmail, $password=FALSE)
 	{
 		if (!($type == 'activate' || $type == 'reset')) {
 			$sendmail = FALSE;
@@ -517,10 +515,6 @@ class Auth extends Session
 				return [FALSE, $this->mod->Lang('request_exists')];
 			}
 			$this->deleteRequest($row['token']);
-		}
-
-		if ($fake) {
-			return [TRUE, ''];
 		}
 
 		$token = $this->UniqueToken(24);
@@ -644,7 +638,7 @@ class Auth extends Session
 	/**
 	* Stores a password-reset request, and sends confirmation email to the user if parameters warrant that
 	* @login: string user identifier
-	* @sendmail: boolean whether to send confirmation email, default=NULL hence check context property
+	* @sendmail: boolean whether to send confirmation email, default=NULL hence per context property
 	* @password: optional plaintext password to be sent to user instead of an URL, default = FALSE
 	* Returns: array [0]=boolean for success, [1]=message
 	*/
@@ -654,11 +648,7 @@ class Auth extends Session
 			return [FALSE, $this->mod->Lang('user_blocked')];
 		}
 
-		if ($sendmail === FALSE) {
-			return [FALSE, $this->mod->Lang('function_disabled')];
-		}
-
-		$status = $this->addRequest($login, 'reset', $sendmail, FALSE, $password);
+		$status = $this->addRequest($login, 'reset', $sendmail, $password);
 		if (!$status[0]) {
 			$this->AddAttempt();
 			return $status;
@@ -671,7 +661,7 @@ class Auth extends Session
 	/**
 	* Stores an account-activation request, and sends confirmation email to the user if parameters warrant that
 	* @login: string user identifier
-	* @sendmail: boolean whether to send confirmation email, default=NULL hence check context property
+	* @sendmail: boolean whether to send confirmation email, default=NULL hence per context property
 	* @password: optional plaintext password to be sent to user instead of an URL, default = FALSE
 	* Returns: array [0]=boolean for success, [1]=message
 	*/
@@ -681,11 +671,8 @@ class Auth extends Session
 			return [FALSE, $this->mod->Lang('user_blocked')];
 		}
 
-		if ($sendmail === FALSE) {
-			return [FALSE, $this->mod->Lang('function_disabled')];
-		}
 
-		$status = $this->addRequest($login, 'activate', $sendmail, FALSE, $password);
+		$status = $this->addRequest($login, 'activate', $sendmail, $password);
 		if (!$status[0]) {
 			$this->AddAttempt();
 			return $status;
@@ -1023,7 +1010,7 @@ class Auth extends Session
 	* @password: plaintext string
 	* @name: string user name
 	* @address: email or other type of address for messages, possibly empty
-	* @sendmail:  reference to boolean whether to send confirmation-request email
+	* @sendmail:  reference to flag (T/F or NULL) whether to send confirmation-email
 	* @params: array of additional params default = empty
 	* Returns: array [0]=boolean for success, [1]=message or '', @sendmail may be altered
 	*/
@@ -1031,8 +1018,8 @@ class Auth extends Session
 	{
 		$uid = $this->db->GenID($this->pref.'module_auth_users_seq');
 
-		if ($sendmail) {
-			$status = $this->addRequest($uid, $login, 'activate', $sendmail);
+		if ($sendmail || $sendmail === NULL) {
+			$status = $this->addRequest($login, 'activate', $sendmail, $password);
 			if (!$status[0]) {
 				return $status;
 			}
