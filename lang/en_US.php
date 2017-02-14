@@ -104,7 +104,7 @@ $lang['help_contact'] = 'Must be a valid email address';
 $lang['help_contact2'] = 'Typically an email address or cell/mobile phone number';
 $lang['help_context_address'] = 'Above information about sender name appplies here too';
 $lang['help_context_sender'] = 'Typically this will be blank/empty, to use the mailer-default value. Otherwise set to a value supported by the mailer module, or else message transmission may be blocked.';
-$lang['help_context_site'] = 'For use in email messages';
+$lang['help_context_site'] = 'For use in confirmation-messages';
 //$lang['help_cookie_domain'] = ''; see http://php.net/manual/en/function.setcookie.php
 $lang['help_cookie_forget'] = 'Length of time that a login is tracked, if [TODO], something like \'2 hours\' or \'1 week\' (unquoted, in english that <a href="http://php.net/manual/en/datetime.formats.relative.php">PHP understands</a>)';
 //$lang['help_cookie_http'] = '';
