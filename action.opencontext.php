@@ -49,8 +49,9 @@ if (!function_exists('getContextProperties')) {
 
 	'send_activate_message',0, 0, 0,
 	'send_reset_message',	0, 0, 0,
-	'context_sender',		1, 50, 0,
-	'context_address',		1, 50, 0,
+	'context_site',			1, 40, 1,
+	'context_sender',		1, 40, 0,
+	'context_address',		1, 60, 0,
 	'message_charset',		1, 16, 0,
 
 	'cookie_name',			1, 32, 1,
