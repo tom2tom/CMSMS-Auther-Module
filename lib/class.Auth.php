@@ -24,8 +24,8 @@ class Auth extends Session
 	const NAMEDIR = 'usernames'; //subdir name
 	const PHRASEDIR = 'phrases';
 
-	public loginisemail;
-	public addressisemail;
+	public $loginisemail;
+	public $addressisemail;
 	protected $trainers = ['big.txt', 'good.txt', 'bad.txt', 'matrix.txt'];
 	protected $namepath;
 	protected $phrasepath;
