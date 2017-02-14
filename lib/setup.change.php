@@ -95,6 +95,9 @@ EOS;
 		}
 		$one->input = $this->GetInputText($id, 'contact', 'contact', $tabindex++, '', 32, 96);
 		$one->extra = $mod->Lang('help_contact2').'<br />'.$same;
+		if ($cdata['email_required']) {
+			$one->extra .= '<br />'.$mod->Lang('help_email_required');
+		}
 		$elements[] = $one;
 	} else {
 		$optcontact = 1;
