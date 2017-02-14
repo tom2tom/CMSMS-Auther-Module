@@ -945,7 +945,7 @@ class Auth extends Session
 		if ($data) {
 			$funcs = new Crypter();
 //TODO zone offset
-			$dt = new \DateTime('@0',NULL);
+			$dt = new \DateTime('@0', NULL);
 			foreach ($data as &$one) {
 				if (!empty($one['name'])) {
 					$one['name'] = $funcs->decrypt_value($this->mod, $one['name']);
@@ -966,6 +966,72 @@ class Auth extends Session
 			return $data;
 		}
 		return FALSE;
+	}
+
+	/**
+	* Converts @data into UI-ready data
+	* @data associative array, each member users-table-fieldname=>rawval, or an
+	*  array of such arrays
+	*/
+	public function getPlainUserProperties($data)
+	{
+		$one = reset($data);
+		if (is_array($one)) {
+			$funcs = new Crypter();
+			$dt = new \DateTime('@0', NULL);
+			foreach ($data as &$row) {
+				foreach ($row as $name=>&$one) {
+					switch ($name) {
+					 case 'name':
+					 case 'address':
+						$one = $funcs->decrypt_value($this->mod, $one);
+						break;
+					 case 'addwhen':
+					 case 'lastuse':
+						$dt->setTimestamp($one);
+						$one = $dt->format('Y-m-d H:i:s');
+						break;
+					 default:
+						if (is_numeric($one)) {
+							$one += 0;
+						} elseif (is_string($one)) {
+							$one = trim($one);
+						}
+					}
+				}
+				unset ($one);
+			}
+			unset ($row);
+		} else {
+			$funcs = NULL;
+			$dt = NULL;
+			foreach ($data as $name=>&$one) {
+				switch ($name) {
+				 case 'name':
+				 case 'address':
+					if (!$funcs) {
+						$funcs = new Crypter();
+					}
+					$one = $funcs->decrypt_value($this->mod, $one);
+					break;
+				 case 'addwhen':
+				 case 'lastuse':
+					if (!$dt) {
+						$dt = new \DateTime('@0', NULL);
+					}
+					$dt->setTimestamp($one);
+					$one = $dt->format('Y-m-d H:i:s');
+					break;
+				 default:
+					if (is_numeric($one)) {
+						$one += 0;
+					} elseif (is_string($one)) {
+						$one = trim($one);
+					}
+				}
+			}
+			unset ($one);
+		}
 	}
 
 	/**
