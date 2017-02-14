@@ -18,7 +18,7 @@ if (!function_exists('getModulePrefs')) {
 
 	'login_max_length',			1, 3, 0,
 	'login_min_length',			1, 3, 0,
-	'email_required',			0, 0, 0,
+	'email_login',				0, 0, 0,
 
 	'password_min_length',		1, 3, 1,
 	'password_min_score',		1, 3, 1,
@@ -28,6 +28,7 @@ if (!function_exists('getModulePrefs')) {
 
 	'name_required',			0, 0, 0,
 	'address_required',			0, 0, 0,
+	'email_required',			0, 0, 0,
 
 	'email_banlist',			0, 0, 0,
 	'email_domains',			1, 60, 0,
@@ -441,7 +442,7 @@ EOS;
  });
  $('[name="{$id}send_activate_message"],[name="{$id}send_reset_message"]').change(function() {
   if (this.checked) {
-   $('[name="{$id}address_required"],[name="{$id}email_required"]').prop('checked',true);
+   $('[name="{$id}address_required"],[name="{$id}email_login"]').prop('checked',true);
   }
  });
 EOS;
@@ -453,7 +454,7 @@ EOS;
 //DEBUG
 $funcs = new Auther\Setup();
 $token = FALSE;
-list($authhtm,$authjs) = $funcs->GetPanel(1, 'recover', ['Auther','dummy',$id], TRUE, $token);
+list($authhtm,$authjs) = $funcs->GetPanel(1, 'register', ['Auther','dummy',$id], TRUE, $token);
 $tplvars['authform'] = $authhtm;
 //$tplvars['authform'] = NULL;
 
