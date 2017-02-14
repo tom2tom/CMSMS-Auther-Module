@@ -49,14 +49,14 @@ switch ($lvl) {
 				$focus = 'login';
 			}
 		} else {
-			$n = $afuncs->GetConfig('attempts_before_ban');
+			$n = $cdata['attempts_before_ban'];
 			if ($sdata['attempts'] >= $n) {
 //TODO status 'blocked'
 				$vfuncs->SetForced(1, FALSE, $login, $cdata['id']);
 				$forcereset = TRUE;
 				$msgs[] = $mod->Lang('reregister2');
 			} else {
-				$n = $afuncs->GetConfig('attempts_before_action');
+				$n = $cdata['attempts_before_action'];
 				if ($sdata['attempts'] >= $n) {
 					$msgs[] = $mod->Lang('reregister');
 // SILENT		} else {
