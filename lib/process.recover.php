@@ -128,8 +128,7 @@ if ($msgs || $fake) {
 	$data = json_encode(['temppass'=>$hash]);
 	$sql = 'UPDATE '.$pref.'module_auth_cache SET data=? WHERE token=?';
 	$db->Execute($sql, [$data, $token]);
-	$sendmail = TRUE; //hence ignore context property!
-	$res = $afuncs->addRequest($sdata['user_id'], $login, 'reset', $sendmail, $fake, $pw);
+	$res = $afuncs->requestReset($login, NULL, $pw);
 	if (!$res[0]) {
 		$msgs[] = $res[1];
 	} elseif (!$sendmail) {
