@@ -33,7 +33,7 @@ EOS;
 	break;
 
  case self::LOSEC:
- case self::NONCED:
+ case self::MIDSEC:
  case self::CHALLENGED:
 	$one = new \stdClass();
 	if ($cdata['email_login']) {
@@ -77,7 +77,7 @@ function transfers(\$inputs) {
 }
 EOS;
 		break;
-	 case self::NONCED:
+	 case self::MIDSEC:
 		$far = $this->UniqueToken(32);
 		$cache['far'] = $far;
 		$far = strtr($far, ['\\'=>'\\\\', '"'=>'\"']);

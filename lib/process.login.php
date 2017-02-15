@@ -38,7 +38,7 @@ switch ($lvl) {
 	}
 	break;
  case Auther\Setup::LOSEC:
- case Auther\Setup::NONCED:
+ case Auther\Setup::MIDSEC:
  case Auther\Setup::CHALLENGED:
 	//common stuff
 	$login = trim($_POST[$id.'login']);
@@ -80,7 +80,7 @@ switch ($lvl) {
 		}
 	}
 	switch ($lvl) {
-	 case Auther\Setup::NONCED:
+	 case Auther\Setup::MIDSEC:
 	//check stuff
 		if (!$jax) {
 			if ($params['captcha'] !== $_POST[$id.'captcha']) {

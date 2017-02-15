@@ -12,7 +12,7 @@ final class Setup
 	//security-levels (TODO were in Auther.module)
 	const NOBOT = 1; //captcha only
 	const LOSEC = 2; //conventional login + passwd
-	const NONCED = 3; //login + passwd + sync nonce
+	const MIDSEC = 3; //login + passwd + sync nonce
 	const CHALLENGED = 4; //login + passwd + async challenge
 	const HISEC = 5; //TBA non-keyed INHERENCE
 	//NB in several places, NOBOT is treated as min. enum value, and HISEC as max. value
@@ -319,7 +319,7 @@ $cdata['security_level'] = 3; //DEBUG
 		$now = time();
 		$base = floor($now / (84600 * 1800)) * 1800; //start of current 30-mins
 		$day = date('j',$now);
-		$id = $utils->RandomAlnum(2, TRUE).$utils->Tokenise($base+$day).'_'; //6-bytes
+		$id = $utils->RandomString(2, TRUE, TRUE).$utils->Tokenise($base+$day).'_'; //6-bytes
 
 		$cache = [
 		'context' => $cid,
