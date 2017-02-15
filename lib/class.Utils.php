@@ -130,19 +130,25 @@ class Utils
 	}
 
 	/**
-	RandomAlnum:
-	Generate a pseudo-random alphanumeric string of the specified length
-	@length int wanted byte-count
-	@firstletter optional boolean, whether to force the first char to be a letter, default FALSE
+	RandomString:
+	Generate a pseudo-random ASCII string of the specified length
+	@length: int wanted byte-count
+	@alnum: optional boolean, whether to limit the string to numbers and (english) lettters, default TRUE
+	@letterfirst: optional boolean, whether to force the first char to be a letter, default FALSE
 	Returns: string
 	*/
-	public function RandomAlnum($length, $firstletter=FALSE)
+	public function RandomString($length, $alnum=TRUE, $letterfirst=FALSE)
 	{
 		$chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz';
+		if (!$alnum) {
+			$chars .= '~!@#$%^&*<>[]{}()-+,.?|/\\';
+		}
+		$cl = strlen($chars) - 1;
+
 		$ret = str_repeat('0', $length);
 		for ($i = 0; $i < $length; $i++) {
-			$ret[$i] = $chars[mt_rand(0, 71)];
-			if ($i == 0 && $firstletter) {
+			$ret[$i] = $chars[mt_rand(0, $cl)];
+			if ($i == 0 && $letterfirst) {
 				if (!preg_match('/[A-Za-z]/',$ret[$i])) {
 					$i--; //start again
 				}
