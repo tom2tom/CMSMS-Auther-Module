@@ -102,6 +102,9 @@ $dict->ExecuteSQLArray($sql);
 $sql = $dict->CreateIndexSQL('idx_'.$tblname, $tblname, 'token');
 $dict->ExecuteSQLArray($sql);
 
+/*
+NB name,address,addwhen (at least) NULL if unused, to enable COALESCE
+*/
 $flds = '
 id I(4) KEY,
 publicid C(48),
@@ -137,9 +140,9 @@ $db->Execute('CREATE INDEX '.$tblname.'_idx ON '.$tblname.' (uid)');
 $db->CreateSequence($pref.'module_auth_userprops_seq');
 */
 
-$funcs = new Auther\Crypter();
-$funcs->encrypt_preference($this, 'masterpass', base64_decode('U3VjayBpdCB1cCwgY3JhY2tlcnMh'));
-$funcs->encrypt_preference($this, 'default_password', base64_decode('Y2hhbmdlfCMkIyR8QVNBUA==')); //score 4
+$cfuncs = new Auther\Crypter();
+$cfuncs->encrypt_preference($this, 'masterpass', base64_decode('U3VjayBpdCB1cCwgY3JhY2tlcnMh'));
+$cfuncs->encrypt_preference($this, 'default_password', base64_decode('Y2hhbmdlfCMkIyR8QVNBUA==')); //score 4
 $this->SetPreference('recaptcha_key','');
 $this->SetPreference('recaptcha_secret','');
 
@@ -147,7 +150,7 @@ $this->SetPreference('address_required', 1);
 $this->SetPreference('attack_mitigation_span', '30 minutes');
 $this->SetPreference('attempts_before_ban', 10);
 $this->SetPreference('attempts_before_action', 3);
-$this->SetPreference('context_site', get_site_preference('sitename', 'CMSMS Website')); //for email messages
+$this->SetPreference('context_site', get_site_preference('sitename', 'CMSMS').' Website'); //for email messages
 $this->SetPreference('context_sender', NULL); //ditto
 $this->SetPreference('context_address', NULL); //ditto
 
@@ -182,8 +185,10 @@ $this->SetPreference('request_key_expiration', '10 minutes');
 $this->SetPreference('security_level', Auther\Setup::LOSEC);
 $this->SetPreference('send_activate_message', 1);
 $this->SetPreference('send_reset_message', 1);
-$t = 'kd8s2!7HVHG7777ghZfghuior.)\!/jU'; //32-bytes
-$this->SetPreference('session_salt', str_shuffle($t));
+
+$utils = new Auther\Utils();
+$t = $utils->RandomString(32, FALSE, FALSE);
+$this->SetPreference('session_salt', $t);
 
 $this->CreateEvent('AuthRegister');
 $this->CreateEvent('AuthDeregister');
@@ -198,7 +203,7 @@ $this->CreatePermission('AuthView', $this->Lang('perm_see'));
 //$this->CreatePermission('AuthSendEvents', $this->Lang('perm_send'));
 
 //add default context
-$t = $funcs->decrypt_preference($this, 'default_password');
-$t = $funcs->encrypt_value($this, $t);
+$t = $cfuncs->decrypt_preference($this, 'default_password');
+$t = $cfuncs->encrypt_value($this, $t);
 $sql = 'INSERT INTO '.$pref.'module_auth_contexts (id,name,alias,default_password) VALUES (0,?,"default",?)';
 $db->Execute($sql, [$this->Lang('default'), $t]);
