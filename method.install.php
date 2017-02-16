@@ -140,9 +140,13 @@ $db->Execute('CREATE INDEX '.$tblname.'_idx ON '.$tblname.' (uid)');
 $db->CreateSequence($pref.'module_auth_userprops_seq');
 */
 
-$cfuncs = new Auther\Crypter();
-$cfuncs->encrypt_preference($this, 'masterpass', base64_decode('U3VjayBpdCB1cCwgY3JhY2tlcnMh'));
-$cfuncs->encrypt_preference($this, 'default_password', base64_decode('Y2hhbmdlfCMkIyR8QVNBUA==')); //score 4
+$funcs = new Auther\Utils();
+$t = $funcs->RandomString(32, FALSE, FALSE);
+$this->SetPreference('session_salt', $t);
+$funcs = new Auther\Crypter();
+$funcs->encrypt_preference($this, 'masterpass', base64_decode('U3VjayBpdCB1cCwgY3JhY2tlcnMh'));
+$t = base64_decode('Y2hhbmdlfCMkIyR8QVNBUA=='); //score 4
+$funcs->encrypt_preference($this, 'default_password', $t);
 $this->SetPreference('recaptcha_key','');
 $this->SetPreference('recaptcha_secret','');
 
@@ -186,10 +190,6 @@ $this->SetPreference('security_level', Auther\Setup::LOSEC);
 $this->SetPreference('send_activate_message', 1);
 $this->SetPreference('send_reset_message', 1);
 
-$utils = new Auther\Utils();
-$t = $utils->RandomString(32, FALSE, FALSE);
-$this->SetPreference('session_salt', $t);
-
 $this->CreateEvent('AuthRegister');
 $this->CreateEvent('AuthDeregister');
 $this->CreateEvent('AuthLogin');
@@ -203,7 +203,6 @@ $this->CreatePermission('AuthView', $this->Lang('perm_see'));
 //$this->CreatePermission('AuthSendEvents', $this->Lang('perm_send'));
 
 //add default context
-$t = $cfuncs->decrypt_preference($this, 'default_password');
-$t = $cfuncs->encrypt_value($this, $t);
+$t = $funcs->encrypt_value($this, $t);
 $sql = 'INSERT INTO '.$pref.'module_auth_contexts (id,name,alias,default_password) VALUES (0,?,"default",?)';
 $db->Execute($sql, [$this->Lang('default'), $t]);
