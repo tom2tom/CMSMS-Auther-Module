@@ -36,7 +36,7 @@ class Auth extends Session
 		parent::__construct($mod, $context);
 	}
 
-	//~~~~~~~~~~~~~ PARAMETER VALIDATION ~~~~~~~~~~~~~~~~~
+	//~~~~~~~~~~~~~ PPOPERTY VALIDATION ~~~~~~~~~~~~~~~~~
 
 	/**
 	* Verifies that @login is an acceptable login identifier
@@ -223,6 +223,40 @@ class Auth extends Session
 			return [FALSE,$this->mod->Lang('email_banned')];
 		}
 		return [TRUE,''];
+	}
+
+	/**
+	* Verifies that all @params are acceptable
+	* @params: associative array with members 'publicid','password' and optionally 'name' and/or 'address'
+	* @explicit: optional boolean passed to validateLogin(), default = FALSE
+	* Returns: array [0]=boolean for success, [1]=message or ''
+	*/
+	public function validateAll($params, $explicit=FALSE)
+	{
+		extract($params);
+		$res = $this->validateLogin($publicid, $explicit);
+		if (!$res[0]) {
+			return $res;
+		}
+		$res = $this->validatePassword($password);
+		if (!$res[0]) {
+			return $res;
+		}
+		if (!isset($name)) {
+			$name = '';
+		}
+		$res = $this->validateName($name);
+		if (!$res[0]) {
+			return $res;
+		}
+		if (!isset($address)) {
+			$address = '';
+		}
+		$res = $this->validateAddress($address);
+		if (!$res[0]) {
+			return $res;
+		}
+		return [TRUE, ''];
 	}
 
 	//~~~~~~~~~~~~~ REGISTRATION ~~~~~~~~~~~~~~~~~
@@ -446,7 +480,7 @@ class Auth extends Session
 	* If parameters so specify, creates a request and sends confirmation-email to the user
 	* This is a low-level method, without blockage check
 	* @login: string user identifier
-	* @type: string 'reset' or 'activate'
+	* @type: string 'reset','activate' or 'change'
 	* @sendmail: reference to flag whether to send confirmation email, boolean, or NULL to check context property
 	* @password: optional plaintext password to be advised instead of URL, default = FALSE
 	* Returns: array [0]=boolean for success, [1]=message or '' or request-token
@@ -454,7 +488,17 @@ class Auth extends Session
 	*/
 	protected function addRequest($login, $type, &$sendmail, $password=FALSE)
 	{
-		if (!($type == 'activate' || $type == 'reset')) {
+		switch ($type) {
+		 case 'activate':
+			$itype = parent::REQUEST_ACTIV; //'interim' identifier, pending token
+			break;
+		 case 'change:
+			$itype = parent::REQUEST_CHANGE;
+			break;
+		 case 'reset':
+			$itype = parent::REQUEST_RESET;
+			break;
+		 default:
 			$sendmail = FALSE;
 			return [FALSE, $this->mod->Lang('system_error', '#02')];
 		}
@@ -505,7 +549,6 @@ class Auth extends Session
 			}
 		}
 
-		$itype = ($type == 'activate') ? parent::REQUEST_ACTIV : parent::REQUEST_RESET; //'interim' identifier, pending token
 		$sql = 'SELECT token,expire FROM '.$this->pref.'module_auth_cache WHERE user_id=? AND lastmode=?';
 		$row = $this->db->GetRow($sql, [$uid, $itype]);
 
@@ -558,33 +601,24 @@ class Auth extends Session
 
 		$mlr->IsHTML(TRUE);
 
+		$key = 'email_'.$type.'_subject';
 		$site = $this->GetConfig('context_site');
-		if ($type == 'activate') {
-			$mlr->SetSubject($this->mod->Lang('email_activation_subject', $site));
-		} else {
-			$mlr->SetSubject($this->mod->Lang('email_reset_subject', $site));
-		}
+		$mlr->SetSubject($this->mod->Lang($key, $site));
 
 		if ($password) {
-			if ($type == 'activate') {
-				$mlr->SetBody($this->mod->Lang('email_activation2_body', $password, $site));
-				$mlr->SetAltBody($this->mod->Lang('email_activation2_altbody', $password, $site));
-			} else { //reset
-				$mlr->SetBody($this->mod->Lang('email_reset2_body', $password, $site));
-				$mlr->SetAltBody($this->mod->Lang('email_reset2_altbody', $password, $site));
-			}
+			$key = 'email_'.$type.'pass_body';
+			$mlr->SetBody($this->mod->Lang($key, $password, $site));
+			$key = 'email_'.$type.'pass_altbody';
+			$mlr->SetAltBody($this->mod->Lang($key, $password, $site));
 		} else {
 			//construct frontend-url (so no admin login is needed)
 			$u = $this->mod->create_url('cntnt01', 'validate', '', ['cauthc'=>$token]);
 			$url = strtr($u, '&amp;', '&');
 
-			if ($type == 'activate') {
-				$mlr->SetBody($this->mod->Lang('email_activation_body', $url, $site));
-				$mlr->SetAltBody($this->mod->Lang('email_activation_altbody', $url, $site));
-			} else { //reset
-				$mlr->SetBody($this->mod->Lang('email_reset_body', $url, $site));
-				$mlr->SetAltBody($this->mod->Lang('email_reset_altbody', $url, $site));
-			}
+			$key = 'email_'.$type.'url_body';
+			$mlr->SetBody($this->mod->Lang($key, $url, $site));
+			$key = 'email_'.$type.'url_altbody';
+			$mlr->SetAltBody($this->mod->Lang($key, $url, $site));
 		}
 
 		if ($mlr->Send()) {
@@ -654,8 +688,8 @@ class Auth extends Session
 			return $status;
 		}
 
-		$msg = ($sendmail) ? 'reset_sent' : 'reset_created';
-		return [TRUE, $this->mod->Lang($msg)];
+		$key = ($sendmail) ? 'reset_sent' : 'reset_created';
+		return [TRUE, $this->mod->Lang($key)];
 	}
 
 	/**
@@ -969,11 +1003,11 @@ class Auth extends Session
 	}
 
 	/**
-	* Converts @data into UI-ready data
-	* @data associative array, each member users-table-fieldname=>rawval, or an
-	*  array of such arrays
+	* Converts relevant parts of @data into UI-ready data
+	* @data reference to associative array, each member like users-table-fieldname=>rawval,
+	* or an array of such arrays
 	*/
-	public function getPlainUserProperties($data)
+	public function getPlainUserProperties(&$data)
 	{
 		$one = reset($data);
 		if (is_array($one)) {
@@ -1071,12 +1105,12 @@ class Auth extends Session
 	}
 
 	/**
-	* Records a new user
+	* Records a new user, without any blockage-check or parameter validation
 	* @login: string user identifier
 	* @password: plaintext string
 	* @name: string user name
 	* @address: email or other type of address for messages, possibly empty
-	* @sendmail:  reference to flag (T/F or NULL) whether to send confirmation-email
+	* @sendmail: reference to flag (T/F or NULL) whether to send confirmation-email
 	* @params: array of additional params default = empty
 	* Returns: array [0]=boolean for success, [1]=message or '', @sendmail may be altered
 	*/
@@ -1089,9 +1123,9 @@ class Auth extends Session
 			if (!$status[0]) {
 				return $status;
 			}
-			$isactive = 0;
+			$active = 0;
 		} else {
-			$isactive = 1;
+			$active = 1;
 		}
 
 		$funcs = new Crypter();
@@ -1110,7 +1144,50 @@ class Auth extends Session
 		//TODO any others?
 		$sql = 'INSERT INTO '.$this->pref.'module_auth_users (id,publicid,privhash,name,address,context_id,addwhen,active) VALUES (?,?,?,?,?,?,?,?)';
 
-		if (!$this->db->Execute($sql, [$uid, $login, $password, $name, $address, $this->context, time(), $isactive])) {
+		if (!$this->db->Execute($sql, [$uid, $login, $password, $name, $address, $this->context, time(), $active])) {
+			if ($sendmail) {
+				$this->deleteRequest($status[1]);
+			}
+			return [FALSE,$this->mod->Lang('system_error', '#08')]; //probably a duplicate
+		}
+
+		if (is_array($params) && count($params) > 0) {
+			//TODO record supplementary data
+		}
+
+		return [TRUE, ''];
+	}
+
+	/**
+	* Changes property-values for a user, without any blockage-check or parameter validation
+	* @login: string user identifier
+	* @password: plaintext string or FALSE
+	* @name: optional string user name
+	* @address: optional email or other type of address for messages, possibly empty
+	* @sendmail: reference to flag (T/F or NULL) whether to send confirmation-email
+	* @params: optional array of additional params, default = empty
+	* Returns: array [0]=boolean for success, [1]=message or '', @sendmail may be altered
+	*/
+	public function changeUser($login, $password, $name, $address, &$sendmail, $params=[])
+	{
+		$uid = $this->getUserID($login);
+		if (!$uid) {
+			return [FALSE, $this->mod->Lang('TODO')];
+		}
+
+		if ($sendmail || $sendmail === NULL) {
+			$status = $this->addRequest($login, 'change', $sendmail, $password);
+			if (!$status[0]) {
+				return $status;
+			}
+		}
+
+		$namers = [];
+		$args = [];
+
+		$sql = 'UPDATE '.$this->pref.'module_auth_users SET '.$namers.'WHERE id=?';
+
+		if (!$this->db->Execute($sql, $args) {
 			if ($sendmail) {
 				$this->deleteRequest($status[1]);
 			}
