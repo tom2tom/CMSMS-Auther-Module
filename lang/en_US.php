@@ -37,18 +37,26 @@ $lang['current_typed'] = '<i>CURRENT</i> %s';
 $lang['default'] = 'Default';
 $lang['delete'] = 'Delete';
 
-$lang['email_activation_altbody'] = 'Hello,'."\n\n".'To be able to log in you first need to activate your account by visiting the following URL:'."\n".' %s'."\n\n".'If you did not sign up on %s recently then this message was sent in error, please ignore it.';
-$lang['email_activation2_altbody'] = 'Hello,'."\n\n".'To finalize your account will need to use the following temporary password:'."\n\n".'%s'."\n\n".'If you did not sign up on %s recently then this message was sent in error, please ignore it.';
-$lang['email_activation_body'] = 'Hello,<br /><br />To be able to log in you first need to activate your account by clicking on the following <a href="%s">link</a>.<br /><br />If you did not sign up on %s recently then this message was sent in error, please ignore it.';
-$lang['email_activation2_body'] = 'Hello,<br /><br />To finalize your account will need to use the following temporary password:<br /><br />%s<br /><br />If you did not sign up on %s recently then this message was sent in error, please ignore it.';
-$lang['email_activation_subject'] = '%s - Activate account';
+$lang['email_activate_subject'] = '%s - Activate account';
+$lang['email_activatepass_body'] = 'Hello,<br /><br />To finalize your account will need to use the following temporary password:<br /><br />%s<br /><br />If you did not sign up on the %s recently then this message was sent in error, please ignore it.';
+$lang['email_activatepass_altbody'] = 'Hello,'."\n\n".'To finalize your account will need to use the following temporary password:'."\n\n".'%s'."\n\n".'If you did not sign up on the %s recently then this message was sent in error, please ignore it.';
+$lang['email_activateurl_body'] = 'Hello,<br /><br />To be able to log in you first need to activate your account by clicking on the following <a href="%s">link</a>.<br /><br />If you did not sign up on the %s recently then this message was sent in error, please ignore it.';
+$lang['email_activateurl_altbody'] = 'Hello,'."\n\n".'To be able to log in you first need to activate your account by visiting the following URL:'."\n".' %s'."\n\n".'If you did not sign up on the %s recently then this message was sent in error, please ignore it.';
+
+$lang['email_change_subject'] = '%s - Change account details';
+$lang['email_changepass_body'] = 'Hello,<br /><br />To change your account will need to use the following temporary password:<br /><br />%s<br /><br />If you did not request any change on the %s recently then this message was sent in error, please ignore it.';
+$lang['email_changepass_altbody'] = 'Hello,'."\n\n".'To finalize your account will need to use the following temporary password:'."\n\n".'%s'."\n\n".'If you did not request any change on the %s recently then this message was sent in error, please ignore it.';
+$lang['email_changeurl_body'] = 'Hello,<br /><br />To change your account you first need to click on the following <a href="%s">link</a>.<br /><br />If you did not request any change on the %s recently then this message was sent in error, please ignore it.';
+$lang['email_changeurl_altbody'] = 'Hello,'."\n\n".'To change your account you first need to visit the following URL:'."\n".' %s'."\n\n".'If you did not request any change on the %s recently then this message was sent in error, please ignore it.';
+
+$lang['email_reset_subject'] = '%s - Password reset request';
+$lang['email_resetpass_body'] = 'Hello,<br /><br />To reset your password, you will need to use the following temporary password:<br /><br />%s<br /><br />If you did not request a password reset on the %s recently then this message was sent in error, please ignore it.';
+$lang['email_resetpass_altbody'] = 'Hello,'."\n\n".'To reset your password, you will need to use the following temporary password:'."\n\n".'%s'."\n\n".'If you did not request a password reset on the %s recently then this message was sent in error, please ignore it.';
+$lang['email_reseturl_body'] = 'Hello,<br /><br />To reset your password, please click the following <a href="%s">link</a>.<br /><br />If you did not request a password reset on the %s recently then this message was sent in error, please ignore it.';
+$lang['email_reseturl_altbody'] = 'Hello,'."\n\n".'To reset your password, please visit the following URL:'."\n".' %s'."\n\n".'If you did not request a password reset on the %s recently then this message was sent in error, please ignore it.';
+
 $lang['email_banned'] = 'The specified email address is not allowed';
 $lang['email_changed'] = 'Email address changed successfully';
-$lang['email_reset_altbody'] = 'Hello,'."\n\n".'To reset your password, please visit the following URL:'."\n".' %s'."\n\n".'If you did not request a password reset on %s recently then this message was sent in error, please ignore it.';
-$lang['email_reset2_altbody'] = 'Hello,'."\n\n".'To reset your password, you will need to use the following temporary password:'."\n\n".'%s'."\n\n".'If you did not request a password reset on %s recently then this message was sent in error, please ignore it.';
-$lang['email_reset_body'] = 'Hello,<br /><br />To reset your password, please click the following <a href="%s">link</a>.<br /><br />If you did not request a password reset on %s recently then this message was sent in error, please ignore it.';
-$lang['email_reset2_body'] = 'Hello,<br /><br />To reset your password, you will need to use the following temporary password:<br /><br />%s<br /><br />If you did not request a password reset on %s recently then this message was sent in error, please ignore it.';
-$lang['email_reset_subject'] = '%s - Password reset request';
 $lang['err_ajax'] = 'Server communication error';
 //$lang['err_baduser'] = 'Missing or unrecognised user';
 $lang['err_captcha'] = 'The entered captcha text was wrong';
