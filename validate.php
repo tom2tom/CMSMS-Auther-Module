@@ -37,13 +37,13 @@ need explicit success / user_id / token /$id + the following:
 		$res = $params['handler']($newparms);
 		break; */
 	 case 3: //module action
-		$ob = \cms_utils::get_module($params['handler'][0]);
+		$ob = cms_utils::get_module($params['handler'][0]);
 		$res = $ob->DoAction($params['handler'][1], $params['handler'][2], $newparms);
 		unset($ob);
 		//TODO handle $res == 400+
 		break;
 	 case 4: //code inclusion
-		$ob = \cms_utils::get_module($params['handler'][0]);
+		$ob = cms_utils::get_module($params['handler'][0]);
 		$fp = $ob->GetModulePath().DIRECTORY_SEPARATOR.$params['handler'][1].'.php';
 		unset($ob);
 		$res = FALSE;
