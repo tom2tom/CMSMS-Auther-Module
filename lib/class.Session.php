@@ -12,15 +12,19 @@ class Session
 	//status codes:
 	const NEW_FOR_USER = 1;
 	const NEW_FOR_IP = 2;
-	const RESET_REQUESTED = 3;
+	const RESET_CHALLENGED = 3;
 	const WAIT_CONFIRM = 4;
 	const WAIT_CHALLENGE = 5;
 	const ATTEMPT_FAILED = 10;
 	const BAD_IP = 11;
 	const BLOCKED_IP = 12;
-	const REQUEST_ACTIV = 61;
-	const REQUEST_CHANGE = 62;
-	const REQUEST_RESET = 63; //c.f. RESET_REQUESTED?
+	const CHALL_ACTIV = 61;
+	const CHALL_CHANGE = 62;
+	const CHALL_RESET = 63; //c.f. RESET_CHALLENGED?
+	const STAT_ALLOW = 180;
+	const STAT_VERIFY = 181;
+	const STAT_CHALLENGE = 182;
+	const STAT_BLOCK = 183;
 
 	protected $mod;
 	protected $db;
@@ -204,9 +208,9 @@ class Session
 	*/
 	public function CheckSession($token)
 	{
-		$block_status = $this->IsBlocked();
+		$action_status = $this->GetStatus();
 
-		if ($block_status == 'block') {
+		if ($action_status == self::STAT_BLOCK) { //TODO if STAT_CHALLENGE
 			return FALSE;
 		}
 
@@ -373,7 +377,7 @@ class Session
 	}
 
 	/**
-	* Get IP address
+	* Gets IP address
 	* Returns: string $ip
 	*/
 	protected function GetIp()
@@ -386,7 +390,7 @@ class Session
 	}
 
 	/**
-	* Get specified property(ies) for the current context
+	* Gets specified property(ies) for the current context
 	* @propkey: string property-name or array of them (not validated here)
 	* Returns: property value or assoc. array of them
 	*/
@@ -435,11 +439,12 @@ class Session
 	}
 
 	/**
-	* Reports access-status for the current ip address
-	* Returns: string 'allow','verify' or 'block'
+	* Gets action-status for the current ip address
+	* Returns: one of the STAT_* constants
 	*/
-	public function IsBlocked()
+	public function GetStatus()
 	{
+		//TODO support STAT_CHALLENGE
 		$ip = $this->GetIp();
 		$this->DeleteAttempts($ip, FALSE);
 		$sql = 'SELECT COUNT(1) AS tries FROM '.$this->pref.'module_auth_attempts WHERE ip=?';
@@ -447,19 +452,19 @@ class Session
 
 		$val = (int)$this->GetConfig('attempts_before_action');
 		if ($val > 0 && $tries < $val) {
-			return 'allow';
+			return self::STAT_ALLOW;
 		}
 
 		$val = (int)$this->GetConfig('attempts_before_ban');
 		if ($val > 0 && $tries < $val) {
-			return 'verify';
+			return self::STAT_VERIFY;
 		}
 
-		return 'block';
+		return self::STAT_BLOCK;
 	}
 
 	/**
-	* Returns a random(ish) string (not as diverse as from Setup::UniqueToken())
+	* Gets a random(ish) string (not as diverse as from Setup::UniqueToken())
 	* @length: int wanted byte-count for the string
 	* Returns: string
 	*/
