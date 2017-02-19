@@ -79,37 +79,44 @@ class Utils
 	*/
 	public function DeleteContextUsers($context)
 	{
+		//TODO c.f. Auth::deleteUserReal($uid): extra table(s), event
 		$pre = \cms_db_prefix();
 		if (is_array($context)) {
 			$fillers = str_repeat('?,', count($context)-1);
 			$sql = 'DELETE FROM '.$pre.'module_auth_users WHERE context_id IN ('.$fillers.'?)';
+			$sql2 = 'DELETE FROM '.$pre.'module_auth_cache WHERE context_id IN ('.$fillers.'?)';
 			$args = $context;
 		} else {
 			$sql = 'DELETE FROM '.$pre.'module_auth_users WHERE context_id=?';
+			$sql2 = 'DELETE FROM '.$pre.'module_auth_cache WHERE context_id=?';
 			$args = [$context];
 		}
 		$db = \cmsms()->GetDB();
 		$db->Execute($sql, $args);
+		$db->Execute($sql2, $args);
 	}
 
 	/**
 	DeleteUser:
-	For admin use, c.f. Auth::cancelUser(), which includes password verification
 	@user: numeric user identifier, or array of them
 	*/
 	public function DeleteUser($user)
 	{
+		//TODO c.f. Auth::deleteUserReal($uid): extra table(s), event
 		$pre = \cms_db_prefix();
 		if (is_array($user)) {
 			$fillers = str_repeat('?,', count($user)-1);
 			$sql = 'DELETE FROM '.$pre.'module_auth_users WHERE id IN ('.$fillers.'?)';
+			$sql2 = 'DELETE FROM '.$pre.'module_auth_cache WHERE user_id IN ('.$fillers.'?)';
 			$args = $user;
 		} else {
 			$sql = 'DELETE FROM '.$pre.'module_auth_users WHERE id=?';
+			$sql2 = 'DELETE FROM '.$pre.'module_auth_cache WHERE user_id=?';
 			$args = [$user];
 		}
 		$db = \cmsms()->GetDB();
 		$db->Execute($sql, $args);
+		$db->Execute($sql2, $args);
 	}
 
 	/**
