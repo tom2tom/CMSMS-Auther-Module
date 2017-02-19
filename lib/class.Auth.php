@@ -19,7 +19,7 @@ include __DIR__.DIRECTORY_SEPARATOR.'password.php';
 
 class Auth extends Session
 {
-	const PATNEMAIL = '/^.+@.+\..+$/';
+	const PATNEMAIL = '/^\S+@[^\s.]+\.\S+$/';
 	const NAMEDIR = 'usernames'; //subdir name
 	const PHRASEDIR = 'phrases';
 
@@ -39,7 +39,7 @@ class Auth extends Session
 	//~~~~~~~~~~~~~ PPOPERTY VALIDATION ~~~~~~~~~~~~~~~~~
 
 	/**
-	* Verifies that @login is an acceptable login identifier
+	* Verifies that @login is an acceptable login identifier (format and not duplicated)
 	* @login: string user identifier
 	* @explicit: optional boolean whether to report login-is-taken or just invalid default = FALSE
 	* Returns: array [0]=boolean for success, [1]=message or ''
@@ -59,7 +59,7 @@ class Auth extends Session
 		$val = $this->GetConfig('email_login');
 		if ($val) {
 			if (!preg_match(self::PATNEMAIL, $login)) {
-				return [FALSE, $this->mod->Lang('invalid','TODO')];
+				return [FALSE, $this->mod->Lang('invalid_type', $this->mod->Lang('title_email'))];
 			}
 		} else {
 			$val = preg_match(self::PATNEMAIL, $login);
@@ -71,7 +71,7 @@ class Auth extends Session
 				$parts = explode('@', $login);
 				$bannedDomains = json_decode(file_get_contents(__DIR__.DIRECTORY_SEPARATOR.'domains.json'));
 				if (in_array(strtolower($parts[1]), $bannedDomains)) {
-					return [FALSE,$this->mod->Lang('email_banned')];
+					return [FALSE, $this->mod->Lang('email_banned')];
 				}
 			}
 		} else {
@@ -80,11 +80,12 @@ class Auth extends Session
 
 		$sql = 'SELECT id FROM '.$this->pref.'module_auth_users WHERE publicid=? AND context_id=?';
 		if ($this->db->GetOne($sql, [$login, $this->context])) {
-			$key = ($explicit) ? 'login_taken' : 'login_notvalid';
-			return [FALSE, $this->mod->Lang($key)];
+			$msg = ($explicit) ?
+				$this->mod->Lang('login_taken') :
+				$this->mod->Lang('invalid_type', 'title_login');
+			return [FALSE, $msg];
 		}
-
-		return [TRUE,''];
+		return [TRUE, ''];
 	}
 
 	/**
@@ -111,10 +112,10 @@ class Auth extends Session
 			$fp = $this->namepath.$this->trainers[3];
 			$val = Gibberish::test($t, $fp, FALSE); //TODO get & evaluate raw score
 			if (!$val) {
-				return [FALSE, $this->mod->Lang('login_notvalid')];
+				return [FALSE, $this->mod->Lang('invalid_type', $this->mod->Lang('title_login'))];
 			}
 		}
-		return [TRUE,''];
+		return [TRUE, ''];
 	}
 
 	/**
@@ -126,7 +127,7 @@ class Auth extends Session
 	{
 		$val = (int)$this->GetConfig('password_min_length');
 		if ($val > 0 && strlen($password) < $val) {
-			return [FALSE,$this->mod->Lang('password_short')];
+			return [FALSE, $this->mod->Lang('password_short')];
 		}
 		//NB once-only else crash
 		require_once __DIR__.DIRECTORY_SEPARATOR.'ZxcvbnPhp'.DIRECTORY_SEPARATOR.'Zxcvbn.php';
@@ -135,10 +136,9 @@ class Auth extends Session
 
 		$val = (int)$this->GetConfig('password_min_score');
 		if ($check['score'] + 1 < $val) { //returned value 0..4, public uses 1..5
-			return [FALSE,$this->mod->Lang('password_weak')];
+			return [FALSE, $this->mod->Lang('password_weak')];
 		}
-
-		return [TRUE,''];
+		return [TRUE, ''];
 	}
 
 	/**
@@ -175,8 +175,8 @@ class Auth extends Session
 		}
 		if ($this->phrasetrained) {
 			$fp = $this->phrasepath.$this->trainers[3];
-			$val = Gibberish::test($name, $fp, FALSE);
-			if (!$val) { //TODO
+			$val = Gibberish::test($name, $fp, FALSE); //TODO get & evaluate raw score
+			if (!$val) {
 				return [FALSE, $this->mod->Lang('invalid_type', $this->mod->Lang('name'))];
 			}
 		}
@@ -203,7 +203,7 @@ class Auth extends Session
 				return [FALSE, $res[1]];
 			}
 		}
-		return [TRUE,''];
+		return [TRUE, ''];
 	}
 
 	/**
@@ -214,104 +214,447 @@ class Auth extends Session
 	public function validateEmail($email)
 	{
 		if (!$email || !preg_match(self::PATNEMAIL, $email)) {
-			return [FALSE,$this->mod->Lang('email_invalid')];
+			return [FALSE, $this->mod->Lang('email_invalid')];
 		}
 		//always check for ban
 		$parts = explode('@', $email);
 		$bannedDomains = json_decode(file_get_contents(__DIR__.DIRECTORY_SEPARATOR.'domains.json'));
 		if (in_array(strtolower($parts[1]), $bannedDomains)) {
-			return [FALSE,$this->mod->Lang('email_banned')];
+			return [FALSE, $this->mod->Lang('email_banned')];
 		}
-		return [TRUE,''];
+		return [TRUE, ''];
 	}
 
 	/**
 	* Verifies that all @params are acceptable
 	* @params: associative array with members 'publicid','password' and optionally 'name' and/or 'address'
 	* @explicit: optional boolean passed to validateLogin(), default = FALSE
-	* Returns: array [0]=boolean for success, [1]=message or ''
+	* Returns: array [0]=boolean for success, [1]=message
+	*  (possibly multi-line with embedded newlines) or ''
 	*/
 	public function validateAll($params, $explicit=FALSE)
 	{
 		extract($params);
+		$errs = [];
 		$res = $this->validateLogin($publicid, $explicit);
 		if (!$res[0]) {
-			return $res;
+			$errs[] = $res[1];
 		}
 		$res = $this->validatePassword($password);
 		if (!$res[0]) {
-			return $res;
+			$errs[] = $res[1];
 		}
 		if (!isset($name)) {
 			$name = '';
 		}
 		$res = $this->validateName($name);
 		if (!$res[0]) {
-			return $res;
+			$errs[] = $res[1];
 		}
 		if (!isset($address)) {
 			$address = '';
 		}
 		$res = $this->validateAddress($address);
 		if (!$res[0]) {
-			return $res;
+			$errs[] = $res[1];
+		}
+		if ($errs) {
+			return [FALSE, implode(PHP_EOL, $errs)];
 		}
 		return [TRUE, ''];
 	}
 
-	//~~~~~~~~~~~~~ REGISTRATION ~~~~~~~~~~~~~~~~~
+	//~~~~~~~~~~~~~ SESSION ~~~~~~~~~~~~~~~~~
 
 	/**
-	* Creates and records a user
+	* Logs a user in
+	* @login: string user identifier
+	* @password: plaintext string
+	* @remember: optional boolean whether to setup session-expiry-time in self::AddSession() default = FALSE
+	* Returns: array, [0]=boolean for success, [1]=message or '', if [0] then also session-parameters: 'token','expire'
+	*/
+	public function login($login, $password, $remember=FALSE)
+	{
+		switch ($this->GetStatus()) {
+		 case parent::STAT_BLOCK:
+			$parms = []; //TODO API
+			$this->mod->SendEvent('OnLoginFail', $parms);
+			return [FALSE, $this->mod->Lang('user_blocked')];
+		 case parent::STAT_CHALLENGE:
+			return [FALSE, $this->mod->Lang('user_challenged')];
+		 case parent::STAT_VERIFY:
+			if (0) { //TODO FACTOR
+				$parms = []; //TODO API
+				$this->mod->SendEvent('OnLoginFail', $parms);
+				return [FALSE, $this->mod->Lang('user_verify_failed')];
+			}
+			break;
+		}
+
+		$uid = $this->getUserID($login);
+
+		if (!$uid) {
+			$this->AddAttempt();
+			$parms = []; //TODO API
+			$this->mod->SendEvent('OnLoginFail', $parms);
+			return [FALSE, $this->mod->Lang('login_incorrect')];
+		}
+
+		$userdata = $this->getUserBase($uid);
+
+		if (!$userdata['active']) {
+			$this->AddAttempt();
+			$parms = []; //TODO API
+			$this->mod->SendEvent('OnLoginFail', $parms);
+			return [FALSE, $this->mod->Lang('account_inactive')];
+		}
+
+		$status = $this->matchPassword($uid, $password);
+
+		if (!$status[0]) {
+			$this->AddAttempt();
+			$parms = []; //TODO API
+			$this->mod->SendEvent('OnLoginFail', $parms);
+			return [FALSE, $this->mod->Lang('password_incorrect')];
+		}
+
+		if (!is_bool($remember)) {
+			$this->AddAttempt();
+			$parms = []; //TODO API
+			$this->mod->SendEvent('OnLoginFail', $parms);
+			return [FALSE, $this->mod->Lang('remember_me_invalid')];
+		}
+
+		$sessiondata = $this->AddSession($uid, $remember);
+
+		if (!$sessiondata) {
+			$parms = []; //TODO API
+			$this->mod->SendEvent('OnLoginFail', $parms);
+			return [FALSE, $this->mod->Lang('system_error', '#01')];
+		}
+
+		$parms = []; //TODO API
+		$this->mod->SendEvent('OnLogin', $parms);
+
+		$data = [TRUE, $this->mod->Lang('logged_in')];
+		$data['token'] = $sessiondata['token'];
+		$data['expire'] = $sessiondata['expiretime'];
+		return $data;
+	}
+
+	/**
+	* Ends the session identified by @token
+	* @token: string 24-byte session-identifier
+	* Returns: boolean
+	*/
+	public function logout($token)
+	{
+		if (strlen($token) != 24) {
+			return FALSE;
+		}
+		return $this->DeleteSession($token);
+	}
+
+	//~~~~~~~~~~~~~ CHALLENGES ~~~~~~~~~~~~~~~~~
+
+	/**
+	* Records a challenge of the specified type
+	* This is a low-level method, without blockage check.
+	* The 'data' table-field remains empty.
+	* @login: string user identifier
+	* @type: string 'reset','activate' or 'change'
+	* Returns: array [0]=boolean for success, [1]=message or '' or challenge-token
+	*/
+	protected function addChallenge($login, $type)
+	{
+		switch ($type) {
+		 case 'activate':
+			$itype = parent::CHALL_ACTIV; //'interim' identifier, pending token
+			break;
+		 case 'change':
+			$itype = parent::CHALL_CHANGE;
+			break;
+		 case 'reset':
+			$itype = parent::CHALL_RESET;
+			break;
+		 default:
+			return [FALSE, $this->mod->Lang('system_error', '#02')];
+		}
+
+		$sql = 'SELECT id,address,active FROM '.$this->pref.'module_auth_users WHERE publicid=? AND context_id=?';
+		$row = $this->db->GetRow($sql, [$login, $this->context]);
+		if ($row) {
+			$uid = (int)$row['id'];
+			$t = $row['address'];
+			if ($t && preg_match(self::PATNEMAIL, $t)) {
+				$email = $t;
+			} else {
+				$t = $login;
+				if ($t && preg_match(self::PATNEMAIL, $t)) {
+					$email = $t;
+				} else {
+					return [FALSE, $this->mod->Lang('temp_notsent')];
+				}
+			}
+		} else {
+			return [FALSE, $this->mod->Lang('system_error', '#03')];
+		}
+
+		if ($type == 'activate') {
+			if ($row['active']) {
+				return [FALSE, $this->mod->Lang('already_activated')];
+			}
+		}
+
+		$sql = 'SELECT token,expire FROM '.$this->pref.'module_auth_cache WHERE user_id=? AND lastmode=?';
+		$row = $this->db->GetRow($sql, [$uid, $itype]);
+
+		if ($row) {
+			if ($row['expire'] > time()) {
+				return [FALSE, $this->mod->Lang('request_exists')];
+			}
+			$this->deleteChallenge($row['token']);
+		}
+
+		$token = $this->UniqueToken(24);
+
+		$dt = new \DateTime('@'.time(), NULL);
+		$val = $this->GetConfig('request_key_expiration');
+		$dt->modify('+'.$val);
+		$expiretime = $dt->getTimestamp();
+
+		$sql = 'INSERT INTO '.$this->pref.'module_auth_cache (token,user_id,expire,lastmode) VALUES (?,?,?,?)';
+
+		if (!$this->db->Execute($sql, [$token, $uid, $expiretime, $itype])) {
+			return [FALSE, $this->mod->Lang('system_error', '#04')];
+		}
+
+		return [TRUE, $token];
+	}
+
+	/**
+	* Returns subset of challenge data if @token is valid
+	* @token: 24-byte string from UniqueToken()
+	* @type: string 'reset','change' or 'activate', only for error-message namespacing
+	* Returns: array [0]=boolean for success, [1]=message or '', if [0] then also 'uid'
+	*/
+	public function getChallenge($token, $type)
+	{
+		$sql = 'SELECT user_id,expire FROM '.$this->pref.'module_auth_cache WHERE token=?';
+		$row = $this->db->GetRow($sql, [$token]);
+
+		if (!$row) {
+			$this->AddAttempt();
+			return [FALSE, $this->mod->Lang($type.'key_incorrect')];
+		}
+
+		if ($row['expire'] < time()) {
+			$this->AddAttempt();
+			$this->deleteChallenge($token);
+			return [FALSE, $this->mod->Lang($type.'key_expired')];
+		}
+
+		return [0=>TRUE, 1=>'', 'uid'=>$row['uid']];
+	}
+
+	/**
+	* @token: string challenge identifier
+	* Returns: boolean
+	* Deletes a challenge
+	*/
+	protected function deleteChallenge($token)
+	{
+		$sql = 'DELETE FROM '.$this->pref.'module_auth_cache WHERE token=?';
+		$res = $this->db->Execute($sql, [$token]);
+		return ($res != FALSE);
+	}
+
+	/**
+	* Sends an email challenge
+	* @type: string 'reset','activate' or 'change' used to specify lang keys
+	* @token: optional string to be advised instead of URL, default = FALSE
+	* Returns: array [0]=boolean for success, [1]=message or ''
+	*/
+	protected function challengeMessage($type, $token=FALSE)
+	{
+		if ($this->mod->before20) {
+			$mlr = \cms_utils::get_module('CMSMailer');
+			if ($mlr) {
+				$mlr->_load();
+			} else {
+				return [FALSE, $this->mod->Lang('system_error', 'CMSMailer N/A')];
+			}
+		} else {
+			$mlr = new \cms_mailer();
+		}
+
+		$mlr->reset();
+		$sender = $this->GetConfig('context_sender');
+		if ($sender) {
+			$from = $this->GetConfig('context_address');
+			$mlr->SetFrom($from, $sender);
+		}
+		$mlr->AddAddress($email, '');
+
+		$mlr->IsHTML(TRUE);
+
+		$key = 'email_'.$type.'_subject';
+		$site = $this->GetConfig('context_site');
+		$mlr->SetSubject($this->mod->Lang($key, $site));
+
+		if ($token) {
+			$key = 'email_'.$type.'pass_body';
+			$mlr->SetBody($this->mod->Lang($key, $token, $site));
+			$key = 'email_'.$type.'pass_altbody';
+			$mlr->SetAltBody($this->mod->Lang($key, $token, $site));
+		} else {
+			//construct frontend-url (so no admin login is needed)
+			$u = $this->mod->create_url('cntnt01', 'validate', '', ['cauthc'=>$token]);
+			$url = strtr($u, '&amp;', '&');
+
+			$key = 'email_'.$type.'url_body';
+			$mlr->SetBody($this->mod->Lang($key, $url, $site));
+			$key = 'email_'.$type.'url_altbody';
+			$mlr->SetAltBody($this->mod->Lang($key, $url, $site));
+		}
+
+		if ($mlr->Send()) {
+			$mlr->reset();
+			return [TRUE, ''];
+		} else {
+			$msg = $mlr->GetErrorInfo();
+			$mlr->reset();
+			return [FALSE, $msg];
+		}
+	}
+
+	/**
+	* If action-status and security-parameters warrant, sets up a password-reset
+	*  challenge, including  confirmation email if relevant
+	* @login: string user identifier
+	* @token: optional plaintext string to be sent to user instead of an URL, default = FALSE
+	* Returns: array [0]=boolean for success, [1]=message
+	*/
+	public function requestReset($login, $token=FALSE)
+	{
+		switch ($this->GetStatus()) {
+		 case parent::STAT_BLOCK:
+			return [FALSE, $this->mod->Lang('user_blocked')];
+		 case parent::STAT_CHALLENGE:
+			return [FALSE, $this->mod->Lang('user_challenged')];
+		}
+
+		$val = $this->GetConfig('security_level');
+		switch ($val) {
+		 case Setup::MIDSEC:
+		 case Setup::CHALLENGED:
+			$status = $this->addChallenge($login, 'reset');
+			if (!$status[0]) {
+				$this->AddAttempt();
+				return $status;
+			}
+			//TODO cache all parameters - $token at least
+			$sql = 'UPDATE '.$this->pref.'module_auth_cache SET data=? WHERE token=?';
+			$this->db->Execute($sql, [NULL, $status[1]]);
+			//TODO other prescribed sorts of challenge
+			$res = $this->challengeMessage('reset', $token); //TODO is this rediscoverable?
+			if (!$res[0]) {
+				$this->deleteChallenge($status[1]);
+				return $res;
+			}
+			$key = 'reset_sent';
+			break;
+		 default:
+			$key = 'noauth';
+			break;
+		}
+		return [TRUE, $this->mod->Lang($key)];
+	}
+
+	/**
+	* If action-status and security-parameters warrant, sets up an account-activation
+	*   challenge, including confirmation email if relevant
+	* @login: string user identifier
+	* @token: optional plaintext string to be sent to user instead of an URL, default = FALSE
+	* Returns: array [0]=boolean for success, [1]=message
+	*/
+	public function requestActivation($login, $token=FALSE)
+	{
+		switch ($this->GetStatus()) {
+		 case parent::STAT_BLOCK:
+			return [FALSE, $this->mod->Lang('user_blocked')];
+		 case parent::STAT_CHALLENGE:
+			return [FALSE, $this->mod->Lang('user_challenged')];
+		}
+
+		$val = $this->GetConfig('security_level');
+		switch ($val) {
+		 case Setup::MIDSEC:
+		 case Setup::CHALLENGED:
+			$status = $this->addChallenge($login, 'activate');
+			if (!$status[0]) {
+				$this->AddAttempt();
+				return $status;
+			}
+			//TODO cache all parameters - $token at least
+			$sql = 'UPDATE '.$this->pref.'module_auth_cache SET data=? WHERE token=?';
+			$this->db->Execute($sql, [NULL, $status[1]]);
+			//TODO other prescribed sorts of challenge
+			$res = $this->challengeMessage('activate', $token); //TODO is this rediscoverable?
+			if (!$res[0]) {
+				$this->deleteChallenge($status[1]);
+				return $res;
+			}
+			$key = 'activation_sent';
+			break;
+		 default:
+			$key = 'noauth';
+			break;
+		}
+		return [TRUE, $this->mod->Lang($key)];
+	}
+
+	//~~~~~~~~~~~~~ USER OPERATIONS ~~~~~~~~~~~~~~~~~
+
+	/**
+	* If action-status warrants, creates and records a user, after validation of
+	*  all supplied parameters
 	* @login: string user identifier
 	* @password: plaintext string
 	* @repeatpass: plaintext string
-	* @email: email address for notices to the user default = ''
-	* @params: array extra user-parameters for self::addUser() default = empty
-	* @sendmail: bool whether to send email-messages if possible default = NULL
-	* Returns: array [0]=boolean for success, [1]=message or ''
+	* @address: plaintext string
+	* @params: optional array of extra user-parameters for self::addUser() default = empty
+	* Returns: array [0]=boolean for success, [1]=message (possibly multi-line) or ''
 	*/
-	public function register($login, $password, $repeatpass, $email='', $params=[], $sendmail=NULL)
+	public function registerUser($login, $password, $repeatpass, $name, $address, $params=[])
 	{
-		$block_status = $this->IsBlocked();
-
-		if ($block_status == 'verify') {
+		switch ($this->GetStatus()) {
+		 case parent::STAT_BLOCK:
+			return [FALSE, $this->mod->Lang('user_blocked')];
+		 case parent::STAT_CHALLENGE:
+			return [FALSE, $this->mod->Lang('user_challenged')];
+		 case parent::STAT_VERIFY:
 			if (0) { //TODO FACTOR
-				return [FALSE,$this->mod->Lang('user_verify_failed')];
+				return [FALSE, $this->mod->Lang('user_verify_failed')];
 			}
-		} elseif ($block_status == 'block') {
-			return [FALSE,$this->mod->Lang('user_blocked')];
+			break;
 		}
 
-		// Validate publicid
-		$status = $this->validateLogin($login);
-		if (!$status[0]) {
-			return $status;
-		}
-
-		if ($this->isLoginTaken($login)) {
-			return [FALSE,$this->mod->Lang('login_taken')];
-		}
-
-		// Validate password
-		$status = $this->validatePassword($password);
+		$status = $this->validateAll([
+		'publicid' => $login,
+		'password' => $password,
+		'name' => $name,
+		'address' => $address
+		]);
 		if (!$status[0]) {
 			return $status;
 		}
 
 		if ($password !== $repeatpass) {
-			return [FALSE,$this->mod->Lang('password_nomatch')];
+			return [FALSE, $this->mod->Lang('password_nomatch')];
 		}
 
-		if ($email) {
-			// Validate email
-			$status = $this->validateEmail($email);
-			if (!$status[0]) {
-				return $status;
-			}
-		}
-
-		$status = $this->addUser($login, $password, $email, $sendmail, $params);
+		$status = $this->addUser($login, $password, $name, $email, $params);
 		if (!$status[0]) {
 			return $status;
 		}
@@ -319,22 +662,22 @@ class Auth extends Session
 		$parms = []; //TODO API
 		$this->mod->SendEvent('OnRegister', $parms);
 
-		$msg = ($sendmail) ?
+		$msg = func(LEVEL) ?
 		 $this->mod->Lang('register_success') :
 		 $this->mod->Lang('register_success_message_suppressed');
-		return [TRUE,$msg];
+		return [TRUE, $msg];
 	}
 
 	/**
 	* Checks whether @login is recorded for current context and active, and
 	*  @password (if not FALSE) is valid. A session is created/updated as appropriate
 	* @login: string user identifier
-	* @password: plaintext string, or FALSE to skip password-validation
+	* @password: optional plaintext string, or FALSE to skip password-validation, default = FALSE
 	* @active: optional boolean whether to check for active user, default TRUE
 	* @fast: optional boolean whether to return immediately if not recognized, default FALSE
 	* Returns: 2-member array [0]=boolean indicating success [1]=array of data from row of session table
 	*/
-	public function isRegistered($login, $password, $active=TRUE, $fast=FALSE)
+	public function isRegistered($login, $password=FALSE, $active=TRUE, $fast=FALSE)
 	{
 		$sql = 'SELECT id,privhash,active FROM '.$this->pref.'module_auth_users WHERE publicid=? AND context_id=?';
 		$userdata = $this->db->GetRow($sql, [$login, $this->context]);
@@ -378,345 +721,12 @@ class Auth extends Session
 			}
 		}
 		if (!$fast) {
-			$t = min(2000, $sdata['attempts'] * 500);
+			$times = isset($sdata['attempts']) ? $sdata['attempts'] : 1;
+			$t = min(2000, $times * 500);
 			usleep($t * 1000);
 		}
 		return [FALSE, $sdata];
 	}
-
-	//~~~~~~~~~~~~~ SESSION ~~~~~~~~~~~~~~~~~
-
-	/**
-	* Logs a user in
-	* @login: string user identifier
-	* @password: plaintext string
-	* @nonce: default = FALSE
-	* @remember: boolean whether to setup session-expiry-time in self::AddSession() default = FALSE
-	* Returns: array, [0]=boolean for success, [1]=message or '', if [0] then also session-parameters: 'token','expire'
-	*/
-	public function login($login, $password, $nonce=FALSE, $remember=FALSE)
-	{
-		$block_status = $this->IsBlocked();
-
-		if ($block_status == 'verify') {
-			if (0) { //TODO FACTOR
-				$parms = []; //TODO API
-				$this->mod->SendEvent('OnLoginFail', $parms);
-				return [FALSE,$this->mod->Lang('user_verify_failed')];
-			}
-		} elseif ($block_status == 'block') {
-			$parms = []; //TODO API
-			$this->mod->SendEvent('OnLoginFail', $parms);
-			return [FALSE,$this->mod->Lang('user_blocked')];
-		}
-
-		$uid = $this->getUserID($login);
-
-		if (!$uid) {
-			$this->AddAttempt();
-			$parms = []; //TODO API
-			$this->mod->SendEvent('OnLoginFail', $parms);
-			return [FALSE,$this->mod->Lang('login_incorrect')];
-		}
-
-		$userdata = $this->getUserBase($uid);
-
-		if (!$userdata['active']) {
-			$this->AddAttempt();
-			$parms = []; //TODO API
-			$this->mod->SendEvent('OnLoginFail', $parms);
-			return [FALSE,$this->mod->Lang('account_inactive')];
-		}
-
-		$status = $this->matchPassword($uid, $password);
-
-		if (!$status[0]) {
-			$this->AddAttempt();
-			$parms = []; //TODO API
-			$this->mod->SendEvent('OnLoginFail', $parms);
-			return [FALSE,$this->mod->Lang('password_incorrect')];
-		}
-
-		if (!is_bool($remember)) {
-			$this->AddAttempt();
-			$parms = []; //TODO API
-			$this->mod->SendEvent('OnLoginFail', $parms);
-			return [FALSE,$this->mod->Lang('remember_me_invalid')];
-		}
-
-		$sessiondata = $this->AddSession($uid, $remember);
-
-		if (!$sessiondata) {
-			$parms = []; //TODO API
-			$this->mod->SendEvent('OnLoginFail', $parms);
-			return [FALSE,$this->mod->Lang('system_error', '#01')];
-		}
-
-		$parms = []; //TODO API
-		$this->mod->SendEvent('OnLogin', $parms);
-
-		$data = [TRUE,$this->mod->Lang('logged_in')];
-		$data['token'] = $sessiondata['token'];
-		$data['expire'] = $sessiondata['expiretime'];
-		return $data;
-	}
-
-	/**
-	* Ends the session identified by @token
-	* @token: string 24-byte session-identifier
-	* Returns: boolean
-	*/
-	public function logout($token)
-	{
-		if (strlen($token) != 24) {
-			return FALSE;
-		}
-		return $this->DeleteSession($token);
-	}
-
-	//~~~~~~~~~~~~~ REQUEST OPERATIONS ~~~~~~~~~~~~~~~~~
-
-	/**
-	* If parameters so specify, creates a request and sends confirmation-email to the user
-	* This is a low-level method, without blockage check
-	* @login: string user identifier
-	* @type: string 'reset','activate' or 'change'
-	* @sendmail: reference to flag whether to send confirmation email, boolean, or NULL to check context property
-	* @password: optional plaintext password to be advised instead of URL, default = FALSE
-	* Returns: array [0]=boolean for success, [1]=message or '' or request-token
-	*  @sendmail may be altered e.g. FALSE if not sent
-	*/
-	protected function addRequest($login, $type, &$sendmail, $password=FALSE)
-	{
-		switch ($type) {
-		 case 'activate':
-			$itype = parent::REQUEST_ACTIV; //'interim' identifier, pending token
-			break;
-		 case 'change:
-			$itype = parent::REQUEST_CHANGE;
-			break;
-		 case 'reset':
-			$itype = parent::REQUEST_RESET;
-			break;
-		 default:
-			$sendmail = FALSE;
-			return [FALSE, $this->mod->Lang('system_error', '#02')];
-		}
-
-		if ($sendmail === NULL) {
-			// not set explicitly, check config data
-			$sendmail = TRUE;
-			if ($type == 'activate') {
-				$val = $this->GetConfig('send_activate_message');
-				if (!$val) {
-					$sendmail = FALSE;
-					return [TRUE, ''];
-				}
-			} elseif ($type == 'reset') {
-				$val = $this->GetConfig('send_reset_message');
-				if (!$val) {
-					$sendmail = FALSE;
-					return [TRUE, ''];
-				}
-			}
-		}
-
-		$sql = 'SELECT id,address,active FROM '.$this->pref.'module_auth_users WHERE publicid=? AND context_id=?';
-		$row = $this->db->GetRow($sql, [$login, $this->context]);
-		if ($row) {
-			$uid = (int)$row['id'];
-			$t = $row['address'];
-			if ($t && preg_match(self::PATNEMAIL, $t)) {
-				$email = $t;
-			} else {
-				$t = $login;
-				if ($t && preg_match(self::PATNEMAIL, $t)) {
-					$email = $t;
-				} else {
-					$sendmail = FALSE;
-					return [FALSE, $this->mod->Lang('temp_notsent')];
-				}
-			}
-		} else {
-			$sendmail = FALSE;
-			return [FALSE, $this->mod->Lang('system_error', '#03')];
-		}
-
-		if ($type == 'activate') {
-			if ($row['active']) {
-				$sendmail = FALSE;
-				return [FALSE, $this->mod->Lang('already_activated')];
-			}
-		}
-
-		$sql = 'SELECT token,expire FROM '.$this->pref.'module_auth_cache WHERE user_id=? AND lastmode=?';
-		$row = $this->db->GetRow($sql, [$uid, $itype]);
-
-		if ($row) {
-			if ($row['expire'] > time()) {
-				$sendmail = FALSE;
-				return [FALSE, $this->mod->Lang('request_exists')];
-			}
-			$this->deleteRequest($row['token']);
-		}
-
-		$token = $this->UniqueToken(24);
-
-		$dt = new \DateTime('@'.time(), NULL);
-		$val = $this->GetConfig('request_key_expiration');
-		$dt->modify('+'.$val);
-		$expiretime = $dt->getTimestamp();
-
-		$sql = 'INSERT INTO '.$this->pref.'module_auth_cache (token,user_id,expire,lastmode) VALUES (?,?,?,?)';
-
-		if (!$this->db->Execute($sql, [$token, $uid, $expiretime, $itype])) {
-			$sendmail = FALSE;
-			return [FALSE, $this->mod->Lang('system_error', '#04')];
-		}
-
-		if (!$sendmail) {
-			return [TRUE, ''];
-		}
-
-		if ($this->mod->before20) {
-			$mlr = \cms_utils::get_module('CMSMailer');
-			if ($mlr) {
-				$mlr->_load();
-			} else {
-				$sendmail = FALSE;
-				$this->deleteRequest($token);
-				return [FALSE, $this->mod->Lang('system_error', 'CMSMailer N/A')];
-			}
-		} else {
-			$mlr = new \cms_mailer();
-		}
-
-		$mlr->reset();
-		$sender = $this->GetConfig('context_sender');
-		if ($sender) {
-			$from = $this->GetConfig('context_address');
-			$mlr->SetFrom($from, $sender);
-		}
-		$mlr->AddAddress($email, '');
-
-		$mlr->IsHTML(TRUE);
-
-		$key = 'email_'.$type.'_subject';
-		$site = $this->GetConfig('context_site');
-		$mlr->SetSubject($this->mod->Lang($key, $site));
-
-		if ($password) {
-			$key = 'email_'.$type.'pass_body';
-			$mlr->SetBody($this->mod->Lang($key, $password, $site));
-			$key = 'email_'.$type.'pass_altbody';
-			$mlr->SetAltBody($this->mod->Lang($key, $password, $site));
-		} else {
-			//construct frontend-url (so no admin login is needed)
-			$u = $this->mod->create_url('cntnt01', 'validate', '', ['cauthc'=>$token]);
-			$url = strtr($u, '&amp;', '&');
-
-			$key = 'email_'.$type.'url_body';
-			$mlr->SetBody($this->mod->Lang($key, $url, $site));
-			$key = 'email_'.$type.'url_altbody';
-			$mlr->SetAltBody($this->mod->Lang($key, $url, $site));
-		}
-
-		if ($mlr->Send()) {
-			$mlr->reset();
-			return [TRUE, $token];
-		} else {
-			$this->deleteRequest($token);
-			$msg = $mlr->GetErrorInfo();
-			$mlr->reset();
-			return [FALSE, $msg];
-		}
-	}
-
-	/**
-	* Returns request data if @token is valid
-	* @token: 24-byte string from UniqueToken()
-	* @type: string 'reset' or 'activate', only for error-message namespacing
-	* Returns: array [0]=boolean for success, [1]=message or '', if [0] then also 'uid'
-	*/
-	public function getRequest($token, $type)
-	{
-		$sql = 'SELECT user_id,expire FROM '.$this->pref.'module_auth_cache WHERE token=?';
-		$row = $this->db->GetRow($sql, [$token]);
-
-		if (!$row) {
-			$this->AddAttempt();
-			return [FALSE, $this->mod->Lang($type.'key_incorrect')];
-		}
-
-		if ($row['expire'] < time()) {
-			$this->AddAttempt();
-			$this->deleteRequest($token);
-			return [FALSE, $this->mod->Lang($type.'key_expired')];
-		}
-
-		return [0=>TRUE, 1=>'', 'uid'=>$row['uid']];
-	}
-
-	/**
-	* @token: string request identifier
-	* Returns: boolean
-	* Deletes a request
-	*/
-	protected function deleteRequest($token)
-	{
-		$sql = 'DELETE FROM '.$this->pref.'module_auth_cache WHERE token=?';
-		$res = $this->db->Execute($sql, [$token]);
-		return ($res != FALSE);
-	}
-
-	/**
-	* Stores a password-reset request, and sends confirmation email to the user if parameters warrant that
-	* @login: string user identifier
-	* @sendmail: boolean whether to send confirmation email, default=NULL hence per context property
-	* @password: optional plaintext password to be sent to user instead of an URL, default = FALSE
-	* Returns: array [0]=boolean for success, [1]=message
-	*/
-	public function requestReset($login, $sendmail=NULL, $password=FALSE)
-	{
-		if ($this->IsBlocked() == 'block') {
-			return [FALSE, $this->mod->Lang('user_blocked')];
-		}
-
-		$status = $this->addRequest($login, 'reset', $sendmail, $password);
-		if (!$status[0]) {
-			$this->AddAttempt();
-			return $status;
-		}
-
-		$key = ($sendmail) ? 'reset_sent' : 'reset_created';
-		return [TRUE, $this->mod->Lang($key)];
-	}
-
-	/**
-	* Stores an account-activation request, and sends confirmation email to the user if parameters warrant that
-	* @login: string user identifier
-	* @sendmail: boolean whether to send confirmation email, default=NULL hence per context property
-	* @password: optional plaintext password to be sent to user instead of an URL, default = FALSE
-	* Returns: array [0]=boolean for success, [1]=message
-	*/
-	public function requestActivation($login, $sendmail=NULL, $password=FALSE)
-	{
-		if ($this->IsBlocked() == 'block') {
-			return [FALSE, $this->mod->Lang('user_blocked')];
-		}
-
-
-		$status = $this->addRequest($login, 'activate', $sendmail, $password);
-		if (!$status[0]) {
-			$this->AddAttempt();
-			return $status;
-		}
-
-		$msg = ($sendmail) ? 'activation_sent' : 'activation_created';
-		return [TRUE, $this->mod->Lang($msg)];
-	}
-
-	//~~~~~~~~~~~~~ USER OPERATIONS ~~~~~~~~~~~~~~~~~
 
 	/**
 	* Activates a user's account
@@ -725,8 +735,11 @@ class Auth extends Session
 	*/
 	public function activate($token)
 	{
-		if ($this->IsBlocked() == 'block') {
+		switch ($this->GetStatus()) {
+		 case parent::STAT_BLOCK:
 			return [FALSE, $this->mod->Lang('user_blocked')];
+		 case parent::STAT_CHALLENGE:
+			return [FALSE, $this->mod->Lang('user_challenged')];
 		}
 
 		if (strlen($token) !== 24) {
@@ -734,7 +747,7 @@ class Auth extends Session
 			return [FALSE, $this->mod->Lang('activationkey_invalid')];
 		}
 
-		$data = $this->getRequest($token, 'activate');
+		$data = $this->getChallenge($token, 'activate');
 
 		if (!$data[0]) {
 			$this->AddAttempt();
@@ -744,14 +757,14 @@ class Auth extends Session
 		$userdata = $this->getUserBase($data['uid']);
 		if ($userdata['active']) {
 			$this->AddAttempt();
-			$this->deleteRequest($token);
+			$this->deleteChallenge($token);
 			return [FALSE, $this->mod->Lang('system_error', '#07')];
 		}
 
 		$sql = 'UPDATE '.$this->pref.'module_auth_users SET active=1 WHERE id=?';
 		$this->db->Execute($sql, [$data['uid']]);
 
-		$this->deleteRequest($token);
+		$this->deleteChallenge($token);
 
 		return [TRUE, $this->mod->Lang('account_activated')];
 	}
@@ -765,14 +778,16 @@ class Auth extends Session
 	*/
 	public function changeLogin($uid, $login, $password)
 	{
-		$block_status = $this->IsBlocked();
-
-		if ($block_status == 'verify') {
+		switch ($this->GetStatus()) {
+		 case parent::STAT_BLOCK:
+			return [FALSE, $this->mod->Lang('user_blocked')];
+		 case parent::STAT_CHALLENGE:
+			return [FALSE, $this->mod->Lang('user_challenged')];
+		 case parent::STAT_VERIFY:
 			if (0) { //TODO
-				return [FALSE,$this->mod->Lang('user_verify_failed')];
+				return [FALSE, $this->mod->Lang('user_verify_failed')];
 			}
-		} elseif ($block_status == 'block') {
-			return [FALSE,$this->mod->Lang('user_blocked')];
+			break;
 		}
 
 		$status = $this->validateLogin($login);
@@ -792,27 +807,27 @@ class Auth extends Session
 
 		if (!$userdata) {
 			$this->AddAttempt();
-			return [FALSE,$this->mod->Lang('system_error', '#05')];
+			return [FALSE, $this->mod->Lang('system_error', '#05')];
 		}
 
 		if (!$this->doPasswordCheck($password, $userdata['password']/*, $tries TODO*/)) {
 			$this->AddAttempt();
-			return [FALSE,$this->mod->Lang('password_incorrect')];
+			return [FALSE, $this->mod->Lang('password_incorrect')];
 		}
 
 		if ($login == $userdata['publicid']) {
 			$this->AddAttempt();
-			return [FALSE,$this->mod->Lang('newlogin_match')];
+			return [FALSE, $this->mod->Lang('newlogin_match')];
 		}
 
 		$sql = 'UPDATE '.$this->pref.'module_auth_users SET publicid=? WHERE id=?';
 		$res = $this->db->Execute($sql, [$login, $uid]);
 
 		if ($res == FALSE) {
-			return [FALSE,$this->mod->Lang('system_error', '#06')];
+			return [FALSE, $this->mod->Lang('system_error', '#06')];
 		}
 
-		return [TRUE,$this->mod->Lang('login_changed')];
+		return [TRUE, $this->mod->Lang('login_changed')];
 	}
 
 	/**
@@ -846,9 +861,8 @@ class Auth extends Session
 				$funcs = new Crypter();
 				$data['name'] = $funcs->decrypt_value($this->mod, $data['name']);
 				$data['address'] = $funcs->decrypt_value($this->mod, $data['address']);
-//TODO context
-//TODO zone offset
-				$dt = new \DateTime('@0',NULL);
+//TODO context ??
+				$dt = new \DateTime('@0', NULL);
 				$dt->setTimestamp($data['addwhen']);
 				$data['addwhen'] = $dt->format('Y-m-d H:i:s');
 				$dt->setTimestamp($data['lastuse']);
@@ -1003,14 +1017,14 @@ class Auth extends Session
 	}
 
 	/**
-	* Converts relevant parts of @data into UI-ready data
+	* Converts relevant members of @data to UI-ready form
 	* @data reference to associative array, each member like users-table-fieldname=>rawval,
 	* or an array of such arrays
 	*/
 	public function getPlainUserProperties(&$data)
 	{
-		$one = reset($data);
-		if (is_array($one)) {
+		reset($data);
+		if (is_numeric(key($data))) {
 			$funcs = new Crypter();
 			$dt = new \DateTime('@0', NULL);
 			foreach ($data as &$row) {
@@ -1036,7 +1050,7 @@ class Auth extends Session
 				unset ($one);
 			}
 			unset ($row);
-		} else {
+		} else { //single row of data
 			$funcs = NULL;
 			$dt = NULL;
 			foreach ($data as $name=>&$one) {
@@ -1105,32 +1119,22 @@ class Auth extends Session
 	}
 
 	/**
-	* Records a new user, without any blockage-check or parameter validation
+	* Records a new user, without any status-check or parameter validation
 	* @login: string user identifier
 	* @password: plaintext string
 	* @name: string user name
 	* @address: email or other type of address for messages, possibly empty
-	* @sendmail: reference to flag (T/F or NULL) whether to send confirmation-email
-	* @params: array of additional params default = empty
-	* Returns: array [0]=boolean for success, [1]=message or '', @sendmail may be altered
+	* @active: optional flag (1/0) indicating user's active-state, default = 1
+	* @params: optional array of additional params default = empty
+	* Returns: array [0]=boolean for success, [1]=message or ''
 	*/
-	public function addUser($login, $password, $name, $address, &$sendmail, $params=[])
+	public function addUserReal($login, $password, $name, $address, $active=1, $params=[])
 	{
 		$uid = $this->db->GenID($this->pref.'module_auth_users_seq');
 
-		if ($sendmail || $sendmail === NULL) {
-			$status = $this->addRequest($login, 'activate', $sendmail, $password);
-			if (!$status[0]) {
-				return $status;
-			}
-			$active = 0;
-		} else {
-			$active = 1;
-		}
-
-		$funcs = new Crypter();
 		$password = password_hash($password, PASSWORD_DEFAULT);
 
+		$funcs = new Crypter();
 		if ($name || is_numeric($name)) {
 			$name = $funcs->encrypt_value($this->mod, $name);
 		} else {
@@ -1145,10 +1149,7 @@ class Auth extends Session
 		$sql = 'INSERT INTO '.$this->pref.'module_auth_users (id,publicid,privhash,name,address,context_id,addwhen,active) VALUES (?,?,?,?,?,?,?,?)';
 
 		if (!$this->db->Execute($sql, [$uid, $login, $password, $name, $address, $this->context, time(), $active])) {
-			if ($sendmail) {
-				$this->deleteRequest($status[1]);
-			}
-			return [FALSE,$this->mod->Lang('system_error', '#08')]; //probably a duplicate
+			return [FALSE, $this->mod->Lang('system_error', '#08')]; //probably a duplicate
 		}
 
 		if (is_array($params) && count($params) > 0) {
@@ -1159,44 +1160,178 @@ class Auth extends Session
 	}
 
 	/**
-	* Changes property-values for a user, without any blockage-check or parameter validation
+	* If action-status warrants, records a new user, without any parameter validation
 	* @login: string user identifier
-	* @password: plaintext string or FALSE
-	* @name: optional string user name
-	* @address: optional email or other type of address for messages, possibly empty
-	* @sendmail: reference to flag (T/F or NULL) whether to send confirmation-email
-	* @params: optional array of additional params, default = empty
-	* Returns: array [0]=boolean for success, [1]=message or '', @sendmail may be altered
+	* @password: plaintext string
+	* @name: string user name
+	* @address: email or other type of address for messages, possibly empty
+	* @params: array of additional params default = empty
+	* @token: optional string to be delivered to the user instead of URL during challenge
+	* Returns: array [0]=boolean for success, [1]=message or ''
 	*/
-	public function changeUser($login, $password, $name, $address, &$sendmail, $params=[])
+	public function addUser($login, $password, $name, $address, $params=[], $token=FALSE)
 	{
-		$uid = $this->getUserID($login);
-		if (!$uid) {
-			return [FALSE, $this->mod->Lang('TODO')];
+		switch ($this->GetStatus()) {
+		 case parent::STAT_BLOCK:
+			return [FALSE, $this->mod->Lang('user_blocked')];
+		 case parent::STAT_CHALLENGE:
+			return [FALSE, $this->mod->Lang('user_challenged')];
 		}
 
-		if ($sendmail || $sendmail === NULL) {
-			$status = $this->addRequest($login, 'change', $sendmail, $password);
+		$val = $this->GetConfig('security_level');
+		switch ($val) {
+		 case Setup::MIDSEC:
+		 case Setup::CHALLENGED:
+			$status = $this->addChallenge($login, 'activate');
 			if (!$status[0]) {
 				return $status;
 			}
+			//TODO cache all parameters - incl $token
+			$sql = 'UPDATE '.$this->pref.'module_auth_cache SET data=? WHERE token=?';
+			$this->db->Execute($sql, [NULL, $status[1]]);
+			//TODO other prescribed sorts of challenge
+			$res = $this->challengeMessage('activate', $token); //TODO is this rediscoverable?
+			if (!$res[0]) {
+				$this->deleteChallenge($status[1]);
+				return $res;
+			}
+			return [TRUE, ''];
+		}
+
+		return $this->addUserReal($login, $password, $name, $address, 1, $params);
+	}
+
+	/**
+	* Changes property-values (not password) for a user, without any status-check
+	*  or parameter validation except @oldlogin must be recognised
+	* @oldlogin: string curent user identifier
+	* @login: string new user identifier, ignored if any FALSE other than '' or '0'
+	* @name: string new user name, ignored if ditto
+	* @address: string new email or other type of address for messages, ignored if ditto
+	* @active: optional flag (0/1 or FALSE) indicating user's active-state, default = FALSE
+	* @params: optional array of additional params, default = empty
+	* Returns: array [0]=boolean for success, [1]=message or ''
+	*/
+	public function changeUserReal($oldlogin, $login, $name, $address, $active=FALSE, $params=[])
+	{
+		$uid = $this->getUserID($oldlogin);
+		if (!$uid) {
+			return [FALSE, $this->mod->Lang('invalid_type', $this->mod->Lang('title_user'))];
 		}
 
 		$namers = [];
 		$args = [];
+		$funcs = new Crypter();
 
-		$sql = 'UPDATE '.$this->pref.'module_auth_users SET '.$namers.'WHERE id=?';
+		//TODO consider - password change too?
+		if ($login && $login !== $oldlogin) {
+			$namers[] = 'publicid';
+			$args[] = $login;
+		}
+		if ($name || $name === '' || is_numeric($name)) {
+			$namers[] = 'name';
+			$args[] = $funcs->encrypt_value($this->mod, $name);
+		}
+		if ($address || $address === '' || is_numeric($address)) {
+			$namers[] = 'address';
+			$args[] = $funcs->encrypt_value($this->mod, $address);
+		}
+		if ($active !== FALSE) {
+			$namers[] = 'active';
+			$args[] = $active;
+		}
+		$args[] = $uid;
+		$sql = 'UPDATE '.$this->pref.'module_auth_users SET '.implode('=?,',$namers).'=? WHERE id=?';
 
-		if (!$this->db->Execute($sql, $args) {
-			if ($sendmail) {
-				$this->deleteRequest($status[1]);
-			}
-			return [FALSE,$this->mod->Lang('system_error', '#08')];
+		if (!$this->db->Execute($sql, $args)) {
+			return [FALSE, $this->mod->Lang('system_error', '#08')];
 		}
 
 		if (is_array($params) && count($params) > 0) {
 			//TODO record supplementary data
 		}
+
+		return [TRUE, ''];
+	}
+
+	/**
+	* If action-status warrants, changes property-values (not password) for a user,
+	*  without new-parameter validation
+	* @oldlogin: string current user identifier
+	* @password: string plaintext current password
+	* @login: string new user identifier maybe ignored
+	* @name: string user name maybe ignored
+	* @address: email or other type of address for messages, maybe ignored
+	* @active: optional integer (0/1) or FALSE, default = FALSE
+	* @params: optional array of additional parameters, default = empty
+	* @token: optional string to be delivered to user instead of URL during challenge
+	* Returns: array [0]=boolean for success, [1]=message or ''
+	*/
+	public function changeUser($oldlogin, $password, $login, $name, $address, $active=FALSE, $params=[], $token=FALSE)
+	{
+		switch ($this->GetStatus()) {
+		 case parent::STAT_BLOCK:
+			return [FALSE, $this->mod->Lang('user_blocked')];
+		 case parent::STAT_CHALLENGE:
+			return [FALSE, $this->mod->Lang('user_challenged')];
+		}
+
+		$uid = $this->getUserID($oldlogin);
+		if (!$uid) {
+			$this->AddAttempt();
+			return [FALSE, $this->mod->Lang()];
+		}
+		$status = $this->matchPassword($uid, $password);
+		if (!$status[0]) {
+			$this->AddAttempt();
+			return $status;
+		}
+
+		$val = $this->GetConfig('security_level');
+		switch ($val) {
+		 case Setup::MIDSEC:
+		 case Setup::CHALLENGED:
+			$status = $this->addChallenge($oldlogin, 'change');
+			if (!$status[0]) {
+				return $status;
+			}
+			//TODO cache all parameters incl $token
+			$sql = 'UPDATE '.$this->pref.'module_auth_cache SET data=? WHERE token=?';
+			$this->db->Execute($sql, [NULL, $status[1]]);
+			//TODO other prescribed sorts of challenge
+			$res = $this->challengeMessage('change', $token); //TODO is this rediscoverable?
+			if (!$res[0]) {
+				$this->deleteChallenge($status[1]);
+				return $res;
+			}
+			return [TRUE, ''];
+		}
+
+		return $this->changeUserReal($oldlogin, $login, $name, $address, $active, $params);
+	}
+
+	/**
+	* Deletes data for @uid from all tables, sends event
+	* c.f. Utils::DeleteUser, Utils::DeleteContextUsers for admin use
+	* @uid: int user enumerator
+	* Returns: array [0]=boolean for success, [1]=message or ''
+	*/
+	public function deleteUserReal($uid)
+	{
+		$sql = 'DELETE FROM '.$this->pref.'module_auth_users WHERE id=?';
+
+		if (!$this->db->Execute($sql, [$uid])) {
+			return [FALSE, $this->mod->Lang('system_error', '#09')];
+		}
+
+		$sql = 'DELETE FROM '.$this->pref.'module_auth_cache WHERE user_id=?';
+
+		if (!$this->db->Execute($sql, [$uid])) { //TODO ok if no such record(s)
+			return [FALSE, $this->mod->Lang('system_error', '#10')];
+		}
+
+		$parms = []; //TODO API
+		$this->mod->SendEvent('OnDeregister', $parms);
 
 		return [TRUE, ''];
 	}
@@ -1206,18 +1341,20 @@ class Auth extends Session
 	* c.f. Utils::DeleteUser, Utils::DeleteContextUsers for admin use
 	* @uid: int user enumerator
 	* @password: string plaintext
-	* Returns: array [0]=boolean for success, [1]=message or ''
+	* Returns: array [0]=boolean for success, [1]=message
 	*/
-	public function cancelUser($uid, $password)
+	public function deleteUser($uid, $password)
 	{
-		$block_status = $this->IsBlocked();
-
-		if ($block_status == 'verify') {
+		switch ($this->GetStatus()) {
+		 case parent::STAT_BLOCK:
+			return [FALSE, $this->mod->Lang('user_blocked')];
+		 case parent::STAT_CHALLENGE:
+			return [FALSE, $this->mod->Lang('user_challenged')];
+		 case parent::STAT_VERIFY:
 			if (0) { //TODO FACTOR
-				return [FALSE,$this->mod->Lang('user_verify_failed')];
+				return [FALSE, $this->mod->Lang('user_verify_failed')];
 			}
-		} elseif ($block_status == 'block') {
-			return [FALSE,$this->mod->Lang('user_blocked')];
+			break;
 		}
 
 		$status = $this->matchPassword($uid, $password);
@@ -1231,30 +1368,19 @@ class Auth extends Session
 
 		if (!$userdata) {
 			$this->AddAttempt();
-			return [FALSE,$this->mod->Lang('TODO')];
+			return [FALSE, $this->mod->Lang('err_parm')];
 		}
 
 		if (!$this->doPasswordCheck($password, $userdata['password']/*, $tries TODO*/)) {
 			$this->AddAttempt();
-			return [FALSE,$this->mod->Lang('password_incorrect')];
+			return [FALSE, $this->mod->Lang('password_incorrect')];
 		}
 
-		$sql = 'DELETE FROM '.$this->pref.'module_auth_users WHERE id=?';
-
-		if (!$this->db->Execute($sql, [$uid])) {
-			return [FALSE,$this->mod->Lang('system_error', '#09')];
+		$res = $this->deleteUserReal($uid);
+		if ($res[0]) {
+			return [TRUE, $this->mod->Lang('account_deleted')];
 		}
-
-		$sql = 'DELETE FROM '.$this->pref.'module_auth_cache WHERE user_id=?';
-
-		if (!$this->db->Execute($sql, [$uid])) {
-			return [FALSE,$this->mod->Lang('system_error', '#10')];
-		}
-
-		$parms = []; //TODO API
-		$this->mod->SendEvent('OnDeregister', $parms);
-
-		return [TRUE,$this->mod->Lang('account_deleted')];
+		return $res;
 	}
 
 	//~~~~~~~~~~~~~ PASSWORD OPERATIONS ~~~~~~~~~~~~~~~~~
@@ -1277,21 +1403,23 @@ class Auth extends Session
 	*/
 	public function resetPassword($token, $newpass, $repeatnewpass)
 	{
-		$block_status = $this->IsBlocked();
-
-		if ($block_status == 'verify') {
+		switch ($this->GetStatus()) {
+		 case parent::STAT_BLOCK:
+			return [FALSE, $this->mod->Lang('user_blocked')];
+		 case parent::STAT_VERIFY:
 			if (0) { //TODO FACTOR
-				return [FALSE,$this->mod->Lang('user_verify_failed')];
+				return [FALSE, $this->mod->Lang('user_verify_failed')];
 			}
-		} elseif ($block_status == 'block') {
-			return [FALSE,$this->mod->Lang('user_blocked')];
+			break;
+		 case parent::STAT_CHALLENGE:
+			return [FALSE, $this->mod->Lang('user_challenged')];
 		}
 
 		if (strlen($token) != 24) {
-			return [FALSE,$this->mod->Lang('resetkey_invalid')];
+			return [FALSE, $this->mod->Lang('resetkey_invalid')];
 		}
 
-		$data = $this->getRequest($token, 'reset');
+		$data = $this->getChallenge($token, 'reset');
 
 		if (!$data[0]) {
 			return $data;
@@ -1305,20 +1433,20 @@ class Auth extends Session
 
 		if ($newpass !== $repeatnewpass) {
 			// Passwords don't match
-			return [FALSE,$this->mod->Lang('newpassword_nomatch')];
+			return [FALSE, $this->mod->Lang('newpassword_nomatch')];
 		}
 
 		$userdata = $this->getUserBase($data['uid']);
 
 		if (!$userdata) {
 			$this->AddAttempt();
-			$this->deleteRequest($token);
-			return [FALSE,$this->mod->Lang('system_error', '#12')];
+			$this->deleteChallenge($token);
+			return [FALSE, $this->mod->Lang('system_error', '#12')];
 		}
 
 		if ($this->doPasswordCheck($newpass, $userdata['password']/*, $tries TODO*/)) {
 			$this->AddAttempt();
-			return [FALSE,$this->mod->Lang('newpassword_match')];
+			return [FALSE, $this->mod->Lang('newpassword_match')];
 		}
 
 		$newpass = password_hash($newpass, PASSWORD_DEFAULT);
@@ -1326,10 +1454,10 @@ class Auth extends Session
 		$res = $this->db->Execute($sql, [$newpass, $data['uid']]);
 
 		if ($res) {
-			$this->deleteRequest($token);
-			return [TRUE,$this->mod->Lang('password_reset')];
+			$this->deleteChallenge($token);
+			return [TRUE, $this->mod->Lang('password_reset')];
 		}
-		return [FALSE,$this->mod->Lang('system_error', '#13')];
+		return [FALSE, $this->mod->Lang('system_error', '#13')];
 	}
 
 	/**
@@ -1342,14 +1470,16 @@ class Auth extends Session
 	*/
 	public function changePassword($uid, $password, $newpass, $repeatnewpass)
 	{
-		$block_status = $this->IsBlocked();
-
-		if ($block_status == 'verify') {
+		switch ($this->GetStatus()) {
+		 case parent::STAT_BLOCK:
+			return [FALSE, $this->mod->Lang('user_blocked')];
+		 case parent::STAT_VERIFY:
 			if (0) { //TODO FACTOR
-				return [FALSE,$this->mod->Lang('user_verify_failed')];
+				return [FALSE, $this->mod->Lang('user_verify_failed')];
 			}
-		} elseif ($block_status == 'block') {
-			return [FALSE,$this->mod->Lang('user_blocked')];
+			break;
+		 case parent::STAT_CHALLENGE:
+			return [FALSE, $this->mod->Lang('user_challenged')];
 		}
 
 		$status = $this->matchPassword($uid, $password);
@@ -1364,26 +1494,26 @@ class Auth extends Session
 		if (!$status[0]) {
 			return $status;
 		} elseif ($newpass !== $repeatnewpass) {
-			return [FALSE,$this->mod->Lang('newpassword_nomatch')];
+			return [FALSE, $this->mod->Lang('newpassword_nomatch')];
 		}
 
 		$userdata = $this->getUserBase($uid);
 
 		if (!$userdata) {
 			$this->AddAttempt();
-			return [FALSE,$this->mod->Lang('system_error', '#14')];
+			return [FALSE, $this->mod->Lang('system_error', '#14')];
 		}
 
 		if (!$this->doPasswordCheck($password, $userdata['password']/*, $tries TODO*/)) {
 			$this->AddAttempt();
-			return [FALSE,$this->mod->Lang('password_incorrect')];
+			return [FALSE, $this->mod->Lang('password_incorrect')];
 		}
 
 		$newpass = password_hash($newpass, PASSWORD_DEFAULT);
 
 		$sql = 'UPDATE '.$this->pref.'module_auth_users SET privhash=? WHERE id=?';
 		$this->db->Execute($sql, [$newpass, $uid]);
-		return [TRUE,$this->mod->Lang('password_changed')];
+		return [TRUE, $this->mod->Lang('password_changed')];
 	}
 
 	/**
@@ -1414,13 +1544,13 @@ class Auth extends Session
 		$sql = 'SELECT privhash FROM '.$this->pref.'module_auth_users WHERE id=?';
 		$hash = $this->db->GetOne($sql, [$uid]);
 		if (!$hash) {
-			return [FALSE,$this->mod->Lang('system_error', '#15')];
+			return [FALSE, $this->mod->Lang('system_error', '#15')];
 		}
 
 		if (!$this->doPasswordCheck($password, $hash/*, $tries TODO*/)) {
-			return [FALSE,$this->mod->Lang('password_notvalid')];
+			return [FALSE, $this->mod->Lang('invalid_type', $this->mod->Lang('password'))];
 		}
-		return [TRUE,''];
+		return [TRUE, ''];
 	}
 
 	/**
