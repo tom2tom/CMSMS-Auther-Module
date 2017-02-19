@@ -9,7 +9,7 @@ namespace Auther;
 
 final class Setup
 {
-	//security-levels (TODO were in Auther.module)
+	//security-levels (replicated in Auther.module)
 	const NOBOT = 1; //captcha only
 	const LOSEC = 2; //conventional login + passwd
 	const MIDSEC = 3; //login + passwd + sync nonce
