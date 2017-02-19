@@ -44,9 +44,7 @@ message_charset C(16),
 password_forget C(16),
 password_min_length I(1) DEFAULT 8,
 password_min_score I(1) DEFAULT 4,
-security_level I(1) DEFAULT '.Auther\Setup::LOSEC.',
-send_activate_message I(1) DEFAULT 1,
-send_reset_message I(1) DEFAULT 1
+security_level I(1) DEFAULT '.Auther::LOSEC.'
 ';
 $tblname = $pref.'module_auth_contexts';
 $sql = $dict->CreateTableSQL($tblname, $flds, $taboptarray);
@@ -186,9 +184,7 @@ $this->SetPreference('password_min_score', 4);
 $this->SetPreference('password_rescue', 1);
 $this->SetPreference('request_key_expiration', '10 minutes');
 
-$this->SetPreference('security_level', Auther\Setup::LOSEC);
-$this->SetPreference('send_activate_message', 1);
-$this->SetPreference('send_reset_message', 1);
+$this->SetPreference('security_level', Auther::LOSEC);
 
 $this->CreateEvent('AuthRegister');
 $this->CreateEvent('AuthDeregister');
