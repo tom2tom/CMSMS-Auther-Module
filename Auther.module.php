@@ -23,6 +23,14 @@ if (!extension_loaded('mcrypt')) return;
 
 class Auther extends CMSModule
 {
+	//security-levels (replicated in class.Setup)
+	const NOBOT = 1; //captcha only
+	const LOSEC = 2; //conventional login + passwd
+	const MIDSEC = 3; //login + passwd + sync nonce
+	const CHALLENGED = 4; //login + passwd + async challenge
+	const HISEC = 5; //TBA non-keyed INHERENCE
+	//NB ordinal: in several places, NOBOT is treated as min. enum value, and HISEC as max. value
+
 	public $before20;
 
 	public function __construct()
