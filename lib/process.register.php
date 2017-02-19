@@ -22,12 +22,12 @@ $sent array iff ajax-sourced
 
 $lvl = $cdata['security_level'];
 switch ($lvl) {
- case Auther\Setup::NOBOT:
+ case Auther::NOBOT:
 	//nothing to do
 	break;
- case Auther\Setup::LOSEC:
- case Auther\Setup::MIDSEC:
- case Auther\Setup::CHALLENGED:
+ case Auther::LOSEC:
+ case Auther::MIDSEC:
+ case Auther::CHALLENGED:
 	$flds = [];
 	//common stuff
 	$t = trim($_POST[$id.'login']);
@@ -40,7 +40,7 @@ switch ($lvl) {
 		}
 		if ($res[0]) {
 			if ($afuncs->isLoginTaken($t)) {
-				$msgs[] = $mod->Lang('login_notvalid'); //NOT explicit in-use message!
+				$msgs[] = $mod->Lang('retry'); //NOT explicit in-use message!
 				$focus = 'login';
 			} else {
 				$flds['publicid'] = $t;
@@ -112,7 +112,7 @@ switch ($lvl) {
 	}
 
 	switch ($lvl) {
-	 case Auther\Setup::MIDSEC:
+	 case Auther::MIDSEC:
 	//check stuff
 		if (!$jax) {
 			if ($params['captcha'] !== $_POST[$id.'captcha']) {
@@ -121,27 +121,26 @@ switch ($lvl) {
 			}
 		}
 		break;
-	 case Auther\Setup::CHALLENGED:
+	 case Auther::CHALLENGED:
 	//check stuff
 		if (!$jax) {
 		}
 		break;
 	} //switch $lvl
 	break;
- case Auther\Setup::HISEC:
+ case Auther::HISEC:
  //TODO
 	break;
 } //switch $lvl
 
 if (!$msgs) {
-	if ($lvl == Auther\Setup::CHALLENGED) {
+	if ($lvl == Auther::CHALLENGED) {
 		$enc = $cfuncs->encrypt_value($mod, json_encode($flds));
 		$sql = 'UPDATE '.$pref.'module_auth_cache SET data=? WHERE token=?';
 		$db->Execute($sql, [$enc, $token]);
 //TODO initiate challenge
 	} else {
-		$sendmail = NULL; //hence context-property determines whether to send confirmation-request
-		$res = $afuncs->addUser($flds['publicid'], $pw, $flds['name'], $flds['address'], $sendmail, []);
+		$res = $afuncs->addUser($flds['publicid'], $pw, $flds['name'], $flds['address'], []);
 		if ($res[0]) {
 			$uidnew = $res[1]; //for use by includer
 			$afuncs->ResetAttempts();

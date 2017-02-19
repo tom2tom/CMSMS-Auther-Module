@@ -21,12 +21,12 @@ $sent array iff ajax-sourced
 
 $lvl = $cdata['security_level'];
 switch ($lvl) {
- case Auther\Setup::NOBOT:
+ case Auther::NOBOT:
 	//nothing to do
 	break;
- case Auther\Setup::LOSEC:
- case Auther\Setup::MIDSEC:
- case Auther\Setup::CHALLENGED:
+ case Auther::LOSEC:
+ case Auther::MIDSEC:
+ case Auther::CHALLENGED:
 	$flds = [];
 	//common stuff
 	$login = trim($_POST[$id.'login']);
@@ -56,7 +56,7 @@ switch ($lvl) {
 				if ($sdata['attempts'] >= $n) {
 					$msgs[] = $mod->Lang('reregister');
 // SILENT		} else {
-//					$msgs[] = $mod->Lang('login_notvalid');
+//					$msgs[] = $mod->Lang('invalid_type', $this->mod->Lang('title_login'));
 				}
 				$focus = 'login';
 			}
@@ -85,7 +85,7 @@ switch ($lvl) {
 	}
 
 	switch ($lvl) {
-	 case Auther\Setup::MIDSEC:
+	 case Auther::MIDSEC:
 	//check stuff
 		if (!$jax) {
 			if ($params['captcha'] !== $_POST[$id.'captcha']) {
@@ -94,14 +94,14 @@ switch ($lvl) {
 			}
 		}
 		break;
-	 case Auther\Setup::CHALLENGED:
+	 case Auther::CHALLENGED:
 	//check stuff
 		if (!$jax) {
 		}
 		break;
 	} //switch $lvl
 	break;
- case Auther\Setup::HISEC:
+ case Auther::HISEC:
  //TODO
 	break;
 } //switch $lvl
@@ -109,7 +109,7 @@ switch ($lvl) {
 if ($msgs || $fake) {
 	$afuncs->AddAttempt();
 } else {
-	if ($lvl == Auther\Setup::CHALLENGED) {
+	if ($lvl == Auther::CHALLENGED) {
 		$flds['login'] = $login;
 		$flds['passwd'] = $pw; //original value
 		$enc = $cfuncs->encrypt_value($mod, json_encode($flds));
