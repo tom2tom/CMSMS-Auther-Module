@@ -79,7 +79,6 @@ $lang['email_incorrect'] = 'Email address is incorrect';
 $lang['email_invalid'] = 'Email address is not valid';
 $lang['login_incorrect'] = 'Login name is not recognised';
 //$lang['login_long'] = 'Login name is too long';
-$lang['login_notvalid'] = 'Login name is not valid';
 $lang['login_short'] = 'Login name is too short';
 $lang['login_taken'] = 'Login name is already in use';
 $lang['newemail_match'] = 'New email matches previous email';
@@ -90,7 +89,6 @@ $lang['newpassword_nomatch'] = 'New passwords do not match';
 $lang['newpassword_short'] = 'New password is too short';
 $lang['password_incorrect'] = 'Password is wrong';
 $lang['password_nomatch'] = 'Passwords do not match';
-$lang['password_notvalid'] = 'Password is not valid';
 $lang['password_short'] = 'Password is too short';
 $lang['password_weak'] = 'Password is too easy to crack';
 $lang['remember_me_invalid'] = 'The remember me field is not valid';
@@ -146,7 +144,7 @@ $lang['help_password_reset'] = 'Require password to be renewed at next login';
 $lang['help_recaptcha_key'] = 'Token obtained from <a href="https://www.google.com/recaptcha/admin#list">Google</a>. If this is not provided, level 1 authentication will be much less friendly.';
 $lang['help_recaptcha_secret'] = 'Private/secret token complementing the public token entered above';
 $lang['help_request_key_expiration'] = 'Length of time before sent confirmation-requests expire, something like \'10 minutes\' or \'1 day\' (unquoted, in english that <a href="http://php.net/manual/en/datetime.formats.relative.php">PHP understands</a>)';
-$lang['help_security_level'] = 'Number 1..4 which determines the process for, and extent of security-checking during, logins (1 is lowest)';
+$lang['help_security_level'] = 'Determines the process for, and extent of security-checking during, logins etc';
 //$lang['help_send_activate_message'] = '';
 //$lang['help_send_reset_message'] = '';
 
@@ -202,13 +200,14 @@ $lang['previous'] = 'Previous';
 $lang['proceed'] = 'Proceed';
 
 $lang['really_uninstall'] = 'Are you sure you want to uninstall the Authenticator module?';
-$lang['register_success'] = 'Account created. Activation email sent to email';
-$lang['register_success_emailmessage_suppressed'] = 'Account created';
+$lang['register_success'] = 'Account created. Activation message sent to email address.';
+//$lang['register_success_emailmessage_suppressed'] = 'Account created';
 $lang['reset_created'] = 'Password reset request has been created';
 $lang['reset_sent'] = 'Password reset message sent to email address';
 $lang['reregister'] = 'After so many failed attempts, you might like to re-register.';
 $lang['reregister2'] = 'Too many failed attempts. You\'ll need to re-register.';
 $lang['reset'] = 'Reset';
+$lang['retry'] = 'Try again';
 
 $lang['submit'] = 'Submit';
 $lang['system_error'] = 'A system error (%s) has been encountered. Please try again.';
@@ -286,7 +285,7 @@ $lang['title_pending_reset'] = 'Reset<br />flagged';
 $lang['title_recaptcha_key'] = 'reCaptcha public key';
 $lang['title_recaptcha_secret'] = 'reCaptcha private key';
 $lang['title_register'] = 'Registered';
-$lang['title_request_key_expiration'] = 'Request-key lifetime';
+$lang['title_request_key_expiration'] = 'Challenge-key lifetime';
 $lang['title_security_level'] = 'Security level';
 $lang['title_send_activate_message'] = 'Send account-activation emails';
 $lang['title_send_reset_message'] = 'Send password-reset emails';
@@ -297,6 +296,7 @@ $lang['title_usersfor'] = 'Registered users for \\\'%s\\\'';
 
 $lang['upload'] = 'Upload';
 $lang['user_blocked'] = 'You are currently locked out of the system';
+$lang['user_challenged'] = 'You are due to provide some further information';
 $lang['users'] = 'Users';
 
 $lang['wantjs'] = 'This process would be easier if javascript were enabled in your browser.';
