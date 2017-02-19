@@ -79,7 +79,7 @@ class Validate
 		if ($res && $res['active']) {
 			$tries = 1; //TODO get from session
 			if ($this->afuncs->doPasswordCheck($val, $res['privhash'], $tries)) {
-				return [TRUE,''];
+				return [TRUE, ''];
 			}
 		}
 
@@ -100,7 +100,7 @@ class Validate
 	{
 		$res = $this->afuncs->isRegistered($login, $passwd);
 		if ($res[0]) {
-			return [TRUE,''];
+			return [TRUE, ''];
 		}
 
 		if (is_array($failkey)) {
@@ -132,7 +132,7 @@ class Validate
 				foreach ($test as $k) {
 					$t = $row[$k];
 					if ($t && preg_match(Auth::EMAILPATN, $t)) {
-						return [TRUE,''];
+						return [TRUE, ''];
 					}
 				}
 			}
@@ -206,7 +206,8 @@ class Validate
 	{
 		$res = $this->IsKnown($login, FALSE, $failkey); OR isRegistered() ??
 		if ($res[0]) {
-			if ($this->afuncs->GetConfig('send_reset_message')) {
+				$val = $this->afuncs->GetConfig('security_level');
+TODO if security_level requires .... if (0) {
 				$userdata = $this->afuncs->getUserPublic($login);
 				if (preg_match(Auther::EMAILPATN, $userdata['address'])) {
 					$sendmail = $userdata['address'];
@@ -229,7 +230,7 @@ class Validate
 					} else {
 				//	send token to handler
 					}
-					return [TRUE,''];
+					return [TRUE, ''];
 				} //sendmail
 			} //send message
 			if (0) { //can do sync reset
@@ -240,7 +241,7 @@ class Validate
 				} else {
 			//	send token to handler
 				}
-				return [TRUE,''];
+				return [TRUE, ''];
 			} else { //can't reset
 				if (is_array($failkey)) {
 					$msg = $this->CompoundMessage($failkey);
