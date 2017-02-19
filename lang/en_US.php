@@ -155,6 +155,11 @@ $lang['import'] = 'Import';
 $lang['invalid_type'] = '%s is not valid';
 
 $lang['last'] = 'Last';
+$lang['level_NOBOT'] = 'Anonymous non-robot';
+$lang['level_LOSEC'] = 'Login+password';
+$lang['level_MIDSEC'] = 'Login+password enhanced';
+$lang['level_CHALLENGED'] = 'Challenged';
+$lang['level_HISEC'] = 'Advanced'; //TODO
 $lang['logged_in'] = 'You are now logged in';
 $lang['logged_out'] = 'You are now logged out';
 $lang['lostpass'] = 'or if password is lost, click this';
