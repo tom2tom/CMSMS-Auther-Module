@@ -14,7 +14,7 @@ if (!function_exists('getModulePrefs')) {
 	//see also: getContextProperties()
 	return [
 	'masterpass',				4, 2, 1,
-	'security_level',			1, 3, 1,
+	'security_level',			4, 0, 0,
 
 	'login_max_length',			1, 3, 0,
 	'login_min_length',			1, 3, 0,
@@ -40,8 +40,6 @@ if (!function_exists('getModulePrefs')) {
 	'attack_mitigation_span',	1, 16, 1,
 	'request_key_expiration',	1, 16, 1,
 
-	'send_activate_message',	0, 0, 0,
-	'send_reset_message',		0, 0, 0,
 	'context_site',				1, 40, 1,
 	'context_sender',			1, 40, 0,
 	'context_address',			1, 60, 0,
@@ -118,10 +116,10 @@ if (isset($params['submit'])) {
 					}
 					break;
 				 case 'security_level':
-					if ($val < Auther\Setup::NOBOT) {
-						$val = Auther\Setup::NOBOT;
-					} elseif ($val > Auther\Setup::HISEC) {
-						$val = Auther\Setup::HISEC;
+					if ($val < Auther::NOBOT) {
+						$val = Auther::NOBOT;
+					} elseif ($val > Auther::HISEC) {
+						$val = Auther::HISEC;
 					}
 					break;
 				 case 'password_min_score':
@@ -414,6 +412,22 @@ if ($pset) {
 				$t = $this->CreateInputText($id, $kn, $t, $l, $l);
 				$one->input = strtr($t, ['class="'=>'class="cloaked ']);
 				break;
+			 case 'security_level':
+				$choices = [];
+				$levels = [
+					Auther::NOBOT => 'level_NOBOT',
+					Auther::LOSEC => 'level_LOSEC',
+					Auther::MIDSEC => 'level_MIDSEC',
+					Auther::CHALLENGED => 'level_CHALLENGED',
+					Auther::HISEC => 'level_HISEC'
+				];
+				foreach ($levels as $l=>$key) {
+					$t = $this->Lang($key);
+					$choices[$t] = $l;
+				}
+				$t = $this->GetPreference($kn, Auther::LOSEC);
+				$one->input = $this->CreateInputDropdown($id, $kn, $choices, -1, $t);
+				break;
 			}
 			$one->must = ($props[$i+3] > 0);
 			break;
@@ -436,13 +450,16 @@ if ($pset) {
 	$jsincs[] = <<<EOS
 <script type="text/javascript" src="{$baseurl}/include/jquery-inputCloak.min.js"></script>
 EOS;
+	$l1 = Auther::MIDSEC;
+	$l2 = Auther::CHALLENGED;
 	$jsloads[] = <<<EOS
  $('.cloaked').inputCloak({
   type:'see4',
   symbol:'\u25CF'
  });
- $('[name="{$id}send_activate_message"],[name="{$id}send_reset_message"]').change(function() {
-  if (this.checked) {
+ $('#{$id}security_level').change(function() {
+  var lvl = this.value;
+  if (lvl == {$l1} || lvl == {$l2}) {
    $('[name="{$id}address_required"],[name="{$id}email_login"]').prop('checked',true);
   }
  });

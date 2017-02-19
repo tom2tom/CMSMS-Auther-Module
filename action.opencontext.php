@@ -26,7 +26,7 @@ if (!function_exists('getContextProperties')) {
 	'alias',				1, 16, 0,
 	'owner',				4, 50, 0,
 
-	'security_level',		1, 3, 1,
+	'security_level',		4, 0, 0,
 
 	'login_max_length',		1, 3, 0,
 	'login_min_length',		1, 3, 0,
@@ -47,8 +47,6 @@ if (!function_exists('getContextProperties')) {
 	'attack_mitigation_span',1, 16, 0,
 	'request_key_expiration',1, 16, 1,
 
-	'send_activate_message',0, 0, 0,
-	'send_reset_message',	0, 0, 0,
 	'context_site',			1, 40, 1,
 	'context_sender',		1, 40, 0,
 	'context_address',		1, 60, 0,
@@ -120,7 +118,7 @@ if (isset($params['cancel'])) {
 					}
 					break;
 				 case 'security_level':
-					if ($val < Auther\Setup::NOBOT || $val > Auther\Setup::HISEC) {
+					if ($val < Auther::NOBOT || $val > Auther::HISEC) {
 						$msg = $this->Lang('invalid_type',$this->Lang('title_'.$kn));
 						break 2;
 					}
@@ -276,6 +274,38 @@ for ($i = 0; $i < $c; $i += 4) {
 */
 	 case 4:
 		switch ($kn) {
+		 case 'security_level':
+			$levels = [
+				Auther::NOBOT => 'level_NOBOT',
+				Auther::LOSEC => 'level_LOSEC',
+				Auther::MIDSEC => 'level_MIDSEC',
+				Auther::CHALLENGED => 'level_CHALLENGED',
+				Auther::HISEC => 'level_HISEC'
+			];
+			if ($mod) {
+				$choices = [];
+				foreach ($levels as $l=>$key) {
+					$t = $this->Lang($key);
+					$choices[$t] = $l;
+				}
+				$one->input = $this->CreateInputDropdown($id, $kn, $choices, -1, $data[$kn]);
+
+				$l1 = Auther::MIDSEC;
+				$l2 = Auther::CHALLENGED;
+				$jsloads[] = <<<EOS
+ $('#{$id}security_level').change(function() {
+  var lvl = this.value;
+  if (lvl == {$l1} || lvl == {$l2}) {
+   $('[name="{$id}address_required"],[name="{$id}email_login"]').prop('checked',true);
+  }
+ });
+EOS;
+			} else {
+				$key = $levels[$data[$kn]];
+				$one->input = $this->Lang($key);
+			}
+			$one->must = 0;
+			break;
 		 case 'owner':
 			if (!$pown) {
 				unset($one);
@@ -367,13 +397,6 @@ EOS;
 
 $tplvars['options'] = $options;
 if ($mod) {
-	$jsloads[] = <<<EOS
-$('[name="{$id}send_activate_message"],[name="{$id}send_reset_message"]').change(function() {
- if (this.checked) {
-  $('[name="{$id}address_required"],[name="{$id}email_login"]').prop('checked',true);
- }
-});
-EOS;
 	$tplvars['submit'] = $this->CreateInputSubmit($id,'submit',$this->Lang('submit'));
 	$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('cancel'));
 } else {
