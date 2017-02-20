@@ -7,14 +7,13 @@
 #----------------------------------------------------------------------
 
 $lang['accessdenied'] = 'Access denied. You don\'t have %s permission.';
-$lang['account_activated'] = 'Account activated';
-$lang['account_deleted'] = 'Account deleted';
 $lang['account_inactive'] = 'Account has not yet been activated';
 $lang['activate'] = 'Activate';
 $lang['activatekey_expired'] = 'Activation key has expired'; //type-specific prefix
 $lang['activatekey_incorrect'] = 'Activation key is incorrect'; //type-specific prefix
-$lang['activation_created'] = 'Account activation request has been created';
-$lang['activation_sent'] = 'Account activation message sent to email address';
+//$lang['activation_created'] = 'Account activation request has been created';
+$lang['activation_challenged'] = 'Account activation message sent to recorded address';
+$lang['activation_success'] = 'Account activated successfully';
 $lang['addcontext'] = 'Add new context';
 $lang['adduser'] = 'Add new user';
 $lang['admindescription'] = 'This module provides authentication functionality for other modules';
@@ -36,27 +35,31 @@ $lang['current_typed'] = '<i>CURRENT</i> %s';
 
 $lang['default'] = 'Default';
 $lang['delete'] = 'Delete';
-
-$lang['email_activate_subject'] = '%s - Activate account';
-$lang['email_activatepass_body'] = 'Hello,<br /><br />To finalize your account will need to use the following temporary password:<br /><br />%s<br /><br />If you did not sign up on the %s recently then this message was sent in error, please ignore it.';
-$lang['email_activatepass_altbody'] = 'Hello,'."\n\n".'To finalize your account will need to use the following temporary password:'."\n\n".'%s'."\n\n".'If you did not sign up on the %s recently then this message was sent in error, please ignore it.';
-$lang['email_activateurl_body'] = 'Hello,<br /><br />To be able to log in you first need to activate your account by clicking on the following <a href="%s">link</a>.<br /><br />If you did not sign up on the %s recently then this message was sent in error, please ignore it.';
-$lang['email_activateurl_altbody'] = 'Hello,'."\n\n".'To be able to log in you first need to activate your account by visiting the following URL:'."\n".' %s'."\n\n".'If you did not sign up on the %s recently then this message was sent in error, please ignore it.';
-
-$lang['email_change_subject'] = '%s - Change account details';
-$lang['email_changepass_body'] = 'Hello,<br /><br />To change your account will need to use the following temporary password:<br /><br />%s<br /><br />If you did not request any change on the %s recently then this message was sent in error, please ignore it.';
-$lang['email_changepass_altbody'] = 'Hello,'."\n\n".'To finalize your account will need to use the following temporary password:'."\n\n".'%s'."\n\n".'If you did not request any change on the %s recently then this message was sent in error, please ignore it.';
-$lang['email_changeurl_body'] = 'Hello,<br /><br />To change your account you first need to click on the following <a href="%s">link</a>.<br /><br />If you did not request any change on the %s recently then this message was sent in error, please ignore it.';
-$lang['email_changeurl_altbody'] = 'Hello,'."\n\n".'To change your account you first need to visit the following URL:'."\n".' %s'."\n\n".'If you did not request any change on the %s recently then this message was sent in error, please ignore it.';
-
-$lang['email_reset_subject'] = '%s - Password reset request';
-$lang['email_resetpass_body'] = 'Hello,<br /><br />To reset your password, you will need to use the following temporary password:<br /><br />%s<br /><br />If you did not request a password reset on the %s recently then this message was sent in error, please ignore it.';
-$lang['email_resetpass_altbody'] = 'Hello,'."\n\n".'To reset your password, you will need to use the following temporary password:'."\n\n".'%s'."\n\n".'If you did not request a password reset on the %s recently then this message was sent in error, please ignore it.';
-$lang['email_reseturl_body'] = 'Hello,<br /><br />To reset your password, please click the following <a href="%s">link</a>.<br /><br />If you did not request a password reset on the %s recently then this message was sent in error, please ignore it.';
-$lang['email_reseturl_altbody'] = 'Hello,'."\n\n".'To reset your password, please visit the following URL:'."\n".' %s'."\n\n".'If you did not request a password reset on the %s recently then this message was sent in error, please ignore it.';
+$lang['delete_challenged'] = 'Account deletion message sent to recorded address';
+$lang['delete_success'] = 'Account deleted successfully';
 
 $lang['email_banned'] = 'The specified email address is not allowed';
 $lang['email_changed'] = 'Email address changed successfully';
+//'spaced' ('activate' etc) strings for various tasks, to be included in email messages
+$lang['email_do_activate'] = 'activate your account';
+$lang['email_do_change'] = 'change your account';
+$lang['email_do_delete'] = 'delete your account';
+$lang['email_do_reset'] = 'reset your password';
+$lang['email_request_activate'] = 'sign up';
+$lang['email_request_change'] = 'request any change';
+$lang['email_request_delete'] = 'request such deletion';
+$lang['email_request_reset'] = 'request a password reset';
+$lang['email_subject_activate'] = 'Activate account';
+$lang['email_subject_change'] = 'Change account details';
+$lang['email_subject_delete'] = 'Delete account';
+$lang['email_subject_reset'] = 'Password reset';
+//templates which include relevant parts from those above
+$lang['email_subject'] = '%s - %s';
+$lang['email_token_body'] = 'Hello,<br /><br />To %s, you will need to use the following token:<br /><br />%s<br /><br />If you did not %s on the %s recently then this message was sent in error, please ignore it.';
+$lang['email_token_altbody'] = 'Hello,'."\n\n".'To %s, you will need to use the following token:'."\n\n".'%s'."\n\n".'If you did not %s on the %s recently then this message was sent in error, please ignore it.';
+$lang['email_url_body'] = 'Hello,<br /><br />To %s, click <a href="%s">this link</a>.<br /><br />If you did not %s on the %s recently then this message was sent in error, please ignore it.';
+$lang['email_url_altbody'] = 'Hello,'."\n\n".'To %s, visit the following URL:'."\n".' %s'."\n\n".'If you did not %s on the %s recently then this message was sent in error, please ignore it.';
+
 $lang['err_ajax'] = 'Server communication error';
 //$lang['err_baduser'] = 'Missing or unrecognised user';
 $lang['err_captcha'] = 'The entered captcha text was wrong';
@@ -104,8 +107,7 @@ $lang['function_disabled'] = 'This function has been disabled';
 //$lang['help_address_required'] = '';
 $lang['help_alias'] = 'For identifying and selecting this context at runtime. If left blank, an alias will be derived from tne name.';
 $lang['help_attack_mitigation_span'] = 'Length of time that login-attempt data are retained, something like \'10 minutes\' or \'1 day\' (unquoted, in english that <a href="http://php.net/manual/en/datetime.formats.relative.php">PHP understands</a>)';
-$lang['help_attempts_before_ban'] = 'After this many failed attemts, a user is locked-out for the specified \'attack-protection interval\'. 0 disables this protection.';
-$lang['help_attempts_before_action'] = 'After this many failed attemts, a user is required to provide extra authentication. 0 disables this protection.';
+$lang['help_ban_count'] = 'After this many failed attemts, a user is locked-out for the specified \'attack-protection interval\'. 0 disables this protection.';
 $lang['help_contact'] = 'Must be a valid email address';
 $lang['help_contact2'] = 'Typically an email address or cell/mobile phone number';
 $lang['help_context_address'] = 'Above information about sender name appplies here too';
@@ -141,6 +143,7 @@ $lang['help_password_forget'] = 'Length of time between forced password-resets, 
 $lang['help_password_min_score'] = 'Number 1..5 broadly indicating the difficulty of cracking a password (1 is easiest)';
 $lang['help_password_new'] = 'When provided, must have length &gt;= %d and complexity-score &gt= %d';
 $lang['help_password_reset'] = 'Require password to be renewed at next login';
+$lang['help_raise_count'] = 'After this many failed attempts, a user is required to provide extra authentication. 0 disables this protection.';
 $lang['help_recaptcha_key'] = 'Token obtained from <a href="https://www.google.com/recaptcha/admin#list">Google</a>. If this is not provided, level 1 authentication will be much less friendly.';
 $lang['help_recaptcha_secret'] = 'Private/secret token complementing the public token entered above';
 $lang['help_request_key_expiration'] = 'Length of time before sent confirmation-requests expire, something like \'10 minutes\' or \'1 day\' (unquoted, in english that <a href="http://php.net/manual/en/datetime.formats.relative.php">PHP understands</a>)';
@@ -205,10 +208,10 @@ $lang['previous'] = 'Previous';
 $lang['proceed'] = 'Proceed';
 
 $lang['really_uninstall'] = 'Are you sure you want to uninstall the Authenticator module?';
-$lang['register_success'] = 'Account created. Activation message sent to email address.';
-//$lang['register_success_emailmessage_suppressed'] = 'Account created';
-$lang['reset_created'] = 'Password reset request has been created';
-$lang['reset_sent'] = 'Password reset message sent to email address';
+$lang['register_challenged'] = 'Account activation message sent to recorded address';
+$lang['register_success'] = 'Account created successfully';
+//$lang['reset_created'] = 'Password reset request has been created';
+$lang['reset_challenged'] = 'Password reset message sent to recorded address';
 $lang['reregister'] = 'After so many failed attempts, you might like to re-register.';
 $lang['reregister2'] = 'Too many failed attempts. You\'ll need to re-register.';
 $lang['reset'] = 'Reset';
@@ -237,8 +240,7 @@ $lang['title_addressable'] = 'Contactable';
 $lang['title_address_required'] = 'Each user must provide her/his contact-address';
 $lang['title_alias'] = 'Alias';
 $lang['title_attack_mitigation_span'] = 'Attack-protection interval';
-$lang['title_attempts_before_ban'] = 'Login (etc) attempts before block';
-$lang['title_attempts_before_action'] = 'Login (etc) attempts before extra check';
+$lang['title_ban_count'] = 'Login (etc) attempts before block';
 $lang['title_captcha'] = 'I\'m not a robot';
 $lang['title_captcha2'] = 'enter the displayed text';
 $lang['title_captcha3'] = 'Captcha text';
@@ -287,6 +289,7 @@ $lang['title_password_min_score'] = 'Password-complexity minimum score';
 $lang['title_password_new'] = 'Replacement password';
 $lang['title_password_reset'] = 'Password reset';
 $lang['title_pending_reset'] = 'Reset<br />flagged';
+$lang['title_raise_count'] = 'Login (etc) attempts before extra attention';
 $lang['title_recaptcha_key'] = 'reCaptcha public key';
 $lang['title_recaptcha_secret'] = 'reCaptcha private key';
 $lang['title_register'] = 'Registered';
@@ -300,7 +303,7 @@ $lang['title_userfull'] = 'User properties';
 $lang['title_usersfor'] = 'Registered users for \\\'%s\\\'';
 
 $lang['upload'] = 'Upload';
-$lang['user_blocked'] = 'You are currently locked out of the system';
+$lang['user_blocked'] = 'You are locked out of the system for a while. Try again later.';
 $lang['user_challenged'] = 'You are due to provide some further information';
 $lang['users'] = 'Users';
 
