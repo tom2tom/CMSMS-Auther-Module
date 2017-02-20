@@ -35,6 +35,8 @@ EOS;
  case self::LOSEC:
  case self::MIDSEC:
  case self::CHALLENGED:
+	$hidden[] = $mod->CreateInputHidden($id, 'phase', 'who'); //TODO or 'pass' iff ?
+
 	$one = new \stdClass();
 	if ($cdata['email_login']) {
 		$one->title = $mod->Lang('current_typed', $mod->Lang('title_email'));
@@ -56,6 +58,10 @@ EOS;
 	} else {
 		$one->extra = $mod->Lang('lostpass_renew');
 	}
+	$elements[] = $one;
+	$one = new \stdClass();
+	$one->prehtml = '<div id="authchange" style="display:none">';
+	$one->posthtml = '<p id="authfeedback" class="authtitle"></p>';
 	$elements[] = $one;
 
 	$same = $mod->Lang('blank_same');
@@ -82,6 +88,9 @@ EOS;
 	}
 	$one->input = $this->GetInputText($id, 'name', 'name', $tabindex++, '', 20, 32);
 	$one->extra = $same;
+	if ($logtype == 0) {
+		$one->posthtml = '</div>';
+	}
 	$elements[] = $one;
 
 	if ($logtype == 1) {
@@ -98,6 +107,7 @@ EOS;
 		if ($cdata['email_required']) {
 			$one->extra .= '<br />'.$mod->Lang('help_email_required');
 		}
+		$one->posthtml = '</div>';
 		$elements[] = $one;
 	} else {
 		$optcontact = 1;
@@ -222,7 +232,6 @@ EOS;
  $('#authsubmit').click(function() {
   var btn = this;
   setTimeout(function() {
-   //document.body.style.cursor = 'wait';
    btn.disabled = true;
   },10);
   var valid = true,
@@ -279,25 +288,23 @@ EOS;
        \$el.trigger('submit');
        break;
       case 200:
-       ajaxresponse(jqXHR.responseJSON,somemsg);
+       ajaxresponse(jqXHR.responseJSON,'');
+       $('#authchange').css('display','block');
        break;
       default:
        break;
      }
      $(btn).prop('disabled',false);
-     //document.body.style.cursor = 'auto';
     },
     error: function(jqXHR, status, errmsg) {
      details = JSON.parse(jqXHR.responseText);
      ajaxresponse (details, errmsg);
      $(btn).prop('disabled',false);
-     //document.body.style.cursor = 'auto';
     }
    });
   } else {
     setTimeout(function() {
      $(btn).prop('disabled',false);
-     //document.body.style.cursor = 'auto';
     },10);
   }
   return false;
