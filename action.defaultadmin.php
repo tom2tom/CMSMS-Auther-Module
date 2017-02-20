@@ -16,8 +16,8 @@ if (!function_exists('getModulePrefs')) {
 	'masterpass',				4, 2, 1,
 	'security_level',			4, 0, 0,
 
-	'login_max_length',			1, 3, 0,
 	'login_min_length',			1, 3, 0,
+	'login_max_length',			1, 3, 0,
 	'email_login',				0, 0, 0,
 
 	'password_min_length',		1, 3, 1,
@@ -35,8 +35,8 @@ if (!function_exists('getModulePrefs')) {
 	'email_subdomains',			1, 60, 0,
 	'email_topdomains',			1, 60, 0,
 
-	'attempts_before_action',	1, 3, 0,
-	'attempts_before_ban',		1, 3, 0,
+	'raise_count',				1, 3, 0,
+	'ban_count',				1, 3, 0,
 	'attack_mitigation_span',	1, 16, 1,
 	'request_key_expiration',	1, 16, 1,
 
