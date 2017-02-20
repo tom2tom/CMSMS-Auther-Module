@@ -21,6 +21,7 @@ class Session
 	const CHALL_ACTIV = 61;
 	const CHALL_CHANGE = 62;
 	const CHALL_RESET = 63; //c.f. RESET_CHALLENGED?
+	const CHALL_DELETE = 64;
 	const STAT_ALLOW = 180;
 	const STAT_VERIFY = 181;
 	const STAT_CHALLENGE = 182;
@@ -450,12 +451,12 @@ class Session
 		$sql = 'SELECT COUNT(1) AS tries FROM '.$this->pref.'module_auth_attempts WHERE ip=?';
 		$tries = $this->db->GetOne($sql, [$ip]);
 
-		$val = (int)$this->GetConfig('attempts_before_action');
+		$val = (int)$this->GetConfig('raise_count');
 		if ($val > 0 && $tries < $val) {
 			return self::STAT_ALLOW;
 		}
 
-		$val = (int)$this->GetConfig('attempts_before_ban');
+		$val = (int)$this->GetConfig('ban_count');
 		if ($val > 0 && $tries < $val) {
 			return self::STAT_VERIFY;
 		}
