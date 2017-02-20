@@ -140,7 +140,7 @@ if (!$msgs) {
 		$db->Execute($sql, [$enc, $token]);
 //TODO initiate challenge
 	} else {
-		$res = $afuncs->addUser($flds['publicid'], $pw, $flds['name'], $flds['address'], []);
+		$res = $afuncs->addUser($flds['publicid'], $pw, $flds['name'], $flds['address'], []); //no $token??
 		if ($res[0]) {
 			$uidnew = $res[1]; //for use by includer
 			$afuncs->ResetAttempts();
