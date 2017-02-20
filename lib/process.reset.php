@@ -45,14 +45,14 @@ switch ($lvl) {
 		$fake = !$res[0];
 		$sdata = $res[1];
 		if (!$res[0]) {
-			$n = $cdata['attempts_before_ban'];
+			$n = $cdata['ban_count'];
 			if ($sdata['attempts'] >= $n) {
 //TODO status 'blocked'
 				$vfuncs->SetForced(1, FALSE, $login, $cdata['id']);
 				$forcereset = TRUE;
 				$msgs[] = $mod->Lang('reregister2');
 			} else {
-				$n = $cdata['attempts_before_action'];
+				$n = $cdata['raise_count'];
 				if ($sdata['attempts'] >= $n) {
 					$msgs[] = $mod->Lang('reregister');
 // SILENT		} else {
