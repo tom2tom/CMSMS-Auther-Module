@@ -25,7 +25,7 @@ if (isset($params['close'])) {
 	if (!$pmod) exit;
 	if (!empty($params['sel'])) {
 		$utils = new Auther\Utils();
-		$utils->DeleteUser($params['sel']);
+		$utils->DeleteUser($this, $params['sel']);
 	}
 } elseif (isset($params['import'])) {
 	if (!$pmod) {
