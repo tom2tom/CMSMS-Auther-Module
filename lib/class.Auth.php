@@ -359,13 +359,13 @@ class Auth extends Session
 
 	/**
 	* Records a challenge of the specified type
-	* This is a low-level method, without blockage check.
-	* The 'data' table-field remains empty.
+	* This is a low-level method, without blockage check
 	* @login: string user identifier
-	* @type: string 'reset','activate' or 'change'
+	* @type: string 'reset','activate','change' or 'delete'
+	* @data: optional string, context-specific data to be cached, default = NULL
 	* Returns: array [0]=boolean for success, [1]=message or '' or challenge-token
 	*/
-	protected function addChallenge($login, $type)
+	protected function addChallenge($login, $type, $data=NULL)
 	{
 		switch ($type) {
 		 case 'activate':
@@ -376,6 +376,9 @@ class Auth extends Session
 			break;
 		 case 'reset':
 			$itype = parent::CHALL_RESET;
+			break;
+		 case 'delete':
+			$itype = parent::CHALL_DELETE;
 			break;
 		 default:
 			return [FALSE, $this->mod->Lang('system_error', '#02')];
@@ -423,9 +426,9 @@ class Auth extends Session
 		$dt->modify('+'.$val);
 		$expiretime = $dt->getTimestamp();
 
-		$sql = 'INSERT INTO '.$this->pref.'module_auth_cache (token,user_id,expire,lastmode) VALUES (?,?,?,?)';
+		$sql = 'INSERT INTO '.$this->pref.'module_auth_cache (token,user_id,expire,lastmode,data) VALUES (?,?,?,?,?)';
 
-		if (!$this->db->Execute($sql, [$token, $uid, $expiretime, $itype])) {
+		if (!$this->db->Execute($sql, [$token, $uid, $expiretime, $itype, $data])) {
 			return [FALSE, $this->mod->Lang('system_error', '#04')];
 		}
 
@@ -471,11 +474,11 @@ class Auth extends Session
 
 	/**
 	* Sends an email challenge
-	* @type: string 'reset','activate' or 'change' used to specify lang keys
-	* @token: optional string to be advised instead of URL, default = FALSE
+	* @type: string 'reset','activate','change' or 'delete' used to specify lang keys
+	* @token: optional string to be delivered to user instead of an URL, default = FALSE
 	* Returns: array [0]=boolean for success, [1]=message or ''
 	*/
-	protected function challengeMessage($type, $token=FALSE)
+	public function challengeMessage($type, $token=FALSE)
 	{
 		if ($this->mod->before20) {
 			$mlr = \cms_utils::get_module('CMSMailer');
@@ -498,24 +501,23 @@ class Auth extends Session
 
 		$mlr->IsHTML(TRUE);
 
-		$key = 'email_'.$type.'_subject';
 		$site = $this->GetConfig('context_site');
-		$mlr->SetSubject($this->mod->Lang($key, $site));
+		$part = $this->Lang('email_subject_'.$type);
+		$mlr->SetSubject($this->mod->Lang('email_subject', $site, $part));
+
+		$part = $this->Lang('email_do_'.$type);
+		$part2 = $this->Lang('email_request_'.$type);
 
 		if ($token) {
-			$key = 'email_'.$type.'pass_body';
-			$mlr->SetBody($this->mod->Lang($key, $token, $site));
-			$key = 'email_'.$type.'pass_altbody';
-			$mlr->SetAltBody($this->mod->Lang($key, $token, $site));
+			$mlr->SetBody($this->mod->Lang('email_token_body', $part, $token, $part2, $site));
+			$mlr->SetAltBody($this->mod->Lang('email_token_altbody', $part, $token, $part2, $site));
 		} else {
 			//construct frontend-url (so no admin login is needed)
 			$u = $this->mod->create_url('cntnt01', 'validate', '', ['cauthc'=>$token]);
 			$url = strtr($u, '&amp;', '&');
 
-			$key = 'email_'.$type.'url_body';
-			$mlr->SetBody($this->mod->Lang($key, $url, $site));
-			$key = 'email_'.$type.'url_altbody';
-			$mlr->SetAltBody($this->mod->Lang($key, $url, $site));
+			$mlr->SetBody($this->mod->Lang('email_url_body', $part, $url, $part2, $site));
+			$mlr->SetAltBody($this->mod->Lang('email_url_altbody', $part, $url, $part2, $site));
 		}
 
 		if ($mlr->Send()) {
@@ -528,14 +530,14 @@ class Auth extends Session
 		}
 	}
 
-	/**
+	/* *
 	* If action-status and security-parameters warrant, sets up a password-reset
 	*  challenge, including  confirmation email if relevant
 	* @login: string user identifier
 	* @token: optional plaintext string to be sent to user instead of an URL, default = FALSE
 	* Returns: array [0]=boolean for success, [1]=message
 	*/
-	public function requestReset($login, $token=FALSE)
+/*	public function requestReset($login, $token=FALSE)
 	{
 		switch ($this->GetStatus()) {
 		 case parent::STAT_BLOCK:
@@ -548,21 +550,20 @@ class Auth extends Session
 		switch ($val) {
 		 case Setup::MIDSEC:
 		 case Setup::CHALLENGED:
-			$status = $this->addChallenge($login, 'reset');
+			//TODO cache all parameters - $token at least
+		 	$data = NULL;
+			$status = $this->addChallenge($login, 'reset', $data);
 			if (!$status[0]) {
 				$this->AddAttempt();
 				return $status;
 			}
-			//TODO cache all parameters - $token at least
-			$sql = 'UPDATE '.$this->pref.'module_auth_cache SET data=? WHERE token=?';
-			$this->db->Execute($sql, [NULL, $status[1]]);
 			//TODO other prescribed sorts of challenge
-			$res = $this->challengeMessage('reset', $token); //TODO is this rediscoverable?
+			$res = $this->challengeMessage('reset', $token); //TODO ensure this is rediscoverable
 			if (!$res[0]) {
 				$this->deleteChallenge($status[1]);
 				return $res;
 			}
-			$key = 'reset_sent';
+			$key = 'reset_challenged';
 			break;
 		 default:
 			$key = 'noauth';
@@ -570,15 +571,15 @@ class Auth extends Session
 		}
 		return [TRUE, $this->mod->Lang($key)];
 	}
-
-	/**
+*/
+	/* *
 	* If action-status and security-parameters warrant, sets up an account-activation
 	*   challenge, including confirmation email if relevant
 	* @login: string user identifier
 	* @token: optional plaintext string to be sent to user instead of an URL, default = FALSE
 	* Returns: array [0]=boolean for success, [1]=message
 	*/
-	public function requestActivation($login, $token=FALSE)
+/*	public function requestActivation($login, $token=FALSE)
 	{
 		switch ($this->GetStatus()) {
 		 case parent::STAT_BLOCK:
@@ -591,21 +592,20 @@ class Auth extends Session
 		switch ($val) {
 		 case Setup::MIDSEC:
 		 case Setup::CHALLENGED:
-			$status = $this->addChallenge($login, 'activate');
+			//TODO cache all parameters - $token at least
+		 	$data = NULL;
+			$status = $this->addChallenge($login, 'activate', $data);
 			if (!$status[0]) {
 				$this->AddAttempt();
 				return $status;
 			}
-			//TODO cache all parameters - $token at least
-			$sql = 'UPDATE '.$this->pref.'module_auth_cache SET data=? WHERE token=?';
-			$this->db->Execute($sql, [NULL, $status[1]]);
 			//TODO other prescribed sorts of challenge
-			$res = $this->challengeMessage('activate', $token); //TODO is this rediscoverable?
+			$res = $this->challengeMessage('activate', $token); //TODO ensure this is rediscoverable
 			if (!$res[0]) {
 				$this->deleteChallenge($status[1]);
 				return $res;
 			}
-			$key = 'activation_sent';
+			$key = 'activation_challenged';
 			break;
 		 default:
 			$key = 'noauth';
@@ -613,6 +613,50 @@ class Auth extends Session
 		}
 		return [TRUE, $this->mod->Lang($key)];
 	}
+*/
+	//~~~~~~~~~~~~~ RESPONSES ~~~~~~~~~~~~~~~~~
+
+	/**
+	* Activates a user's account after a valid challenge-response
+	* @token: string 24-byte token
+	* Returns: array [0]=boolean for success, [1]=message or ''
+	*/
+	public function activate($token)
+	{
+		switch ($this->GetStatus()) {
+		 case parent::STAT_BLOCK:
+			return [FALSE, $this->mod->Lang('user_blocked')];
+		 case parent::STAT_CHALLENGE:
+			return [FALSE, $this->mod->Lang('user_challenged')];
+		}
+
+		if (strlen($token) !== 24) {
+			$this->AddAttempt();
+			return [FALSE, $this->mod->Lang('activationkey_invalid')];
+		}
+
+		$data = $this->getChallenge($token, 'activate');
+
+		if (!$data[0]) {
+			$this->AddAttempt();
+			return $data;
+		}
+
+		$userdata = $this->getUserBase($data['uid']);
+		if ($userdata['active']) {
+			$this->AddAttempt();
+			$this->deleteChallenge($token);
+			return [FALSE, $this->mod->Lang('system_error', '#07')];
+		}
+
+		$sql = 'UPDATE '.$this->pref.'module_auth_users SET active=1 WHERE id=?';
+		$this->db->Execute($sql, [$data['uid']]);
+
+		$this->deleteChallenge($token);
+
+		return [TRUE, $this->mod->Lang('activation_success')];
+	}
+
 
 	//~~~~~~~~~~~~~ USER OPERATIONS ~~~~~~~~~~~~~~~~~
 
@@ -624,53 +668,38 @@ class Auth extends Session
 	* @repeatpass: plaintext string
 	* @address: plaintext string
 	* @params: optional array of extra user-parameters for self::addUser() default = empty
+	* @token: optional string to be delivered to the user instead of URL during challenge default = FALSE
 	* Returns: array [0]=boolean for success, [1]=message (possibly multi-line) or ''
 	*/
-	public function registerUser($login, $password, $repeatpass, $name, $address, $params=[])
+	public function registerUser($login, $password, $repeatpass, $name, $address, $params=[], $token=FALSE)
 	{
-		switch ($this->GetStatus()) {
-		 case parent::STAT_BLOCK:
-			return [FALSE, $this->mod->Lang('user_blocked')];
-		 case parent::STAT_CHALLENGE:
-			return [FALSE, $this->mod->Lang('user_challenged')];
-		 case parent::STAT_VERIFY:
-			if (0) { //TODO FACTOR
-				return [FALSE, $this->mod->Lang('user_verify_failed')];
-			}
-			break;
-		}
-
-		$status = $this->validateAll([
-		'publicid' => $login,
-		'password' => $password,
-		'name' => $name,
-		'address' => $address
-		]);
-		if (!$status[0]) {
-			return $status;
-		}
-
 		if ($password !== $repeatpass) {
 			return [FALSE, $this->mod->Lang('password_nomatch')];
 		}
 
-		$status = $this->addUser($login, $password, $name, $email, $params);
-		if (!$status[0]) {
-			return $status;
+		$res = $this->addUser($login, $password, $name, $address, $params, $token);
+		if (!$res[0]) {
+			return $res;
 		}
 
-		$parms = []; //TODO API
-		$this->mod->SendEvent('OnRegister', $parms);
-
-		$msg = func(LEVEL) ?
-		 $this->mod->Lang('register_success') :
-		 $this->mod->Lang('register_success_message_suppressed');
-		return [TRUE, $msg];
+		$val = $this->GetConfig('security_level');
+		switch ($val) {
+		 case Setup::MIDSEC:
+		 case Setup::CHALLENGED:
+			$key = 'register_challenged';
+			break;
+		 default:
+			$parms = []; //TODO API
+			$this->mod->SendEvent('OnRegister', $parms);
+			$key = 'register_success';
+			break;
+		}
+		return [TRUE, $this->mod->Lang($key)];
 	}
 
 	/**
-	* Checks whether @login is recorded for current context and active, and
-	*  @password (if not FALSE) is valid. A session is created/updated as appropriate
+	* Checks whether @login is recorded for current context and (if @active = TRUE) active,
+	*  and @password (if not FALSE) is valid. A session is created/updated as appropriate.
 	* @login: string user identifier
 	* @password: optional plaintext string, or FALSE to skip password-validation, default = FALSE
 	* @active: optional boolean whether to check for active user, default TRUE
@@ -729,44 +758,30 @@ class Auth extends Session
 	}
 
 	/**
-	* Activates a user's account
-	* @token: string 24-byte token
-	* Returns: array [0]=boolean for success, [1]=message or ''
+	* Checks whether @login is recorded for current context and (if @active = TRUE)
+	*  active, and @password (if not FALSE) is valid. As distinct from isRegistered(),
+	*  no session is involved, and no delay.
+	* @login: string user identifier
+	* @password: optional plaintext string, or FALSE to skip password-validation, default = FALSE
+	* @active: optional boolean whether to check for active user, default TRUE
+	* Returns: boolean indicating success
 	*/
-	public function activate($token)
+	public function isKnown($login, $password=FALSE, $active=TRUE)
 	{
-		switch ($this->GetStatus()) {
-		 case parent::STAT_BLOCK:
-			return [FALSE, $this->mod->Lang('user_blocked')];
-		 case parent::STAT_CHALLENGE:
-			return [FALSE, $this->mod->Lang('user_challenged')];
+		$uid = $this->getUserID($login);
+		if ($uid) {
+			$userdata = $this->getUserBase($uid);
+			if ($userdata) {
+				if ($password && !$this->comparePasswords($uid, $password)) {
+					return FALSE;
+				}		
+				if ($active && !$userdata['active']) {
+					return FALSE;
+				}
+				return TRUE;
+			}
 		}
-
-		if (strlen($token) !== 24) {
-			$this->AddAttempt();
-			return [FALSE, $this->mod->Lang('activationkey_invalid')];
-		}
-
-		$data = $this->getChallenge($token, 'activate');
-
-		if (!$data[0]) {
-			$this->AddAttempt();
-			return $data;
-		}
-
-		$userdata = $this->getUserBase($data['uid']);
-		if ($userdata['active']) {
-			$this->AddAttempt();
-			$this->deleteChallenge($token);
-			return [FALSE, $this->mod->Lang('system_error', '#07')];
-		}
-
-		$sql = 'UPDATE '.$this->pref.'module_auth_users SET active=1 WHERE id=?';
-		$this->db->Execute($sql, [$data['uid']]);
-
-		$this->deleteChallenge($token);
-
-		return [TRUE, $this->mod->Lang('account_activated')];
+		return FALSE;
 	}
 
 	/**
@@ -1124,7 +1139,7 @@ class Auth extends Session
 	* @password: plaintext string
 	* @name: string user name
 	* @address: email or other type of address for messages, possibly empty
-	* @active: optional flag (1/0) indicating user's active-state, default = 1
+	* @active: optional integer (1/0) indicating user's active-state, default = 1
 	* @params: optional array of additional params default = empty
 	* Returns: array [0]=boolean for success, [1]=message or ''
 	*/
@@ -1160,7 +1175,7 @@ class Auth extends Session
 	}
 
 	/**
-	* If action-status warrants, records a new user, without any parameter validation
+	* If action-status warrants, records a new user, after parameter validation
 	* @login: string user identifier
 	* @password: plaintext string
 	* @name: string user name
@@ -1178,27 +1193,36 @@ class Auth extends Session
 			return [FALSE, $this->mod->Lang('user_challenged')];
 		}
 
+		$res = $this->validateAll([
+			'publicid' => $login,
+			'password' => $password,
+			'name' => $name,
+			'address' => $address
+		]);
+		if (!$res[0]) {
+			return $res;
+		}
+
 		$val = $this->GetConfig('security_level');
 		switch ($val) {
 		 case Setup::MIDSEC:
 		 case Setup::CHALLENGED:
-			$status = $this->addChallenge($login, 'activate');
+			//TODO cache all parameters - incl $token
+			$data = NULL;
+			$status = $this->addChallenge($login, 'activate', $data);
 			if (!$status[0]) {
 				return $status;
 			}
-			//TODO cache all parameters - incl $token
-			$sql = 'UPDATE '.$this->pref.'module_auth_cache SET data=? WHERE token=?';
-			$this->db->Execute($sql, [NULL, $status[1]]);
 			//TODO other prescribed sorts of challenge
-			$res = $this->challengeMessage('activate', $token); //TODO is this rediscoverable?
-			if (!$res[0]) {
-				$this->deleteChallenge($status[1]);
-				return $res;
+			$res = $this->challengeMessage('activate', $token); //TODO ensure this is rediscoverable
+			if ($res[0]) {
+				return [TRUE, ''];
 			}
-			return [TRUE, ''];
+			$this->deleteChallenge($status[1]);
+			return $res;
+		 default:
+			return $this->addUserReal($login, $password, $name, $address, 1, $params);
 		}
-
-		return $this->addUserReal($login, $password, $name, $address, 1, $params);
 	}
 
 	/**
@@ -1256,12 +1280,12 @@ class Auth extends Session
 
 	/**
 	* If action-status warrants, changes property-values (not password) for a user,
-	*  without new-parameter validation
+	*  after new-parameter validation
 	* @oldlogin: string current user identifier
 	* @password: string plaintext current password
-	* @login: string new user identifier maybe ignored
-	* @name: string user name maybe ignored
-	* @address: email or other type of address for messages, maybe ignored
+	* @login: string new user identifier ignored if FALSE
+	* @name: string user name maybe ignored if FALSE
+	* @address: email or other type of address for messages, ignored if FALSE
 	* @active: optional integer (0/1) or FALSE, default = FALSE
 	* @params: optional array of additional parameters, default = empty
 	* @token: optional string to be delivered to user instead of URL during challenge
@@ -1276,48 +1300,70 @@ class Auth extends Session
 			return [FALSE, $this->mod->Lang('user_challenged')];
 		}
 
-		$uid = $this->getUserID($oldlogin);
-		if (!$uid) {
-			$this->AddAttempt();
-			return [FALSE, $this->mod->Lang()];
+		$res = $this->isRegistered($oldlogin, $password, FALSE);
+		if (!$res[0]) {
+			return $res;
 		}
-		$status = $this->matchPassword($uid, $password);
-		if (!$status[0]) {
-			$this->AddAttempt();
-			return $status;
+
+		if ($login === FALSE) {
+			$login = $oldlogin;
+		}
+		$data = FALSE;
+		if ($name === FALSE) {
+			$data = $this->getUserProperties($oldlogin, ['name','address'], FALSE);	
+			$name = $data['name'];
+		}
+		if ($address === FALSE) {
+			if (!$data) {
+				$data = $this->getUserProperties($oldlogin, 'address', FALSE);	
+			}
+			$address = $data['address'];
+		}
+		$res = $this->validateAll([
+			'publicid' => $login,
+			'password' => $password,
+			'name' => $name,
+			'address' => $address
+		]);
+		if (!$res[0]) {
+			return $res;
 		}
 
 		$val = $this->GetConfig('security_level');
 		switch ($val) {
 		 case Setup::MIDSEC:
 		 case Setup::CHALLENGED:
-			$status = $this->addChallenge($oldlogin, 'change');
+			//TODO cache all parameters incl $token
+		 	$data = NULL;
+			$status = $this->addChallenge($oldlogin, 'change', $data);
 			if (!$status[0]) {
 				return $status;
 			}
-			//TODO cache all parameters incl $token
-			$sql = 'UPDATE '.$this->pref.'module_auth_cache SET data=? WHERE token=?';
-			$this->db->Execute($sql, [NULL, $status[1]]);
 			//TODO other prescribed sorts of challenge
-			$res = $this->challengeMessage('change', $token); //TODO is this rediscoverable?
-			if (!$res[0]) {
-				$this->deleteChallenge($status[1]);
-				return $res;
+			$res = $this->challengeMessage('change', $token);  //TODO ensure this is rediscoverable
+			if ($res[0]) {
+				return [TRUE, ''];
 			}
-			return [TRUE, ''];
+			$this->deleteChallenge($status[1]);
+			return $res;
+		 default:
+			return $this->changeUserReal($oldlogin, $login, $name, $address, $active, $params);
 		}
-
-		return $this->changeUserReal($oldlogin, $login, $name, $address, $active, $params);
 	}
 
 	/**
-	* Deletes data for @uid from all tables, sends event
-	* c.f. Utils::DeleteUser, Utils::DeleteContextUsers for admin use
-	* @uid: int user enumerator
+	* Deletes data for @login from all tables, sends event
+	* c.f. Utils->DeleteUser, Utils->DeleteContextUsers for admin use
+	* @login: string user identifier
 	* Returns: array [0]=boolean for success, [1]=message or ''
 	*/
-	public function deleteUserReal($uid)
+	public function deleteUserReal($login)
 	{
+		$uid = $this->getUserID($login);
+		if (!$uid) {
+			return [FALSE, $this->mod->Lang('invalid_type', $this->mod->Lang('title_user'))];
+		}
+
 		$sql = 'DELETE FROM '.$this->pref.'module_auth_users WHERE id=?';
 
 		if (!$this->db->Execute($sql, [$uid])) {
@@ -1337,13 +1383,14 @@ class Auth extends Session
 	}
 
 	/**
-	* Deletes data for @uid from all tables, if the user is not 'blocked'
-	* c.f. Utils::DeleteUser, Utils::DeleteContextUsers for admin use
-	* @uid: int user enumerator
+	* If action-status warrants, deletes data for @login from all tables
+	* c.f. Utils->DeleteUser, Utils->DeleteContextUsers for admin use
+	* @login: string user identifier
 	* @password: string plaintext
+	* @token: optional string to be delivered to user instead of URL during challenge
 	* Returns: array [0]=boolean for success, [1]=message
 	*/
-	public function deleteUser($uid, $password)
+	public function deleteUser($login, $password, $token=FALSE)
 	{
 		switch ($this->GetStatus()) {
 		 case parent::STAT_BLOCK:
@@ -1357,33 +1404,39 @@ class Auth extends Session
 			break;
 		}
 
-		$status = $this->matchPassword($uid, $password);
-
-		if (!$status[0]) {
-			$this->AddAttempt();
-			return $status;
+		$res = $this->isRegistered($login, $password, FALSE);
+		if (!$res[0]) {
+			return $res;
 		}
 
-		$userdata = $this->getUserBase($uid);
-
-		if (!$userdata) {
-			$this->AddAttempt();
-			return [FALSE, $this->mod->Lang('err_parm')];
+		$val = $this->GetConfig('security_level');
+		switch ($val) {
+		 case Setup::MIDSEC:
+		 case Setup::CHALLENGED:
+			//TODO cache all parameters incl $token
+		 	$data = NULL;
+			$status = $this->addChallenge($login, 'delete', $data);
+			if (!$status[0]) {
+				return $status;
+			}
+			//TODO other prescribed sorts of challenge
+			$res = $this->challengeMessage('delete', $token);  //TODO ensure this is rediscoverable
+			if ($res[0]) {
+				return [TRUE, $this->mod->Lang('delete_challenged')];
+			}
+			$this->deleteChallenge($status[1]);
+			return $res;
+		 default:
+			$res = $this->deleteUserReal($login);
+			if ($res[0]) {
+				return [TRUE, $this->mod->Lang('delete_success')];
+			}
+			return $res;
 		}
-
-		if (!$this->doPasswordCheck($password, $userdata['password']/*, $tries TODO*/)) {
-			$this->AddAttempt();
-			return [FALSE, $this->mod->Lang('password_incorrect')];
-		}
-
-		$res = $this->deleteUserReal($uid);
-		if ($res[0]) {
-			return [TRUE, $this->mod->Lang('account_deleted')];
-		}
-		return $res;
 	}
 
 	//~~~~~~~~~~~~~ PASSWORD OPERATIONS ~~~~~~~~~~~~~~~~~
+	// by design, there's no method to set a raw/hashed password value directly
 
 	/**
 	* Gets whether password-recovery is supported
