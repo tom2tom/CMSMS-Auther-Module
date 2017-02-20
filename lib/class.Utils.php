@@ -68,18 +68,20 @@ class Utils
 			$sql2 = 'DELETE FROM '.$pre.'module_auth_contexts WHERE id=?';
 			$args = [$context];
 		}
+		//TODO collect event-parms for [each] $user
 		$db = \cmsms()->GetDB();
 		$db->Execute($sql1, $args);
 		$db->Execute($sql2, $args);
+		//TODO $mod->SendEvent('OnDeregister', $parms); for [each] $user
 	}
 
 	/**
 	DeleteContextUsers:
+	@mod: reference to current Auther-module object
 	@context: numeric context identifier, or array of them
 	*/
-	public function DeleteContextUsers($context)
+	public function DeleteContextUsers(&$mod, $context)
 	{
-		//TODO c.f. Auth::deleteUserReal($uid): extra table(s), event
 		$pre = \cms_db_prefix();
 		if (is_array($context)) {
 			$fillers = str_repeat('?,', count($context)-1);
@@ -91,18 +93,21 @@ class Utils
 			$sql2 = 'DELETE FROM '.$pre.'module_auth_cache WHERE context_id=?';
 			$args = [$context];
 		}
+		//TODO collect event-parms for [each] $user
 		$db = \cmsms()->GetDB();
 		$db->Execute($sql, $args);
 		$db->Execute($sql2, $args);
+		//TODO $mod->SendEvent('OnDeregister', $parms); for [each] $user
 	}
 
 	/**
 	DeleteUser:
+	c.f. Auth->deleteUserReal($uid) which is more for external use
+	@mod: reference to current Auther-module object
 	@user: numeric user identifier, or array of them
 	*/
-	public function DeleteUser($user)
+	public function DeleteUser(&$mod, $user)
 	{
-		//TODO c.f. Auth::deleteUserReal($uid): extra table(s), event
 		$pre = \cms_db_prefix();
 		if (is_array($user)) {
 			$fillers = str_repeat('?,', count($user)-1);
@@ -114,9 +119,11 @@ class Utils
 			$sql2 = 'DELETE FROM '.$pre.'module_auth_cache WHERE user_id=?';
 			$args = [$user];
 		}
+		//TODO collect event-parms for [each] $user
 		$db = \cmsms()->GetDB();
 		$db->Execute($sql, $args);
 		$db->Execute($sql2, $args);
+		//TODO $mod->SendEvent('OnDeregister', $parms); for [each] $user
 	}
 
 	/**
