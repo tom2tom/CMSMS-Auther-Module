@@ -28,8 +28,8 @@ if (!function_exists('getContextProperties')) {
 
 	'security_level',		4, 0, 0,
 
-	'login_max_length',		1, 3, 0,
 	'login_min_length',		1, 3, 0,
+	'login_max_length',		1, 3, 0,
 	'email_login',			0, 0, 0,
 
 	'password_min_length',	1, 3, 1,
@@ -42,8 +42,8 @@ if (!function_exists('getContextProperties')) {
 	'email_required',		0, 0, 0,
 	'email_banlist',		0, 0, 0,
 
-	'attempts_before_action',1, 3, 0,
-	'attempts_before_ban',	1, 3, 0,
+	'raise_count',			1, 3, 0,
+	'ban_count',			1, 3, 0,
 	'attack_mitigation_span',1, 16, 0,
 	'request_key_expiration',1, 16, 1,
 
