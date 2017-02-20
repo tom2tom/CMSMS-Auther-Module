@@ -24,8 +24,8 @@ owner I DEFAULT -1,
 default_password B,
 request_key_expiration C(16) DEFAULT \'10 minutes\',
 attack_mitigation_span C(16) DEFAULT \'30 minutes\',
-attempts_before_ban I(1) DEFAULT 10,
-attempts_before_action I(1) DEFAULT 3,
+ban_count I(1) DEFAULT 10,
+raise_count I(1) DEFAULT 3,
 context_site C(40),
 context_sender C(40),
 context_address C(96),
@@ -150,8 +150,7 @@ $this->SetPreference('recaptcha_secret','');
 
 $this->SetPreference('address_required', 1);
 $this->SetPreference('attack_mitigation_span', '30 minutes');
-$this->SetPreference('attempts_before_ban', 10);
-$this->SetPreference('attempts_before_action', 3);
+$this->SetPreference('ban_count', 10);
 $this->SetPreference('context_site', get_site_preference('sitename', 'CMSMS').' Website'); //for email messages
 $this->SetPreference('context_sender', NULL); //ditto
 $this->SetPreference('context_address', NULL); //ditto
@@ -182,6 +181,7 @@ $this->SetPreference('password_forget', '');
 $this->SetPreference('password_min_length', 8);
 $this->SetPreference('password_min_score', 4);
 $this->SetPreference('password_rescue', 1);
+$this->SetPreference('raise_count', 3);
 $this->SetPreference('request_key_expiration', '10 minutes');
 
 $this->SetPreference('security_level', Auther::LOSEC);
