@@ -43,14 +43,44 @@ email_banlist I(1) DEFAULT 1,
 message_charset C(16),
 password_forget C(16),
 password_min_length I(1) DEFAULT 8,
-password_min_score I(1) DEFAULT 4,
+password_min_score I(1) DEFAULT 3,
 security_level I(1) DEFAULT '.Auther::LOSEC.'
 ';
 $tblname = $pref.'module_auth_contexts';
 $sql = $dict->CreateTableSQL($tblname, $flds, $taboptarray);
 $dict->ExecuteSQLArray($sql);
 
-$db->CreateSequence($pref.'module_auth_contexts_seq');
+$db->CreateSequence($tblname.'_seq');
+
+$flds = '
+id I(2) KEY,
+name C(48),
+alias C(16),
+refurl C(48),
+levelbits I(1) DEFAULT 0,
+active I(1) DEFAULT 1,
+';
+$tblname = $pref.'module_auth_challenges';
+$sqlarray = $dict->CreateTableSQL($tblname, $flds, $taboptarray);
+$dict->ExecuteSQLArray($sqlarray);
+
+$db->CreateSequence($tblname.'_seq');
+
+$flds = '
+id I(8) KEY,
+challenge_id I(2),
+context_id I(2),
+user_id I(4),
+name C(48),
+value C('.Auther::LENSHORTVAL.'),
+longvalue B
+';
+$tblname = $pref.'module_auth_chprops';
+$sqlarray = $dict->CreateTableSQL($tblname, $flds, $taboptarray);
+$dict->ExecuteSQLArray($sqlarray);
+
+$db->CreateSequence($tblname.'_seq');
+$db->Execute('CREATE INDEX idx_'.$tblname.' ON '.$tblname.' (challenge_id)');
 
 /* attempts now in cache table
 $flds = '
@@ -120,7 +150,7 @@ $tblname = $pref.'module_auth_users';
 $sql = $dict->CreateTableSQL($tblname, $flds, $taboptarray);
 $dict->ExecuteSQLArray($sql);
 
-$db->CreateSequence($pref.'module_auth_users_seq');
+$db->CreateSequence($tblname.'_seq');
 
 /* support for extra, runtime-specified, user-parameters
 $flds = '
@@ -179,7 +209,7 @@ $this->SetPreference('name_required', 0);
 $this->SetPreference('password_forget', '');
 //$this->SetPreference('password_max_length', 72); //for CRYPT_BLOWFISH
 $this->SetPreference('password_min_length', 8);
-$this->SetPreference('password_min_score', 4);
+$this->SetPreference('password_min_score', 3);
 $this->SetPreference('password_rescue', 1);
 $this->SetPreference('raise_count', 3);
 $this->SetPreference('request_key_expiration', '10 minutes');
