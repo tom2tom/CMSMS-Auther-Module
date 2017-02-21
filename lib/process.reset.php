@@ -41,7 +41,7 @@ switch ($lvl) {
 		$msgs[] = $mod->Lang('missing_type', $mod->Lang('password'));
 		if (!$focus) { $focus = 'passwd'; }
 	} elseif ($login) {
-		$res = $afuncs->isRegistered($login, $pw);
+		$res = $afuncs->IsRegistered($login, $pw);
 		$fake = !$res[0];
 		$sdata = $res[1];
 		if (!$res[0]) {
@@ -69,7 +69,7 @@ switch ($lvl) {
 		$msgs[] = $mod->Lang('newpassword_match');
 		if (!$focus) { $focus = 'passwd2'; }
 	}
-	$res = $afuncs->validatePassword($pw2);
+	$res = $afuncs->ValidatePassword($pw2);
 	if ($res[0]) {
 		$flds['privhash'] = $pw2; //hash when required
 	} else {
@@ -117,8 +117,8 @@ if ($msgs || $fake) {
 		$db->Execute($sql, [$enc, $token]);
 //TODO initiate challenge
 	} else {
-		$uid = $afuncs->getUserID($login);
-		$afuncs->changePassword($uid, $pw, $pw2, $pw2);
+		$uid = $afuncs->GetUserID($login);
+		$afuncs->ChangePassword($uid, $pw, $pw2, $pw2); //TODO $check?
 		$afuncs->ResetAttempts();
 		$vfuncs->SetForced(0, $uid);
 	}

@@ -33,7 +33,7 @@ switch ($lvl) {
 	$login = trim($_POST[$id.'login']);
 	if ($login) {
 		if ($cdata['email_required']) {
-			$afuncs->validateLogin($login); //in case we need either/or check
+			$afuncs->ValidateLogin($login); //in case we need either/or check
 		}
 	} else {
 		$t = ($cdata['email_login']) ? 'title_email':'title_identifier';
@@ -46,7 +46,7 @@ switch ($lvl) {
 		$msgs[] = $mod->Lang('missing_type', $mod->Lang('password'));
 		if (!$focus) { $focus = 'passwd'; }
 	} elseif ($login) {
-		$res = $afuncs->isRegistered($login, $pw);
+		$res = $afuncs->IsRegistered($login, $pw);
 		$fake = !$res[0];
 		$sdata = $res[1];
 		if ($res[0]) {
@@ -75,14 +75,14 @@ switch ($lvl) {
 
 	$t = trim($_POST[$id.'login2']);
 	if ($t) {
-		$res = $afuncs->validateLogin($t);
+		$res = $afuncs->ValidateLogin($t);
 		if ($res[0]) {
 			if (0) { //TODO extra test criterion
-				$res = $afuncs->sensibleLogin($t);
+				$res = $afuncs->SensibleLogin($t);
 			}
 		}
 		if ($res[0]) {
-			if ($afuncs->isLoginTaken($t)) {
+			if ($afuncs->IsLoginTaken($t)) {
 				$msgs[] = $mod->Lang('retry'); //NOT explicit in-use message!
 				$focus = 'login2';
 			} else {
@@ -96,10 +96,10 @@ switch ($lvl) {
 	$t = trim($_POST[$id.'name']);
 	if ($t) {
 		$t = $vfuncs->SanitizeName($t);
-		$res = $afuncs->validateName($t);
+		$res = $afuncs->ValidateName($t);
 		if ($res[0]) {
 			if (0) { //TODO extra test criterion
-				$res = $afuncs->sensibleName($t);
+				$res = $afuncs->SensibleName($t);
 			}
 		}
 		if ($res[0]) {
@@ -111,7 +111,7 @@ switch ($lvl) {
 	}
 	$t = trim($_POST[$id.'contact']);
 	if ($t) {
-		$res = $afuncs->validateAddress($t);
+		$res = $afuncs->ValidateAddress($t);
 		if ($res[0]) {
 			$flds['address'] = $t; //crypt if/when needed
 		} else {
@@ -166,7 +166,7 @@ if ($msgs || $fake) {
 		}
 		$fillers = implode(',',$namers);
 		$sql = 'UPDATE '.$pref.'module_auth_users SET '.$fillers.' WHERE id=?';
-		$args[] = $afuncs->getUserID($login);
+		$args[] = $afuncs->GetUserID($login);
 		$db->Execute($sql, [$args]);
 
 		$afuncs->ResetAttempts();

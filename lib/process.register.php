@@ -32,14 +32,14 @@ switch ($lvl) {
 	//common stuff
 	$t = trim($_POST[$id.'login']);
 	if ($t) {
-		$res = $afuncs->validateLogin($t);
+		$res = $afuncs->ValidateLogin($t);
 		if ($res[0]) {
 			if (0) { //TODO extra test criterion
-				$res = $afuncs->sensibleLogin($t);
+				$res = $afuncs->SensibleLogin($t);
 			}
 		}
 		if ($res[0]) {
-			if ($afuncs->isLoginTaken($t)) {
+			if ($afuncs->IsLoginTaken($t)) {
 				$msgs[] = $mod->Lang('retry'); //NOT explicit in-use message!
 				$focus = 'login';
 			} else {
@@ -57,7 +57,7 @@ switch ($lvl) {
 
 	$pw = ($jax) ? $sent['passwd'] : $_POST[$id.'passwd'];
 	$pw = trim($pw);
-	$res = $afuncs->validatePassword($pw);
+	$res = $afuncs->ValidatePassword($pw);
 	if ($res[0]) {
 		$flds['privhash'] = $pw;
 	} else {
@@ -76,10 +76,10 @@ switch ($lvl) {
 	$t = trim($_POST[$id.'name']);
 	if ($t) {
 		$t = $vfuncs->SanitizeName($t);
-		$res = $afuncs->validateName($t);
+		$res = $afuncs->ValidateName($t);
 		if ($res[0]) {
 			if (0) { //TODO extra test criterion
-				$res = $afuncs->sensibleName($t);
+				$res = $afuncs->SensibleName($t);
 			}
 		}
 		if ($res[0]) {
@@ -97,7 +97,7 @@ switch ($lvl) {
 
 	$t = trim($_POST[$id.'contact']);
 	if ($t) {
-		$res = $afuncs->validateAddress($t);
+		$res = $afuncs->ValidateAddress($t);
 		if ($res[0]) {
 			$flds['address'] = $t; //crypt if/when needed
 		} else {
@@ -140,7 +140,7 @@ if (!$msgs) {
 		$db->Execute($sql, [$enc, $token]);
 //TODO initiate challenge
 	} else {
-		$res = $afuncs->addUser($flds['publicid'], $pw, $flds['name'], $flds['address'], []); //no $token??
+		$res = $afuncs->AddUser($flds['publicid'], $pw, $flds['name'], $flds['address'], []);  //TODO $check?
 		if ($res[0]) {
 			$uidnew = $res[1]; //for use by includer
 			$afuncs->ResetAttempts();

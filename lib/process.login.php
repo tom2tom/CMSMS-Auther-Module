@@ -53,7 +53,7 @@ switch ($lvl) {
 		$msgs[] = $mod->Lang('missing_type', $mod->Lang('password'));
 		if (!$focus) { $focus = 'passwd'; }
 	} elseif ($login) {
-		$res = $afuncs->isRegistered($login, $pw);
+		$res = $afuncs->IsRegistered($login, $pw);
 		$fake = !$res[0];
 		$sdata = $res[1];
 		if ($res[0]) {
@@ -111,7 +111,7 @@ if ($msgs || $fake) {
 		$db->Execute($sql, [$enc, $token]);
 //TODO initiate challenge
 	} else {
-		$afuncs->login($login, $pw, FALSE, TRUE);
+		$afuncs->Login($login, $pw, TRUE);
 		$afuncs->ResetAttempts();
 	}
 }
