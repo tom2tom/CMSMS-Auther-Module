@@ -171,8 +171,10 @@ $db->CreateSequence($pref.'module_auth_userprops_seq');
 $funcs = new Auther\Utils();
 $t = $funcs->RandomString(32, FALSE, FALSE);
 $this->SetPreference('session_salt', $t);
+$t = $funcs->RandomString(10, TRUE, TRUE);
+$t = sprintf(base64_decode('Q3JhY2sgJXMgaWYgeW91IGNhbiE='), $t);
 $funcs = new Auther\Crypter();
-$funcs->encrypt_preference($this, 'masterpass', base64_decode('U3VjayBpdCB1cCwgY3JhY2tlcnMh'));
+$funcs->encrypt_preference($this, 'masterpass', $t);
 $t = base64_decode('Y2hhbmdlfCMkIyR8QVNBUA=='); //score 4
 $funcs->encrypt_preference($this, 'default_password', $t);
 $this->SetPreference('recaptcha_key','');
