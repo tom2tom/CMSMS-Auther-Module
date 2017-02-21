@@ -12,12 +12,30 @@ $pref = cms_db_prefix();
 $tblname = $pref.'module_auth_contexts';
 $sql = $dict->DropTableSQL($tblname);
 $dict->ExecuteSQLArray($sql);
+$db->DropSequence($tblname.'_seq');
+
+$tblname = $pref.'module_auth_challenges';
+$sql = $dict->DropIndexSQL('idx_'.$tblname, $tblname);
+$dict->ExecuteSQLArray($sql);
+$sql = $dict->DropTableSQL($tblname);
+$dict->ExecuteSQLArray($sql);
+$db->DropSequence($tblname.'_seq');
+
+$tblname = $pref.'module_auth_chprops';
+$sql = $dict->DropTableSQL($tblname);
+$dict->ExecuteSQLArray($sql);
+$db->DropSequence($tblname.'_seq');
 
 $tblname = $pref.'module_auth_cache';
 $sql = $dict->DropIndexSQL('idx_'.$tblname, $tblname);
 $dict->ExecuteSQLArray($sql);
 $sql = $dict->DropTableSQL($tblname);
 $dict->ExecuteSQLArray($sql);
+
+$tblname = $pref.'module_auth_users';
+$sql = $dict->DropTableSQL($tblname);
+$dict->ExecuteSQLArray($sql);
+$db->DropSequence($tblname.'_seq');
 
 /*
 $tblname = $pref.'module_auth_userprops';
@@ -26,13 +44,6 @@ $dict->ExecuteSQLArray($sql);
 $sql = $dict->DropTableSQL($tblname);
 $dict->ExecuteSQLArray($sql);
 */
-
-$tblname = $pref.'module_auth_users';
-$sql = $dict->DropTableSQL($tblname);
-$dict->ExecuteSQLArray($sql);
-
-$db->DropSequence($pref.'module_auth_contexts_seq');
-$db->DropSequence($pref.'module_auth_users_seq');
 
 $this->RemovePreference();
 
