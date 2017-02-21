@@ -1,26 +1,33 @@
 <h3>What does this module do?</h3>
-It provides several authentication "services" for use by other parts of the website,
-other modules or (after patching relevant core files) admininstrator access.
+It provides some authentication "services" for use by other parts of the website
+- other modules or (after patching relevant core files) admininstrator access.
 Specifically
 <ul>
 <li>Any number of authorization "contexts" with individual properties</li>
-<li>Several security levels</li>
+<li>Graduated security levels</li>
 <li>[De]registration of users by self and/or administrator</li>
 <li>Bulk [de]registration of users by administrator</li>
 <li>Login/out of users</li>
 <li>User data change by self or administrator</li>
 <li>Lost/forgotten data recovery by users</li>
 <li>Optional email notices/confirmations</li>
-<li>Optional 2-factor authorization</li>
+<li>Optional multi-factor authentication (NOT YET)</li>
 <li>Enhanced data security</li>
-<li>UI objects for inclusion in page/form</li>
+<li>Can generate UI elements for inclusion in a page/form</li>
 </ul>
-So this module is essentially for module-developers and the like.
+So this module is essentially for module-developers and the like. The module includes
+several PHP classes which together provide a robust API for accessing the various
+services described above.
 <h3>How is it used?</h3>
-The module includes several PHP classes which together provide a robust API for
-accessing the various services as described above.<br /><br />
-First, record relevant parameters in a login-context created via the module's
-admin interface, and keep note of that context's identifier.<br /><br />
+First, update the module settings via the admin Settings tab
+<ul>
+<li>Change the default passphrase and default user-password</li>
+<li>Get and record a pair of Google reCaptcha tokens</li>
+<li>Change any other default that is not suitable</li>
+</ul>
+<br />
+Next, record relevant parameters in context(s) created via the admin Contexts tab,
+and keep note of each such context's identifier. Add or import users if relevant.<br /><br />
 Into your php code, add something like the following:
 <pre>
 $somevar = new Auther\Setup();
