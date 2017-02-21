@@ -225,18 +225,16 @@ class Import
 						continue; //too bad about any newly-created context(s)!
 					}
 
-					$this->afuncs->setContext($cid);
+					$this->afuncs->SetContext($cid);
 
-					$res = $this->afuncs->validateLogin($data['publicid']);
-					$save = $res[0];
-					$res = $this->afuncs->validatePassword($data['privhash']);
-					$save = $save && $res[0];
- 					$res = $this->afuncs->validateName($data['name']);
-					$save = $save && $res[0];
-					$res = $this->afuncs->validateAddress($data['address']);
-					$save = $save && $res[0];
+					$res = $this->afuncs->ValidateAll([
+						'publicid'=>$data['publicid'],
+						'password'=>$data['privhash'], //TODO if raw
+						'name'=>$data['name'],
+						'address'=>$data['address'],
+					],TRUE);
 
-					if ($save) {
+					if ($res[0]) {
 						$data['context_id'] = $cid;
 						$data['privhash'] = password_hash($data['privhash'], PASSWORD_DEFAULT);
 						$data['name'] = $this->cfuncs->encrypt_value($mod, $data['name'], $masterkey);
