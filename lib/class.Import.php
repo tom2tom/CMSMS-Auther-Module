@@ -9,6 +9,8 @@ namespace Auther;
 
 class Import
 {
+	const DEFAULTPASS = 'changethis1ASAP'; //this exceeds complexity 3, but not 4
+
 	private $cfuncs = FALSE; //Crypter-class object
 	private $afuncs = FALSE; //Auth-class object
 
@@ -113,8 +115,8 @@ class Import
 			$translates = [
 			 '#Context'=>'context_id', //interpreted
 			 '#Login'=>'publicid',
-			 'Password'=>'privhash', //interpreted
-//			 'Passhash'=>'privhash',
+			 'Password'=>'password', //interpreted
+			 'Passhash'=>'passhash', //ditto
 			 'Name'=>'name',
 			 'MessageTo'=>'address',
 			 'Update'=>'update' //not a real field, numeric user-id or some boolean
@@ -155,11 +157,17 @@ class Import
 			$st = time(); //UTC stamp
 			$skips = 0;
 			$icount = 0;
+			$randompass = FALSE; //temp password if needed for validation
+			if (($hashcol = array_search('passhash', $offers)) === FALSE) {
+				$hashcol = 100; //never matched
+			}
 
 			while (!feof($fh)) {
 				$imports = self::GetSplitLine($fh);
 				if ($imports) {
 					$data = [];
+					$password = FALSE; //if set, store via password_hash($password);
+					$passhash = FALSE; //if set, store raw via unpack('H*',$passhash);
 					$update = FALSE;
 					foreach ($imports as $i=>$one) {
 						$k = $offers[$i];
@@ -173,11 +181,14 @@ class Import
 								}
 								break;
 							 case 'name':
-//								$one = X::SanitizeName($one); TODO cleanup whitespace etc
+//								$one = c.f. Validate->SanitizeName($one); TODO cleanup whitespace etc
 							 case 'publicid':
-							 case 'privhash':
 							 case 'address':
  								$data[$k] = trim($one);
+								break;
+							 case 'passhash':
+							 case 'password':
+ 								$$k = trim($one); //park pending further processing
 								break;
 							 case 'update':
 							 	if (is_numeric($one)) {
@@ -191,7 +202,18 @@ class Import
 							}
 						} else {
 							switch ($k) {
-							 case 'update': //ignore this
+							 case 'password':
+								if ($passhash || !empty($imports[$hashcol])) {
+									if (!$randompass) {
+										$randompass = $utils->RandomString(32, FALSE);
+									}
+									$password = $randompass; //something to use during validation
+								} else {
+									$password = self::DEFAULTPASS;
+								}
+								break;
+							 case 'passhash': //ignore these
+							 case 'update':
 								break;
 							 default:
  								$data[$k] = NULL;
@@ -229,14 +251,16 @@ class Import
 
 					$res = $this->afuncs->ValidateAll([
 						'publicid'=>$data['publicid'],
-						'password'=>$data['privhash'], //TODO if raw
+						'password'=>$password, //temp random value if raw password is to be installed
 						'name'=>$data['name'],
 						'address'=>$data['address'],
-					],TRUE);
+					], FALSE, TRUE);  //NO $except BUT $explicit
 
 					if ($res[0]) {
 						$data['context_id'] = $cid;
-						$data['privhash'] = password_hash($data['privhash'], PASSWORD_DEFAULT);
+						$data['privhash'] = $passhash ?
+							pack('H*', $passhash) :
+							password_hash($password, PASSWORD_DEFAULT);
 						$data['name'] = $this->cfuncs->encrypt_value($mod, $data['name'], $masterkey);
 						$data['address'] = $this->cfuncs->encrypt_value($mod, $data['address'], $masterkey);
 
