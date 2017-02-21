@@ -267,7 +267,6 @@ class Auth extends Session
 	}
 
 	//~~~~~~~~~~~~~ PASSWORD OPERATIONS ~~~~~~~~~~~~~~~~~
-	// by design, there's no method to set a raw/hashed password value directly
 
 	/**
 	 * Gets whether password-recovery is supported
@@ -279,76 +278,7 @@ class Auth extends Session
 		return ($this->GetConfig('password_rescue') > 0);
 	}
 
-	/**
-	 * If action-status warrants or @check=FALSE, resets a user's password
-	 *
-	 * @token: string 24-byte token
-	 * @newpass: plaintext string
-	 * @repeatnewpass: plaintext string
-	 * @check: optional boolean whether to check action-status before proceeding default = TRUE
-	 * Returns: array [0]=boolean for success, [1]=message or ''
-	 */
-	public function ResetPassword($token, $newpass, $repeatnewpass, $check=TRUE)
-	{
-		if ($check) {
-			switch ($this->GetStatus()) {
-			 case parent::STAT_BLOCK:
-				return [FALSE, $this->mod->Lang('user_blocked')];
-			 case parent::STAT_VERIFY:
-				if (0) { //TODO FACTOR
-					return [FALSE, $this->mod->Lang('user_verify_failed')];
-				}
-				break;
-			 case parent::STAT_CHALLENGE:
-				return [FALSE, $this->mod->Lang('user_challenged')];
-			}
-		}
-
-		if (strlen($token) != 24) {
-			return [FALSE, $this->mod->Lang('resetkey_invalid')];
-		}
-
-		$data = $this->GetChallenge($token, 'reset');
-
-		if (!$data[0]) {
-			return $data;
-		}
-
-		$status = $this->matchPassword($data['uid'], $newpass);
-
-		if (!$status[0]) {
-			return $status;
-		}
-
-		if ($newpass !== $repeatnewpass) {
-			// Passwords don't match
-			return [FALSE, $this->mod->Lang('newpassword_nomatch')];
-		}
-
-		$userdata = $this->GetUserBase($data['uid']);
-
-		if (!$userdata) {
-			$this->AddAttempt();
-			$this->DeleteChallenge($token); //TODO no challenges here
-			return [FALSE, $this->mod->Lang('system_error', '#12')];
-		}
-
-		if ($this->DoPasswordCheck($newpass, $userdata['password']/*, $tries TODO*/)) {
-			$this->AddAttempt();
-			return [FALSE, $this->mod->Lang('newpassword_match')];
-		}
-
-		$newpass = password_hash($newpass, PASSWORD_DEFAULT);
-		$sql = 'UPDATE '.$this->pref.'module_auth_users SET privhash=? WHERE id=?';
-		$res = $this->db->Execute($sql, [$newpass, $data['uid']]);
-
-		if ($res) {
-			$this->DeleteChallenge($token); //TODO no challenges here
-			return [TRUE, $this->mod->Lang('password_reset')];
-		}
-		return [FALSE, $this->mod->Lang('system_error', '#13')];
-	}
-
+	// by design, there's no method to set a raw/hashed password value directly
 	/**
 	 * If action-status warrants or @check=FALSE, changes a user's password
 	 *
@@ -627,7 +557,7 @@ class Auth extends Session
 
 	/**
 	 * Checks whether @login is recorded for current context and (if @active = TRUE)
-	 *  active, and @password (if not FALSE) is valid. As distinct from isRegistered(),
+	 *  active, and @password (if not FALSE) is valid. As distinct from IsRegistered(),
 	 *  no session is involved, and no delay.
 	 *
 	 * @login: string user identifier
