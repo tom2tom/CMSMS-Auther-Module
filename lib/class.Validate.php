@@ -75,10 +75,10 @@ class Validate
 	public function CheckPassword($val, $session, $failkey='err_parm')
 	{
 		$uid = 22; //TODO get from session
-		$res = $this->afuncs->getUserBase($uid);
+		$res = $this->afuncs->GetUserBase($uid);
 		if ($res && $res['active']) {
 			$tries = 1; //TODO get from session
-			if ($this->afuncs->doPasswordCheck($val, $res['privhash'], $tries)) {
+			if ($this->afuncs->DoPasswordCheck($val, $res['privhash'], $tries)) {
 				return [TRUE, ''];
 			}
 		}
@@ -98,7 +98,7 @@ class Validate
 	 */
 /*	public function IsKnown($login, $passwd, $failkey='authority_failed')
 	{
-		$res = $this->afuncs->isRegistered($login, $passwd);
+		$res = $this->afuncs->IsRegistered($login, $passwd);
 		if ($res[0]) {
 			return [TRUE, ''];
 		}
@@ -118,7 +118,7 @@ class Validate
 	 */
 	public function IsTellable($login, $failkey='not_contactable')
 	{
-		$uid = $this->afuncs->getUserID($login);
+		$uid = $this->afuncs->GetUserID($login);
 		if ($uid) {
 			$pref = \cms_db_prefix();
 			$sql = 'SELECT publicid,address FROM '.$pref.'module_auth_users WHERE user_id=?';
@@ -204,11 +204,11 @@ class Validate
 	 */
 /*	public function DoRecover($login, &$token, $failkey='err_parm')
 	{
-		$res = $this->IsKnown($login, FALSE, $failkey); OR isRegistered() ??
+		$res = $this->IsKnown($login, FALSE, $failkey); OR IsRegistered() ??
 		if ($res[0]) {
 				$val = $this->afuncs->GetConfig('security_level');
 TODO if security_level requires .... if (0) {
-				$userdata = $this->afuncs->getUserPublic($login);
+				$userdata = $this->afuncs->GetUserPublic($login);
 				if (preg_match(Auther::EMAILPATN, $userdata['address'])) {
 					$sendmail = $userdata['address'];
 				} elseif (preg_match(Auther::EMAILPATN, $login)) {
