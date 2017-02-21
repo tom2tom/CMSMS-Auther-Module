@@ -42,8 +42,14 @@
 </div>{/if}
 {$endform}
 {$end_tab}
-{if $set}
 
+{$start_challenges_tab}
+{$startform2}
+NOT YET IMPLEMENTED
+{$endform}
+{$end_tab}
+
+{if $set}
 {$start_settings_tab}
 {$startform2}
 <div class="pageinput" style="overflow:auto;">
