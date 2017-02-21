@@ -35,7 +35,7 @@ switch ($lvl) {
 	//common stuff
 	$login = trim($_POST[$id.'login']);
 	if ($login) {
-		$res = $afuncs->isRegistered($login);
+		$res = $afuncs->IsRegistered($login);
 		$fake = !$res[0];
 		$sdata = $res[1];
 		if ($res[0]) {
@@ -76,14 +76,14 @@ switch ($lvl) {
 
 	$pw = ($jax) ? $sent['passwd'] : trim($_POST[$id.'passwd']);
 	$data = json_decode($sdata['cache']);
-	if (!$afuncs->doPasswordCheck($pw, $data['temppass'], $sdata['attempts'])) {
+	if (!$afuncs->DoPasswordCheck($pw, $data['temppass'], $sdata['attempts'])) {
 		$msgs[] = $mod->Lang('password_incorrect'); //TODO 'temporary' qualifier
 		break;
 	}
 
 	$t = ($jax) ? $sent['passwd2'] : $_POST[$id.'passwd2'];
 	$pw2 = trim($t);
-	$res = $afuncs->validatePassword($pw2);
+	$res = $afuncs->ValidatePassword($pw2);
 	if ($res[0]) {
 		$flds['privhash'] = $pw2; //hash when required
 	} else {
@@ -123,19 +123,31 @@ switch ($lvl) {
 if ($msgs || $fake) {
 	$afuncs->AddAttempt();
 } elseif ($pass1) {
-	$pw = $afuncs->UniqueToken($afuncs->GetConfig('password_min_length'));
-	$hash = password_hash($pw, PASSWORD_DEFAULT);
-	$data = json_encode(['temppass'=>$hash]);
-	$sql = 'UPDATE '.$pref.'module_auth_cache SET data=? WHERE token=?';
-	$db->Execute($sql, [$data, $token]);
-	$res = $afuncs->requestReset($login, NULL, $pw);
-	if (!$res[0]) {
-		$msgs[] = $res[1];
-	} elseif (!$sendmail) {
-		$msgs[] = $mod->Lang('TODO');
-	}
-	if (!$msgs) {
-		$t = ['focus'=>'authfeedback', 'html'=>$mod->Lang('temp_sent')];
+	if ($lvl == Auther::CHALLENGED) {
+		$pw = $afuncs->UniqueToken($afuncs->GetConfig('password_min_length'));
+		$hash = password_hash($pw, PASSWORD_DEFAULT);
+		$data = json_encode(['temppass'=>$hash]);
+		$sql = 'UPDATE '.$pref.'module_auth_cache SET data=? WHERE token=?';
+		$db->Execute($sql, [$data, $token]);
+		$res = $afuncs->RequestReset($login, NULL, $pw); //TODO wrong class etc BAD
+		if (!$res[0]) {
+			$msgs[] = $res[1];
+		} elseif (!$sendmail) {
+			$msgs[] = $mod->Lang('TODO');
+		}
+		if (!$msgs) {
+			$t = ['focus'=>'authfeedback', 'html'=>$mod->Lang('temp_sent')];
+			if ($jax) {
+				header('HTTP/1.1 200 OK');
+				header('Content-Type: application/json; charset=UTF-8');
+				die(json_encode($t));
+			} else {
+				notify_handler($params, $t);
+				exit;
+			}
+		}
+	} else {
+		$t = ['focus'=>'authfeedback', 'html'=>'TODO message'];
 		if ($jax) {
 			header('HTTP/1.1 200 OK');
 			header('Content-Type: application/json; charset=UTF-8');
@@ -154,7 +166,8 @@ if ($msgs || $fake) {
 		$db->Execute($sql, [$enc, $token]);
 //TODO initiate challenge
 	} else {
-		$afuncs->resetPassword($token, $pw2, $pw2);
+		$uid = $afuncs->GetUserID($login);
+		$afuncs->ChangePassword($uid,$pw,$pw2,$pw2,FALSE); //TODO no check?
 		$afuncs->ResetAttempts();
 		$vfuncs->SetForced(0, FALSE, $login, $sdata['id']);
 	}
