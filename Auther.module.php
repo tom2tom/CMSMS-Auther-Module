@@ -23,6 +23,7 @@ if (!extension_loaded('mcrypt')) return;
 
 class Auther extends CMSModule
 {
+	const LENSHORTVAL = 64;
 	//security-levels (replicated in class.Setup)
 	const NOBOT = 1; //captcha only
 	const LOSEC = 2; //conventional login + passwd
