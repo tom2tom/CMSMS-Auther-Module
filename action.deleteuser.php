@@ -13,6 +13,4 @@ if (!($this->_CheckAccess('admin') || $this->_CheckAccess('user'))) {
 $utils = new Auther\Utils();
 $utils->DeleteUser($this, $params['usr_id']);
 
-$this->Crash();
-
 $this->Redirect($id, 'users', '', ['ctx_id'=>$params['ctx_id'],'edit'=>1]); //TODO parms
