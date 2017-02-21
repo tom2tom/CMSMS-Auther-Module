@@ -23,6 +23,14 @@ $lang['allpermitted'] = 'Everyone permitted';
 
 $lang['blank_same'] = 'If blank/empty, your current setting will remain';
 
+/* challenges TODO
+$lang[''] = 'Open precribed URL'
+$lang[''] = 'Report browser-delivered token'
+$lang[''] = 'Report separately-delivered token'
+$lang[''] = 'Report delivered PIN'
+$lang[''] = 'Answer security question'
+$lang[''] = 'Proof of self'
+*/
 $lang['cancel'] = 'Cancel';
 $lang['close'] = 'Close';
 $lang['compulsory_items'] = 'Properties marked with a <strong>*</strong> are compulsory.' ;
@@ -244,10 +252,11 @@ $lang['title_ban_count'] = 'Login (etc) attempts before block';
 $lang['title_captcha'] = 'I\'m not a robot';
 $lang['title_captcha2'] = 'enter the displayed text';
 $lang['title_captcha3'] = 'Captcha text';
+$lang['title_challenges'] = 'Challenges';
 $lang['title_contact'] = 'Contact';
-$lang['title_contextadd'] = 'Add login-context';
+$lang['title_contextadd'] = 'Add authentication-context';
 $lang['title_context_address'] = 'Email-address used as messages source';
-$lang['title_contextfull'] = 'Login-context properties';
+$lang['title_contextfull'] = 'Authentication-context properties';
 $lang['title_contexts'] = 'Contexts';
 $lang['title_context_sender'] = 'Name of email-notice sender';
 $lang['title_context_site'] = 'Website name';
@@ -349,11 +358,11 @@ Each line in the file (except the header line, discussed below) represents one u
 <h4>Header line</h4>
 <p>The first line of the file names the fields in the file, as follows.
 The supplied names may be in any order. Those prefixed by a '#' represent compulsory values.<br />
-<code>#Context,#Login,Password,Name,MessageTo,Update</code></p>
+<code>#Context,#Login,Password,Passhash,Name,MessageTo,Update</code></p>
 <h4>Other lines</h4>
 <p>The data in each line must conform to the header columns, of course. Any non-compulsory field, or entire line, may be empty.<br />
-Context may be a numeric identifier or alias string, representing a login-context (which will be created if not already present).<br />
-If Password is not provided, a default will be applied.<br />
+Context may be a numeric identifier or alias string, representing an authentication-context (which will be created if not already present).<br />
+Passhash is a previously-exported password in encrypted form. If neither Password or Passhash is provided, a default password will be applied.<br />
 MessageTo will typically be an email address.<br />
 The Update field will be treated as TRUE if it contains something other than 0 or 'no' or 'NO' (no quotes, untranslated)<br />
 <h3>Problems</h3>
