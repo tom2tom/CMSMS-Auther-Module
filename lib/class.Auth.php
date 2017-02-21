@@ -36,10 +36,9 @@ class Auth extends Session
 	 * Verifies that @login is an acceptable login identifier (format and not duplicated)
 	 *
 	 * @login: string user identifier
-	 * @explicit: optional boolean whether to report login-is-taken or just invalid default = FALSE
 	 * Returns: array [0]=boolean for success, [1]=message or ''
 	 */
-	public function ValidateLogin($login, $explicit=FALSE)
+	public function ValidateLogin($login)
 	{
 		$val = (int)$this->GetConfig('login_min_length');
 		if ($val > 0 && strlen($login) < $val) {
@@ -72,13 +71,28 @@ class Auth extends Session
 		} else {
 			$this->loginisemail = FALSE;
 		}
+		return [TRUE, ''];
+	}
 
-		$sql = 'SELECT id FROM '.$this->pref.'module_auth_users WHERE publicid=? AND context_id=?';
-		if ($this->db->GetOne($sql, [$login, $this->context])) {
-			$msg = ($explicit) ?
-				$this->mod->Lang('login_taken') :
-				$this->mod->Lang('invalid_type', 'title_login');
-			return [FALSE, $msg];
+	/**
+	 * Verifies that @login is not duplicated
+	 *
+	 * @login: string user identifier
+	 * @except optional string identifier to exclude from the check (normally
+	 *  a current login still being used, default = FALSE
+	 * @explicit: optional boolean whether to report login-is-taken or just invalid, default = FALSE
+	 * Returns: array [0]=boolean for success, [1]=message or ''
+	 */
+	public function UniqueLogin($login, $except=FALSE, $explicit=FALSE)
+	{
+		if ($login !== $except || $login == FALSE) {
+			$sql = 'SELECT id FROM '.$this->pref.'module_auth_users WHERE publicid=? AND context_id=?';
+			if ($this->db->GetOne($sql, [$login, $this->context])) {
+				$msg = ($explicit) ?
+					$this->mod->Lang('login_taken') :
+					$this->mod->Lang('invalid_type', $this->mod->Lang('title_login'));
+				return [FALSE, $msg];
+			}
 		}
 		return [TRUE, ''];
 	}
@@ -230,15 +244,20 @@ class Auth extends Session
 	 * Verifies that all @params are acceptable
 	 *
 	 * @params: associative array with members 'publicid','password' and optionally 'name' and/or 'address'
-	 * @explicit: optional boolean passed to ValidateLogin(), default = FALSE
+	 * @except optional string identifier passed to UniqueLogin(), default = FALSE
+	 * @explicit: optional boolean passed to UniqueLogin(), default = FALSE
 	 * Returns: array [0]=boolean for success, [1]=message
 	 *  (possibly multi-line with embedded newlines) or ''
 	 */
-	public function ValidateAll($params, $explicit=FALSE)
+	public function ValidateAll($params, $except=FALSE, $explicit=FALSE)
 	{
 		extract($params);
 		$errs = [];
-		$res = $this->ValidateLogin($publicid, $explicit);
+		$res = $this->ValidateLogin($publicid);
+		if (!$res[0]) {
+			$errs[] = $res[1];
+		}
+		$res = $this->UniqueLogin($publicid,$except,$explicit);
 		if (!$res[0]) {
 			$errs[] = $res[1];
 		}
@@ -1016,7 +1035,7 @@ class Auth extends Session
 			'password' => $password,
 			'name' => $name,
 			'address' => $address
-		]);
+		]);  //NOT $except or $explicit
 		if ($res[0]) {
 			return $this->addUserReal($login, $password, $name, $address, 1, $params);
 		}
@@ -1153,7 +1172,7 @@ class Auth extends Session
 			'password' => $password,
 			'name' => $name,
 			'address' => $address
-		]);
+		], $oldlogin); //NOT $explicit
 
 		if ($res[0]) {
 			return $this->ChangeUserReal($oldlogin, $login, $name, $address, $active, $params);
