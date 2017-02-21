@@ -73,7 +73,7 @@ switch ($lvl) {
 				if ($sdata['attempts'] >= $n) {
 					$msgs[] = $mod->Lang('reregister');
 // SILENT		} else {
-//					$msgs[] = $mod->Lang('invalid_type', $this->mod->Lang('title_login'));
+//					$msgs[] = $mod->Lang('invalid_type', $mod->Lang('title_login'));
 				}
 				$focus = 'login';
 			}
