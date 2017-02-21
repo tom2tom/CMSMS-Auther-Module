@@ -182,22 +182,26 @@ $tplvars = [
 	'set' => $pset
 ];
 
+if (isset($params['active_tab']))
+	$showtab = $params['active_tab'];
+else
+	$showtab = 'items'; //default
+$seetab1 = ($showtab=='items');
+$seetab2 = ($showtab=='challenges');
+
 if ($pset) {
-	if (isset($params['active_tab']))
-		$showtab = $params['active_tab'];
-	else
-		$showtab = 'items'; //default
-	$seetab1 = ($showtab=='items');
-	$seetab2 = ($showtab=='settings');
+	$seetab3 = ($showtab=='settings');
 
 	$tplvars['tab_headers'] = $this->StartTabHeaders().
 		$this->SetTabHeader('items',$this->Lang('title_contexts'),$seetab1).
-		$this->SetTabHeader('settings',$this->Lang('title_settings'),$seetab2).
+		$this->SetTabHeader('challenges',$this->Lang('title_challenges'),$seetab2).
+		$this->SetTabHeader('settings',$this->Lang('title_settings'),$seetab3).
 		$this->EndTabHeaders().
 		$this->StartTabContent();
 } else {
 	$tplvars['tab_headers'] = $this->StartTabHeaders().
-		$this->SetTabHeader('items',$this->Lang('title_items'),TRUE).
+		$this->SetTabHeader('items',$this->Lang('title_items'),$seetab1).
+		$this->SetTabHeader('challenges',$this->Lang('title_challenges'),$seetab2).
 		$this->EndTabHeaders().
 		$this->StartTabContent();
 }
@@ -363,10 +367,15 @@ if ($pmod) {
 		['ctx_id'=>-1,'edit'=>1]);
 }
 
+//CHALLENGES TAB
+$tplvars['start_challenges_tab'] = $this->StartTab('challenges');
+$tplvars['startform2'] = $this->CreateFormStart($id, 'defaultadmin', $returnid);
+//TODO content
+
 //SETTINGS TAB
 if ($pset) {
 	$tplvars['start_settings_tab'] = $this->StartTab('settings');
-	$tplvars['startform2'] = $this->CreateFormStart($id, 'defaultadmin', $returnid);
+	$tplvars['startform3'] = $this->CreateFormStart($id, 'defaultadmin', $returnid);
 	$tplvars['compulsory'] = $this->Lang('compulsory_items');
 
 	$settings = [];
