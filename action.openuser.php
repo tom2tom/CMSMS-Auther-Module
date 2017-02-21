@@ -58,7 +58,7 @@ if (isset($params['cancel'])) {
 
 				switch ($kf) {
 				 case 'name':
-//					$val = X::SanitizeName($val); TODO cleanup whitespace etc
+//					$val = c.f. Validate->SanitizeName($val); TODO cleanup whitespace etc
 					$status = $funcs->validateName($val);
 					if ($status[0]) {
 						$val = $cfuncs->encrypt_value($this, $val, $t);
@@ -170,13 +170,13 @@ if (empty($msg)) {
 	}
 }
 
-$cdata = $db->GetRow('SELECT name,password_min_length,password_min_score,address_required,email_login,email_required,name_required FROM '.$pre.'module_auth_contexts WHERE id=?', [$data['context_id']]);
+$cdata = $db->GetRow('SELECT name,password_min_length,password_min_score,address_required,email_login,email_required,name_required FROM '.$pre.'module_auth_contexts WHERE id=?', [$params['ctx_id']]);
 
 $tplvars = ['mod' => $pmod];
 $tplvars['pagenav'] = $utils->BuildNav($this,$id,$returnid,$params);
 $hidden = [
-	'ctx_id'=>$data['context_id'],
-	'usr_id'=>$data['id'],
+	'ctx_id'=>$params['ctx_id'],
+	'usr_id'=>$params['usr_id'],
 	'edit'=>!empty($params['edit'])
 ]; //TODO etc
 $tplvars['startform'] = $this->CreateFormStart($id,'openuser',$returnid,'POST',
