@@ -44,9 +44,14 @@ class Session
 	* Changes recorded context property
 	* @context: numeric identifier for login context
 	*/
-	public function setContext($context)
+	public function SetContext($context)
 	{
 		$this->context = $context;
+	}
+
+	public function GetContext()
+	{
+		return $this->context;
 	}
 
 	/**
@@ -246,7 +251,7 @@ class Session
 	* @uid: user enumerator
 	* Returns: nothing
 	*/
-	public function setSessionUID($token, $uid)
+	public function SetSessionUID($token, $uid)
 	{
 		$sql = 'UPDATE '.$this->pref.'module_auth_cache SET user_id=? WHERE token=?';
 		$this->db->Execute($sql, [$uid, $token]);
@@ -259,7 +264,7 @@ class Session
 	* @token: string
 	* Returns: int, or maybe '' if user not recorded yet
 	*/
-	public function getSessionUID($token)
+	public function GetSessionUID($token)
 	{
 		$sql = 'SELECT user_id FROM '.$this->pref.'module_auth_cache WHERE token=?';
 		return $this->db->GetOne($sql, [$token]);
@@ -391,6 +396,44 @@ class Session
 	}
 
 	/**
+	* Gets action-status for the current ip address
+	* Returns: one of the STAT_* constants
+	*/
+	public function GetStatus()
+	{
+		//TODO support STAT_CHALLENGE
+		$ip = $this->GetIp();
+		$this->DeleteAttempts($ip, FALSE);
+		$sql = 'SELECT COUNT(1) AS tries FROM '.$this->pref.'module_auth_attempts WHERE ip=?';
+		$tries = $this->db->GetOne($sql, [$ip]);
+
+		$val = (int)$this->GetConfig('raise_count');
+		if ($val > 0 && $tries < $val) {
+			return self::STAT_ALLOW;
+		}
+
+		$val = (int)$this->GetConfig('ban_count');
+		if ($val > 0 && $tries < $val) {
+			return self::STAT_VERIFY;
+		}
+
+		return self::STAT_BLOCK;
+	}
+
+	/**
+	* Checks whether a user is logged in
+	* Returns: boolean
+	*/
+	public function IsLogged()
+	{
+		//TODO review http://php.net/manual/en/features.cookies.php &
+		// http://php.net/manual/en/function.setcookie.php &
+		// http://www.faqs.org/rfcs/rfc6265.html
+		$val = $this->GetConfig('cookie_name');
+		return (isset($_COOKIE[$val]) && $this->CheckSession($_COOKIE[$val]));
+	}
+
+	/**
 	* Gets specified property(ies) for the current context
 	* @propkey: string property-name or array of them (not validated here)
 	* Returns: property value or assoc. array of them
@@ -440,32 +483,7 @@ class Session
 	}
 
 	/**
-	* Gets action-status for the current ip address
-	* Returns: one of the STAT_* constants
-	*/
-	public function GetStatus()
-	{
-		//TODO support STAT_CHALLENGE
-		$ip = $this->GetIp();
-		$this->DeleteAttempts($ip, FALSE);
-		$sql = 'SELECT COUNT(1) AS tries FROM '.$this->pref.'module_auth_attempts WHERE ip=?';
-		$tries = $this->db->GetOne($sql, [$ip]);
-
-		$val = (int)$this->GetConfig('raise_count');
-		if ($val > 0 && $tries < $val) {
-			return self::STAT_ALLOW;
-		}
-
-		$val = (int)$this->GetConfig('ban_count');
-		if ($val > 0 && $tries < $val) {
-			return self::STAT_VERIFY;
-		}
-
-		return self::STAT_BLOCK;
-	}
-
-	/**
-	* Gets a random(ish) string (not as diverse as from Setup::UniqueToken())
+	* Gets a slightly random string (not as diverse as from Setup::UniqueToken())
 	* @length: int wanted byte-count for the string
 	* Returns: string
 	*/
@@ -483,18 +501,5 @@ class Session
 		} else {
 			return substr(str_shuffle($s1), 0, $length);
 		}
-	}
-
-	/**
-	* Checks whether a user is logged in
-	* Returns: boolean
-	*/
-	public function isLogged()
-	{
-		//TODO review http://php.net/manual/en/features.cookies.php &
-		// http://php.net/manual/en/function.setcookie.php &
-		// http://www.faqs.org/rfcs/rfc6265.html
-		$val = $this->GetConfig('cookie_name');
-		return (isset($_COOKIE[$val]) && $this->CheckSession($_COOKIE[$val]));
 	}
 }
