@@ -189,10 +189,13 @@ class Validate
 	{
 		$t = trim($name);
 		$t = preg_replace('/\s{1,}/', ' ', $t);
-		if (extension_loaded('mbstring')) {
-			$t = mb_convert_case($t, MB_CASE_TITLE, 'UTF-8');
-		} else {
-			$t = ucwords($t);
+		//stet what may be a short capitalised acronym
+		if (strpos($t,' ') !== FALSE || strlen($t) > 5) {
+			if (extension_loaded('mbstring')) {
+				$t = mb_convert_case($t, MB_CASE_TITLE, 'UTF-8');
+			} else {
+				$t = ucwords($t);
+			}
 		}
 		return $t;
 	}
