@@ -668,20 +668,6 @@ class Auth extends Session
 	}
 
 	/**
-	 * Method for preventing duplicates and user-recognition checks
-	 * Checks whether @login is recorded for current context
-	 *
-	 * @login: string user identifier
-	 * Returns: boolean
-	 */
-	public function IsLoginTaken($login)
-	{
-		$sql = 'SELECT id FROM '.$this->pref.'module_auth_users WHERE publicid=? AND context_id=?';
-		$num = $this->db->GetOne($sql, [$login, $this->context]);
-		return ($num > 0);
-	}
-
-	/**
 	 * Gets all user-data except password for @uid
 	 *
 	 * @uid: int user enumerator
