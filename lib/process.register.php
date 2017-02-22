@@ -53,11 +53,12 @@ switch ($lvl) {
 			}
 		}
 		if ($res[0]) {
-			if ($afuncs->IsLoginTaken($t)) {
-				$msgs[] = $mod->Lang('retry'); //NOT explicit in-use message!
-				$focus = 'login';
-			} else {
+			$res = $afuncs->UniqueLogin($t);
+			if ($res[0]) {
 				$flds['publicid'] = $t;
+			} else {
+				$msgs[] = $mod->Lang('retry'); //NOT the default 'invalid' message!
+				$focus = 'login';
 			}
 		} else {
 			$msgs[] = $res[1];
