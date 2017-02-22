@@ -54,7 +54,7 @@ EOS;
 	$one->posthtml = '<p id="authfeedback" class="authtitle"></p>';
 	$elements[] = $one;
 	$one = new \stdClass();
-	$one->title = $mod->Lang('temp_typed', $mod->Lang('password'));
+	$one->title = $mod->Lang('token_temp');
 	$one->input = $this->GetInputPasswd($id, 'passwd', 'passwd', $tabindex++, '', 20, 72);
 	$elements[] = $one;
 	$one = new \stdClass();
@@ -210,7 +210,7 @@ EOS;
       if (!recovery) {
        return;
       }
-      type = '{$mod->Lang('temp_typed',$mod->Lang('password'))}';
+      type = '{$mod->Lang('token_temp')}';
       break;
      case 'passwd2':
       if (!recovery) {

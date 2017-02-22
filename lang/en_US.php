@@ -229,8 +229,8 @@ $lang['submit'] = 'Submit';
 $lang['system_error'] = 'A system error (%s) has been encountered. Please try again.';
 
 $lang['temp_notsent'] = 'Cannot send information to your address. You\'ll need to re-register.';
-$lang['temp_sent'] = 'A temporary password has been sent to your address. Insert that password below, along with your replacement.';
-$lang['temp_typed'] = '<i>TEMPORARY</i> %s';
+$lang['temp_sent'] = 'A temporary token has been sent to your address. Insert that token below, along with your replacement.';
+//$lang['temp_typed'] = '<i>TEMPORARY</i> %s';
 
 $lang['tip_activeuser'] = 'mark each selected user as active';
 $lang['tip_delcontext'] = 'delete selected context(s)';
@@ -310,6 +310,7 @@ $lang['title_settings'] = 'Settings';
 $lang['title_useradd'] = 'Add user';
 $lang['title_userfull'] = 'User properties';
 $lang['title_usersfor'] = 'Registered users for \\\'%s\\\'';
+$lang['token_temp'] = 'Temporary token';
 
 $lang['upload'] = 'Upload';
 $lang['user_blocked'] = 'You are locked out of the system for a while. Try again later.';
