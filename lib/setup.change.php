@@ -50,7 +50,7 @@ EOS;
 	$elements[] = $one;
 
 	$one = new \stdClass();
-	$one->title = $mod->Lang('current_typed', $mod->Lang('password'));
+	$one->title = $mod->Lang('password');
 	$one->input = $this->GetInputPasswd($id, 'passwd', 'passwd', $tabindex++, '', 20, 72);
 	if ($cdata['password_rescue']) {
 		$one->extra = '<label for="recover">'.$mod->Lang('lostpass').'</label>'.
