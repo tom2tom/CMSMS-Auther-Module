@@ -232,14 +232,14 @@ final class Setup
 	/**
 	GetPanel:
 	@context: number or alias, login-context identifier
-	@task: string one of 'login','register','reset','change'
+	@task: string one of 'change','delete','login','recover','register','reset'
 	@handler: mixed, one of
 	 an array [classname,methodname] where methodname is and the method returns boolean for success
 	 a string 'classname::methodname' where the method returns boolean for success
 	 an array [modulename,actionname] AND the action should be a 'doer', not a 'shower', returns HTML code
 	 an array [modulename,'method.whatever'] to be included, the code must conclude with variable $res = T/F indicating success
 	 an URL like <server-root-url>/index.php?mact=<modulename>,cntnt01,<actionname>,0
-	 	- provided the PHP curl extension is available
+		- provided the PHP curl extension is available
 	 NOT a closure in a context (PHP 5.3+) OR closure (PHP 5.4+)
 	 cuz those aren't transferrable between requests
 	See action.TODO.php for example of a hander-action fed by a HTTP request
@@ -268,6 +268,7 @@ final class Setup
 		 case 'reset':
 		 case 'recover':
 		 case 'change':
+		 case 'delete':
 			break;
 		 default:
 			return [$this->ErrorString($mod, 'UNKNOWN TASK'), FALSE];
