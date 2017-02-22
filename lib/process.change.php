@@ -11,14 +11,31 @@
 [pA762_submit]	"Submit" iff NOT ajax-sourced
 [pA762_captcha]	"text" maybe iff NOT ajax-sourced
 [pA762_login]	"rogerrabbit"
-[pA762_login2]	"somethingorempty"
 [pA762_passwd]	"passnow" iff NOT ajax-sourced
+1st pass:
+various empty inputs
+2nd pass:
+[pA762_login2]	"somethingorempty"
 [pA762_recover]	"0" OR "1" if 1, only login value is relevant
 [pA762_name]	"whateverorempty"
 [pA762_contact]	"whateverorempty"
 $sent array iff ajax-sourced
 [passwd] => "passnow"
 */
+$plogin = $id.'login';
+$plogin2 = $id.'login2';
+$ppasswd = $id.'passwd';
+$pname = $id.'name';
+$pcontact = $id.'contact';
+$pcaptcha = $id.'captcha';
+$postvars = filter_input_array(INPUT_POST, [
+	$plogin => FILTER_SANITIZE_STRING,
+	$plogin2 => FILTER_SANITIZE_STRING,
+	$ppasswd => FILTER_SANITIZE_STRING,
+	$pname => FILTER_SANITIZE_STRING,
+	$pcontact => FILTER_SANITIZE_STRING,
+	$pcaptcha => FILTER_SANITIZE_STRING
+], FALSE);
 
 $lvl = $cdata['security_level'];
 switch ($lvl) {
@@ -29,8 +46,9 @@ switch ($lvl) {
  case Auther::MIDSEC:
  case Auther::CHALLENGED:
 	$flds = [];
+	$pass1 = $_POST[$id.'phase'] == 'who';
 	//common stuff
-	$login = trim($_POST[$id.'login']);
+	$login = trim($postvars[$plogin]);
 	if ($login) {
 		if ($cdata['email_required']) {
 			$afuncs->ValidateLogin($login); //in case we need either/or check
@@ -40,7 +58,7 @@ switch ($lvl) {
 		$msgs[] = $mod->Lang('missing_type', $mod->Lang($t));
 		$focus = 'login';
 	}
-	$t = ($jax) ? $sent['passwd'] : $_POST[$id.'passwd'];
+	$t = ($jax) ? filter_var($sent['passwd'], FILTER_SANITIZE_STRING) : $postvars[$ppasswd];
 	$pw = trim($t);
 	if (!$pw) {
 		$msgs[] = $mod->Lang('missing_type', $mod->Lang('password'));
@@ -73,7 +91,11 @@ switch ($lvl) {
 		}
 	}
 
-	$t = trim($_POST[$id.'login2']);
+	if ($pass1) {
+		break;
+	}
+
+	$t = trim($postvars[$plogin2]);
 	if ($t) {
 		$res = $afuncs->ValidateLogin($t);
 		if ($res[0]) {
@@ -82,7 +104,7 @@ switch ($lvl) {
 			}
 		}
 		if ($res[0]) {
-			if ($afuncs->IsLoginTaken($t)) {
+			if ($afuncs->IsLoginTaken($t)) { //TODO API
 				$msgs[] = $mod->Lang('retry'); //NOT explicit in-use message!
 				$focus = 'login2';
 			} else {
@@ -93,7 +115,7 @@ switch ($lvl) {
 			if (!$focus) { $focus = 'login2'; }
 		}
 	}
-	$t = trim($_POST[$id.'name']);
+	$t = trim($postvars[$pname]);
 	if ($t) {
 		$t = $vfuncs->SanitizeName($t);
 		$res = $afuncs->ValidateName($t);
@@ -109,7 +131,7 @@ switch ($lvl) {
 			if (!$focus) { $focus = 'name'; }
 		}
 	}
-	$t = trim($_POST[$id.'contact']);
+	$t = trim($postvars[$pcontact]);
 	if ($t) {
 		$res = $afuncs->ValidateAddress($t);
 		if ($res[0]) {
@@ -123,7 +145,7 @@ switch ($lvl) {
 	 case Auther::MIDSEC:
 	//check stuff
 		if (!$jax) {
-			if ($params['captcha'] !== $_POST[$id.'captcha']) {
+			if ($params['captcha'] !== $postvars[$pcaptcha]) {
 				$msgs[] = $mod->Lang('err_captcha');
 				if (!$focus) { $focus = 'captcha'; }
 			}
@@ -143,6 +165,41 @@ switch ($lvl) {
 
 if ($msgs || $fake) {
 	$afuncs->AddAttempt();
+} elseif ($pass1) {
+	if ($lvl == Auther::CHALLENGED) {
+		$pw = $afuncs->UniqueToken($afuncs->GetConfig('password_min_length'));
+		$hash = password_hash($pw, PASSWORD_DEFAULT);
+		$data = json_encode(['token'=>$hash]);
+		$sql = 'UPDATE '.$pref.'module_auth_cache SET data=? WHERE token=?';
+		$db->Execute($sql, [$data, $token]);
+		$res = $afuncs->RequestReset($login, NULL, $pw); //TODO wrong class etc BAD
+		if (!$res[0]) {
+			$msgs[] = $res[1];
+		} elseif (!$sendmail) {
+			$msgs[] = $mod->Lang('TODO');
+		}
+		if (!$msgs) {
+			$t = ['focus'=>'authfeedback', 'html'=>$mod->Lang('temp_sent')];
+			if ($jax) {
+				header('HTTP/1.1 200 OK');
+				header('Content-Type: application/json; charset=UTF-8');
+				die(json_encode($t));
+			} else {
+				notify_handler($params, $t);
+				exit;
+			}
+		}
+	} else {
+		$t = ['focus'=>'authfeedback', 'html'=>'TODO message'];
+		if ($jax) {
+			header('HTTP/1.1 200 OK');
+			header('Content-Type: application/json; charset=UTF-8');
+			die(json_encode($t));
+		} else {
+			notify_handler($params, $t);
+			exit;
+		}
+	}
 } else {
 	if ($lvl == Auther::CHALLENGED) {
 		$flds['login'] = $login; //original value

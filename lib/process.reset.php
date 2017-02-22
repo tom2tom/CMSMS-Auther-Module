@@ -18,6 +18,18 @@ $sent array iff ajax-sourced
 [passwd] => "passnow"
 [passwd2] => "someother" new, should be different
 */
+$plogin = $id.'login';
+$ppasswd = $id.'passwd';
+$ppasswd2 = $id.'passwd2';
+$ppasswd3 = $id.'passwd3';
+$pcaptcha = $id.'captcha';
+$postvars = filter_input_array(INPUT_POST, [
+	$plogin => FILTER_SANITIZE_STRING,
+	$ppasswd => FILTER_SANITIZE_STRING,
+	$ppasswd2 => FILTER_SANITIZE_STRING,
+	$ppasswd3 => FILTER_SANITIZE_STRING,
+	$pcaptcha => FILTER_SANITIZE_STRING
+], FALSE);
 
 $lvl = $cdata['security_level'];
 switch ($lvl) {
@@ -29,13 +41,13 @@ switch ($lvl) {
  case Auther::CHALLENGED:
 	$flds = [];
 	//common stuff
-	$login = trim($_POST[$id.'login']);
+	$login = trim($postvars[$plogin]);
 	if (!$login) {
 		$t = ($cdata['email_login']) ? 'title_email':'title_identifier';
 		$msgs[] = $mod->Lang('missing_type', $mod->Lang($t));
 		$focus = 'login';
 	}
-	$t = ($jax) ? $sent['passwd'] : $_POST[$id.'passwd'];
+	$t = ($jax) ? filter_var($sent['passwd'], FILTER_SANITIZE_STRING) : $postvars[$ppasswd];
 	$pw = trim($t);
 	if (!$pw) {
 		$msgs[] = $mod->Lang('missing_type', $mod->Lang('password'));
@@ -63,7 +75,7 @@ switch ($lvl) {
 		}
 	}
 
-	$t = ($jax) ? $sent['passwd2'] : $_POST[$id.'passwd2'];
+	$t = ($jax) ? filter_var($sent['passwd2'], FILTER_SANITIZE_STRING) : $postvars[$ppasswd2];
 	$pw2 = trim($t);
 	if ($pw === $pw2) {
 		$msgs[] = $mod->Lang('newpassword_match');
@@ -77,7 +89,7 @@ switch ($lvl) {
 		if (!$focus) { $focus = 'passwd2'; }
 	}
 	if (!$jax) { //i.e. passwords not matched in browser
-		if ($pw2 !== trim($_POST[$id.'passwd3'])) {
+		if ($pw2 !== trim($postvars[$ppasswd3])) {
 			unset($flds['privhash']);
 			$msgs[] = $mod->Lang('newpassword_nomatch');
 			if (!$focus) { $focus = 'passwd2'; }
@@ -88,7 +100,7 @@ switch ($lvl) {
 	 case Auther::MIDSEC:
 	//check stuff
 		if (!$jax) {
-			if ($params['captcha'] !== $_POST[$id.'captcha']) {
+			if ($params['captcha'] !== $postvars[$pcaptcha]) {
 				$msgs[] = $mod->Lang('err_captcha');
 				if (!$focus) { $focus = 'captcha'; }
 			}

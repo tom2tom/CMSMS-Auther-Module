@@ -11,16 +11,29 @@
 [pA762_submit]	"Submit" iff NOT ajax-sourced
 [pA762_captcha]	"text" maybe iff NOT ajax-sourced
 [pA762_login]	"rogerrabbit"
+[pA762_passwd]	"passnow" iff NOT ajax-sourced
 1st pass:
 various empty inputs
 2nd pass:
-[pA762_passwd]	"temppass" iff NOT ajax-sourced
+[pA762_passwd]	"token" iff NOT ajax-sourced
 [pA762_passwd2]	"someother" iff NOT ajax-sourced, should not be same as 1
 [pA762_passwd3]	"someother" iff NOT ajax-sourced, should be same as 2
 $sent array iff ajax-sourced
-[passwd] => "temppass"
-[passwd2] => "someother" new
+[passwd] => "token"
+[passwd2] => "someother"
 */
+$plogin = $id.'login';
+$ppasswd = $id.'passwd';
+$ppasswd2 = $id.'passwd2';
+$ppasswd3 = $id.'passwd3';
+$pcaptcha = $id.'captcha';
+$postvars = filter_input_array(INPUT_POST, [
+	$plogin => FILTER_SANITIZE_STRING,
+	$ppasswd => FILTER_SANITIZE_STRING,
+	$ppasswd2 => FILTER_SANITIZE_STRING,
+	$ppasswd3 => FILTER_SANITIZE_STRING,
+	$pcaptcha => FILTER_SANITIZE_STRING
+], FALSE);
 
 $lvl = $cdata['security_level'];
 switch ($lvl) {
@@ -33,7 +46,7 @@ switch ($lvl) {
 	$flds = [];
 	$pass1 = $_POST[$id.'phase'] == 'who';
 	//common stuff
-	$login = trim($_POST[$id.'login']);
+	$login = trim($postvars[$plogin]);
 	if ($login) {
 		$res = $afuncs->IsRegistered($login);
 		$fake = !$res[0];
@@ -74,14 +87,14 @@ switch ($lvl) {
 		break;
 	}
 
-	$pw = ($jax) ? $sent['passwd'] : trim($_POST[$id.'passwd']);
+	$pw = ($jax) ? filter_var($sent['passwd'], FILTER_SANITIZE_STRING) : trim($postvars[$ppasswd]);
 	$data = json_decode($sdata['cache']);
 	if (!$afuncs->DoPasswordCheck($pw, $data['temppass'], $sdata['attempts'])) {
 		$msgs[] = $mod->Lang('password_incorrect'); //TODO 'temporary' qualifier
 		break;
 	}
 
-	$t = ($jax) ? $sent['passwd2'] : $_POST[$id.'passwd2'];
+	$t = ($jax) ? filter_var($sent['passwd2'], FILTER_SANITIZE_STRING) : $postvars[$ppasswd2];
 	$pw2 = trim($t);
 	$res = $afuncs->ValidatePassword($pw2);
 	if ($res[0]) {
@@ -91,7 +104,7 @@ switch ($lvl) {
 		if (!$focus) { $focus = 'passwd2'; }
 	}
 	if (!$jax) { //i.e. passwords not matched in browser
-		if ($pw2 !== trim($_POST[$id.'passwd3'])) {
+		if ($pw2 !== trim($postvars[$ppasswd3])) {
 			unset($flds['privhash']);
 			$msgs[] = $mod->Lang('newpassword_nomatch');
 			if (!$focus) { $focus = 'passwd2'; }
@@ -102,7 +115,7 @@ switch ($lvl) {
 	 case Auther::MIDSEC:
 	//check stuff
 		if (!$jax) {
-			if ($params['captcha'] !== $_POST[$id.'captcha']) {
+			if ($params['captcha'] !== $postvars[$pcaptcha]) {
 				$msgs[] = $mod->Lang('err_captcha');
 				if (!$focus) { $focus = 'captcha'; }
 			}
@@ -126,7 +139,7 @@ if ($msgs || $fake) {
 	if ($lvl == Auther::CHALLENGED) {
 		$pw = $afuncs->UniqueToken($afuncs->GetConfig('password_min_length'));
 		$hash = password_hash($pw, PASSWORD_DEFAULT);
-		$data = json_encode(['temppass'=>$hash]);
+		$data = json_encode(['token'=>$hash]);
 		$sql = 'UPDATE '.$pref.'module_auth_cache SET data=? WHERE token=?';
 		$db->Execute($sql, [$data, $token]);
 		$res = $afuncs->RequestReset($login, NULL, $pw); //TODO wrong class etc BAD

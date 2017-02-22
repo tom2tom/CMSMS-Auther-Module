@@ -16,6 +16,14 @@
 $sent array iff ajax-sourced
 [passwd] => "passnow"
 */
+$plogin = $id.'login';
+$ppasswd = $id.'passwd';
+$pcaptcha = $id.'captcha';
+$postvars = filter_input_array(INPUT_POST, [
+	$plogin => FILTER_SANITIZE_STRING,
+	$ppasswd => FILTER_SANITIZE_STRING,
+	$pcaptcha => FILTER_SANITIZE_STRING
+], FALSE);
 
 $lvl = $cdata['security_level'];
 switch ($lvl) {
@@ -27,7 +35,7 @@ switch ($lvl) {
 			$focus = 'TODO';
 		}
 	} else {
-		$t = $_POST[$id.'captcha'];
+		$t = $postvars[$pcaptcha];
 		if (!$t) {
 			$msgs[] = $mod->Lang('missing_type', 'CAPTCHA');
 			$focus = 'captcha';
@@ -41,13 +49,13 @@ switch ($lvl) {
  case Auther::MIDSEC:
  case Auther::CHALLENGED:
 	//common stuff
-	$login = trim($_POST[$id.'login']);
+	$login = trim($postvars[$plogin]);
 	if (!$login) {
 		$t = ($cdata['email_login']) ? 'title_email':'title_identifier';
 		$msgs[] = $mod->Lang('missing_type', $mod->Lang($t));
 		$focus = 'login';
 	}
-	$t = ($jax) ? $sent['passwd'] : $_POST[$id.'passwd'];
+	$t = ($jax) ? filter_var($sent['passwd'], FILTER_SANITIZE_STRING) : $postvars[$ppasswd];
 	$pw = trim($t);
 	if (!$pw) {
 		$msgs[] = $mod->Lang('missing_type', $mod->Lang('password'));
@@ -83,7 +91,7 @@ switch ($lvl) {
 	 case Auther::MIDSEC:
 	//check stuff
 		if (!$jax) {
-			if ($params['captcha'] !== $_POST[$id.'captcha']) {
+			if ($params['captcha'] !== $postvars[$pcaptcha]) {
 				$msgs[] = $mod->Lang('err_captcha');
 				if (!$focus) { $focus = 'captcha'; }
 			}

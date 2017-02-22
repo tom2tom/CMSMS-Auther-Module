@@ -19,6 +19,20 @@ $sent array iff ajax-sourced
 [passwd] => "text"
 [passwd2] => "text" should match
 */
+$plogin = $id.'login';
+$ppasswd = $id.'passwd';
+$ppasswd2 = $id.'passwd2';
+$pname = $id.'name';
+$pcontact = $id.'contact';
+$pcaptcha = $id.'captcha';
+$postvars = filter_input_array(INPUT_POST, [
+	$plogin => FILTER_SANITIZE_STRING,
+	$ppasswd => FILTER_SANITIZE_STRING,
+	$ppasswd2 => FILTER_SANITIZE_STRING,
+	$pname => FILTER_SANITIZE_STRING,
+	$pcontact => FILTER_SANITIZE_STRING,
+	$pcaptcha => FILTER_SANITIZE_STRING
+], FALSE);
 
 $lvl = $cdata['security_level'];
 switch ($lvl) {
@@ -30,7 +44,7 @@ switch ($lvl) {
  case Auther::CHALLENGED:
 	$flds = [];
 	//common stuff
-	$t = trim($_POST[$id.'login']);
+	$t = trim($postvars[$plogin]);
 	if ($t) {
 		$res = $afuncs->ValidateLogin($t);
 		if ($res[0]) {
@@ -55,7 +69,7 @@ switch ($lvl) {
 		$focus = 'login';
 	}
 
-	$pw = ($jax) ? $sent['passwd'] : $_POST[$id.'passwd'];
+	$pw = ($jax) ? filter_var($sent['passwd'], FILTER_SANITIZE_STRING) : $postvars[$ppasswd];
 	$pw = trim($pw);
 	$res = $afuncs->ValidatePassword($pw);
 	if ($res[0]) {
@@ -65,7 +79,7 @@ switch ($lvl) {
 		if (!$focus) { $focus = 'passwd'; }
 	}
 	if (!$jax) { //i.e. lengths not matched in browser
-		$pw2 = trim($_POST[$id.'passwd2']);
+		$pw2 = trim($postvars[$ppasswd2]);
 		if ($pw !== $pw2) {
 			unset($flds['privhash']);
 			$msgs[] = $mod->Lang('newpassword_nomatch'); //TODO not new
@@ -73,7 +87,7 @@ switch ($lvl) {
 		}
 	}
 
-	$t = trim($_POST[$id.'name']);
+	$t = trim($postvars[$pname]);
 	if ($t) {
 		$t = $vfuncs->SanitizeName($t);
 		$res = $afuncs->ValidateName($t);
@@ -95,7 +109,7 @@ switch ($lvl) {
 		$flds['name'] = '';
 	}
 
-	$t = trim($_POST[$id.'contact']);
+	$t = trim($postvars[$pcontact]);
 	if ($t) {
 		$res = $afuncs->ValidateAddress($t);
 		if ($res[0]) {
@@ -115,7 +129,7 @@ switch ($lvl) {
 	 case Auther::MIDSEC:
 	//check stuff
 		if (!$jax) {
-			if ($params['captcha'] !== $_POST[$id.'captcha']) {
+			if ($params['captcha'] !== $postvars[$pcaptcha]) {
 				$msgs[] = $mod->Lang('err_captcha');
 				if (!$focus) { $focus = 'captcha'; }
 			}
