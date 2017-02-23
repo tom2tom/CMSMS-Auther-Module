@@ -65,11 +65,11 @@ class Validate
 	public function CheckEncrypted($val, $authmethod, $failkey=FALSE)
 	{
 		$val = $this->cfuncs->decrypt_value($this->mod, $val);
-		return $this-CheckValue($val, $authmethod, $failkey);
+		return $this->CheckValue($val, $authmethod, $failkey);
 	}
 
 	/**
-	 * Checks validity of supplied password
+	 * Checks validity of supplied password @val
 	 * Returns: 2-member array, [0] = boolean indicating success, [1] = error message or ''
 	 */
 	public function CheckPassword($val, $session, $failkey='err_parm')
