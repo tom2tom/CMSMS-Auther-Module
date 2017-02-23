@@ -40,7 +40,7 @@ class Challenge extends Session
 
 		if (strlen($token) !== 24) {
 			$this->AddAttempt();
-			return [FALSE, $this->mod->Lang('activationkey_invalid')];
+			return [FALSE, $this->mod->Lang('invalid_activationkey')];
 		}
 
 		$data = $this->GetChallenge($token, 'activate');
@@ -88,7 +88,7 @@ class Challenge extends Session
 		}
 
 		if (strlen($token) != 24) {
-			return [FALSE, $this->mod->Lang('resetkey_invalid')];
+			return [FALSE, $this->mod->Lang('invalid_resetkey')];
 		}
 
 		$data = $this->GetChallenge($token, 'reset'); //TODO no challenges here
@@ -236,7 +236,7 @@ class Challenge extends Session
 
 		if (!$row) {
 			$this->AddAttempt();
-			return [FALSE, $this->mod->Lang($type.'key_incorrect')];
+			return [FALSE, $this->mod->Lang('incorrect_'.$type.'key')];
 		}
 
 		if ($row['expire'] < time()) {

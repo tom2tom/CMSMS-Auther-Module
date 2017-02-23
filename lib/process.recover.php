@@ -94,7 +94,11 @@ switch ($lvl) {
 	}
 
 	if ($jax) {
-		$t = filter_var($sent['passwd'], FILTER_SANITIZE_STRING); //no difference-check?
+		$t = filter_var($sent['passwd'], FILTER_SANITIZE_STRING);
+		if ($sent['passwd'] != $t) {
+			$msgs[] = $mod->Lang('invalid_type', $mod->Lang('password'));
+			if (!$focus) { $focus = 'passwd'; }
+		}
 	} else {
 		$key = $id.'passwd';
 		$t = $postvars[$key];
@@ -106,12 +110,16 @@ switch ($lvl) {
 	$pw = trim($t);
 	$data = json_decode($sdata['cache']);
 	if (!$afuncs->DoPasswordCheck($pw, $data['token'], $sdata['attempts'])) {
-		$msgs[] = $mod->Lang('password_incorrect'); //TODO TOKEN
+		$msgs[] = $mod->Lang('incorrect_type', $mod->Lang('password')); //TODO 'token'
 		break;
 	}
 
 	if ($jax) {
-		$t = filter_var($sent['passwd2'], FILTER_SANITIZE_STRING); //no difference-check?
+		$t = filter_var($sent['passwd2'], FILTER_SANITIZE_STRING);
+		if ($sent['passwd2'] != $t) {
+			$msgs[] = $mod->Lang('invalid_type', $mod->Lang('password'));
+			if (!$focus) { $focus = 'passwd2'; }
+		}
 	} else {
 		$key = $id.'passwd2';
 		$t = $postvars[$key];

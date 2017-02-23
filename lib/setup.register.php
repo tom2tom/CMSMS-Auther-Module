@@ -248,7 +248,7 @@ EOS;
     if (id == 'login') {
      if (!{$logtype}) {
       if (val.search(/^.+@.+\..+$/) == -1) {
-       doerror(\$el,'{$mod->Lang('email_invalid')}');
+       doerror(\$el,'{$mod->Lang('invalid_type',$mod->Lang('title_email'))}');
        valid = false;
        return false;
       }

@@ -229,7 +229,7 @@ class Auth extends Session
 	public function ValidateEmail($email)
 	{
 		if (!$email || !preg_match(self::PATNEMAIL, $email)) {
-			return [FALSE, $this->mod->Lang('email_invalid')];
+			return [FALSE, $this->mod->Lang('invalid_type', $this->mod->Lang('title_email'))];
 		}
 		//always check for ban
 		$parts = explode('@', $email);
@@ -348,7 +348,7 @@ class Auth extends Session
 
 		if (!$this->DoPasswordCheck($password, $userdata['password']/*, $tries TODO*/)) {
 			$this->AddAttempt();
-			return [FALSE, $this->mod->Lang('password_incorrect')];
+			return [FALSE, $this->mod->Lang('incorrect_type', $this->mod->Lang('password'))];
 		}
 
 		$newpass = password_hash($newpass, PASSWORD_DEFAULT);
@@ -452,7 +452,7 @@ class Auth extends Session
 			$this->AddAttempt();
 			$parms = []; //TODO API
 			$this->mod->SendEvent('OnLoginFail', $parms);
-			return [FALSE, $this->mod->Lang('login_incorrect')];
+			return [FALSE, $this->mod->Lang('incorrect_type', $this->mod->Lang('title_login'))];
 		}
 
 		$userdata = $this->GetUserBase($uid);
@@ -470,14 +470,14 @@ class Auth extends Session
 			$this->AddAttempt();
 			$parms = []; //TODO API
 			$this->mod->SendEvent('OnLoginFail', $parms);
-			return [FALSE, $this->mod->Lang('password_incorrect')];
+			return [FALSE, $this->mod->Lang('incorrect_type', $this->mod->Lang('password'))];
 		}
 
 		if (!is_bool($remember)) {
 			$this->AddAttempt();
 			$parms = []; //TODO API
 			$this->mod->SendEvent('OnLoginFail', $parms);
-			return [FALSE, $this->mod->Lang('remember_me_invalid')];
+			return [FALSE, $this->mod->Lang('invalid_type', $this->mod->Lang('rememberme'))];
 		}
 
 		$sessiondata = $this->AddSession($uid, $remember);
@@ -649,7 +649,7 @@ class Auth extends Session
 
 		if (!$this->DoPasswordCheck($password, $userdata['password']/*, $tries TODO*/)) {
 			$this->AddAttempt();
-			return [FALSE, $this->mod->Lang('password_incorrect')];
+			return [FALSE, $this->mod->Lang('incorrect_type', $this->mod->Lang('password'))];
 		}
 
 		if ($login == $userdata['publicid']) {

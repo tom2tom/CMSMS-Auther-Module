@@ -96,7 +96,7 @@ class Validate
 	 * @passwd may be FALSE, so as to check only the login
 	 * Returns: 2-member array, [0] = boolean indicating success, [1] = error message or ''
 	 */
-/*	public function IsKnown($login, $passwd, $failkey='authority_failed')
+/*	public function IsKnown($login, $passwd, $failkey='incorrect_vague')
 	{
 		$res = $this->afuncs->IsRegistered($login, $passwd);
 		if ($res[0]) {
