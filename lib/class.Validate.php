@@ -201,6 +201,24 @@ class Validate
 	}
 
 	/**
+	 * Get sanitized version of specified $_POST (string) variable(s)
+	 * @id: variable prefix
+	 * @key: array variable identifier, or array of them
+	 * Returns: associaative array or single value, with not-found variables NULL'd
+	 */
+	public function GetPostVars($id, $key)
+	{
+		if (is_array($key)) {
+			$postvars = [];
+			foreach ($key as $val) {
+				$postvars[$id.$val] = FILTER_SANITIZE_STRING;
+			}
+			return filter_input_array(INPUT_POST, $postvars, TRUE);
+		}
+		return filter_input(INPUT_POST, $id.$key, TRUE);
+	}
+
+	/**
 	 * Initiate password recovery if the supplied login is known
 	 * Normally do not provide $failkey
 	 * Returns: 2-member array, [0] = boolean indicating success, [1] = error message or ''
