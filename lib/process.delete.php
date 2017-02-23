@@ -16,14 +16,6 @@
 $sent array iff ajax-sourced
 [passwd] => "passnow"
 */
-$plogin = $id.'login';
-$ppasswd = $id.'passwd';
-$pcaptcha = $id.'captcha';
-$postvars = filter_input_array(INPUT_POST, [
-	$plogin => FILTER_SANITIZE_STRING,
-	$ppasswd => FILTER_SANITIZE_STRING,
-	$pcaptcha => FILTER_SANITIZE_STRING
-], FALSE);
 
 $lvl = $cdata['security_level'];
 switch ($lvl) {
@@ -34,24 +26,70 @@ switch ($lvl) {
  case Auther::MIDSEC:
  case Auther::CHALLENGED:
 	//common stuff
-	$login = trim($postvars[$plogin]);
-	if (!$login) {
+	$postvars = $vfuncs->GetPostVars($id, [
+		'login',
+		'passwd',
+		'captcha'
+	]);
+	$key = $id.'login';
+	$t = $postvars[$key];
+	if (isset($_POST[$key]) && $_POST[$key] != $t) {
+		$login = FALSE;
 		$t = ($cdata['email_login']) ? 'title_email':'title_identifier';
-		$msgs[] = $mod->Lang('missing_type', $mod->Lang($t));
+		$msgs[] = $mod->Lang('invalid_type', $mod->Lang($t));
 		$focus = 'login';
+	} else {
+		$login = trim($t);
+		if (!$login) {
+			$t = ($cdata['email_login']) ? 'title_email':'title_identifier';
+			$msgs[] = $mod->Lang('missing_type', $mod->Lang($t));
+			$focus = 'login';
+		}
 	}
-	$t = ($jax) ? filter_var($sent['passwd'], FILTER_SANITIZE_STRING) : $postvars[$ppasswd];
+
+	if ($jax) {
+		$t = filter_var($sent['passwd'], FILTER_SANITIZE_STRING); //no difference-check?
+	} else {
+		$key = $id.'passwd';
+		$t = $postvars[$key];
+		if (isset($_POST[$key]) && $_POST[$key] != $t) {
+			$msgs[] = $mod->Lang('invalid_type', $mod->Lang('password'));
+			if (!$focus) { $focus = 'passwd'; }
+		}
+	}
 	$pw = trim($t);
 	if (!$pw) {
 		$msgs[] = $mod->Lang('missing_type', $mod->Lang('password'));
 		if (!$focus) { $focus = 'passwd'; }
-	} elseif ($login) {
+	} elseif ($login) { //ok, we already fail if no login
 		$res = $afuncs->IsRegistered($login, $pw);
 		if (!$res[0]) {
 			$msgs[] = $res[1];
 			$focus = 'login';
 		}
 	}
+
+	switch ($lvl) {
+	 case Auther::MIDSEC:
+	//check stuff
+		if (!$jax) {
+			$key = $id.'captcha';
+			$t = $postvars[$key];
+			if (!$t) {
+				$msgs[] = $mod->Lang('missing_type', 'CAPTCHA');
+				if (!$focus) { $focus = 'captcha'; }
+			} elseif ($t != $_POST[$key] || $t != $params['captcha']) {
+				$msgs[] = $mod->Lang('err_captcha');
+				if (!$focus) { $focus = 'captcha'; }
+			}
+		}
+		break;
+	 case Auther::CHALLENGED:
+	//check stuff
+		if (!$jax) {
+		}
+		break;
+	} //switch $lvl
 	break;
  case Auther::HISEC:
  //TODO

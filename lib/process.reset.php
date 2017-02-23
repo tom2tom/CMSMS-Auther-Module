@@ -18,18 +18,6 @@ $sent array iff ajax-sourced
 [passwd] => "passnow"
 [passwd2] => "someother" new, should be different
 */
-$plogin = $id.'login';
-$ppasswd = $id.'passwd';
-$ppasswd2 = $id.'passwd2';
-$ppasswd3 = $id.'passwd3';
-$pcaptcha = $id.'captcha';
-$postvars = filter_input_array(INPUT_POST, [
-	$plogin => FILTER_SANITIZE_STRING,
-	$ppasswd => FILTER_SANITIZE_STRING,
-	$ppasswd2 => FILTER_SANITIZE_STRING,
-	$ppasswd3 => FILTER_SANITIZE_STRING,
-	$pcaptcha => FILTER_SANITIZE_STRING
-], FALSE);
 
 $lvl = $cdata['security_level'];
 switch ($lvl) {
@@ -39,15 +27,41 @@ switch ($lvl) {
  case Auther::LOSEC:
  case Auther::MIDSEC:
  case Auther::CHALLENGED:
+	$postvars = $vfuncs->GetPostVars($id, [
+		'login',
+		'passwd',
+		'passwd2',
+		'passwd3',
+		'captcha'
+	]);
 	$flds = [];
 	//common stuff
-	$login = trim($postvars[$plogin]);
-	if (!$login) {
+	$key = $id.'login';
+	$t = $postvars[$key];
+	if (isset($_POST[$key]) && $_POST[$key] != $t) {
+		$login = FALSE;
 		$t = ($cdata['email_login']) ? 'title_email':'title_identifier';
-		$msgs[] = $mod->Lang('missing_type', $mod->Lang($t));
+		$msgs[] = $mod->Lang('invalid_type', $mod->Lang($t));
 		$focus = 'login';
+	} else {
+		$login = trim($t);
+		if (!$login) {
+			$t = ($cdata['email_login']) ? 'title_email':'title_identifier';
+			$msgs[] = $mod->Lang('missing_type', $mod->Lang($t));
+			$focus = 'login';
+		}
 	}
-	$t = ($jax) ? filter_var($sent['passwd'], FILTER_SANITIZE_STRING) : $postvars[$ppasswd];
+
+	if ($jax) {
+		$t = filter_var($sent['passwd'], FILTER_SANITIZE_STRING); //no difference-check?
+	} else {
+		$key = $id.'passwd';
+		$t = $postvars[$key];
+		if (isset($_POST[$key]) && $_POST[$key] != $t) {
+			$msgs[] = $mod->Lang('invalid_type', $mod->Lang('password'));
+			if (!$focus) { $focus = 'passwd'; }
+		}
+	}
 	$pw = trim($t);
 	if (!$pw) {
 		$msgs[] = $mod->Lang('missing_type', $mod->Lang('password'));
@@ -75,7 +89,16 @@ switch ($lvl) {
 		}
 	}
 
-	$t = ($jax) ? filter_var($sent['passwd2'], FILTER_SANITIZE_STRING) : $postvars[$ppasswd2];
+	if ($jax) {
+		$t = filter_var($sent['passwd2'], FILTER_SANITIZE_STRING); //no difference-check?
+	} else {
+		$key = $id.'passwd2';
+		$t = $postvars[$key];
+		if (isset($_POST[$key]) && $_POST[$key] != $t) {
+			$msgs[] = $mod->Lang('invalid_type', $mod->Lang('password'));
+			if (!$focus) { $focus = 'passwd2'; }
+		}
+	}
 	$pw2 = trim($t);
 	if ($pw === $pw2) {
 		$msgs[] = $mod->Lang('newpassword_match');
@@ -83,13 +106,21 @@ switch ($lvl) {
 	}
 	$res = $afuncs->ValidatePassword($pw2);
 	if ($res[0]) {
-		$flds['privhash'] = $pw2; //hash when required
+		if (!$msgs) {
+			$flds['privhash'] = $pw2; //hash when required
+		}
 	} else {
 		$msgs[] = $res[1];
 		if (!$focus) { $focus = 'passwd2'; }
 	}
+
 	if (!$jax) { //i.e. passwords not matched in browser
-		if ($pw2 !== trim($postvars[$ppasswd3])) {
+		$key = $id.'passwd3';
+		$t = $postvars[$key];
+		if (isset($_POST[$key]) && $_POST[$key] != $t) {
+			$msgs[] = $mod->Lang('invalid_type', $mod->Lang('password'));
+			if (!$focus) { $focus = 'passwd2'; }
+		} elseif ($pw2 !== trim($t)) {
 			unset($flds['privhash']);
 			$msgs[] = $mod->Lang('newpassword_nomatch');
 			if (!$focus) { $focus = 'passwd2'; }
@@ -100,7 +131,12 @@ switch ($lvl) {
 	 case Auther::MIDSEC:
 	//check stuff
 		if (!$jax) {
-			if ($params['captcha'] !== $postvars[$pcaptcha]) {
+			$key = $id.'captcha';
+			$t = $postvars[$key];
+			if (!$t) {
+				$msgs[] = $mod->Lang('missing_type', 'CAPTCHA');
+				if (!$focus) { $focus = 'captcha'; }
+			} elseif ($t != $_POST[$key] || $t != $params['captcha']) {
 				$msgs[] = $mod->Lang('err_captcha');
 				if (!$focus) { $focus = 'captcha'; }
 			}
