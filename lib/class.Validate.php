@@ -183,16 +183,17 @@ class Validate
 
 	/**
 	 * Cleans up @name
+	 * @enc optional string char-encoding of @name, default = 'UTF-8'
 	 * Returns: string
 	 */
-	public function SanitizeName($name)
+	public function SanitizeName($name, $enc='UTF-8')
 	{
 		$t = trim($name);
 		$t = preg_replace('/\s{1,}/', ' ', $t);
 		//stet what may be a short capitalised acronym
 		if (strpos($t,' ') !== FALSE || strlen($t) > 5) {
 			if (extension_loaded('mbstring')) {
-				$t = mb_convert_case($t, MB_CASE_TITLE, 'UTF-8');
+				$t = mb_convert_case($t, MB_CASE_TITLE, $enc);
 			} else {
 				$t = ucwords($t);
 			}
@@ -201,21 +202,36 @@ class Validate
 	}
 
 	/**
-	 * Get sanitized version of specified $_POST (string) variable(s)
-	 * @id: variable prefix
-	 * @key: array variable identifier, or array of them
-	 * Returns: associaative array or single value, with not-found variables NULL'd
+	 * Eliminate from @string some of the more egregious injections, if found
+	 * This supports a fuck-off hint to crackers, the real protection is query-parameterisation
+	 * @string: string to be checked, maybe FALSE
+	 * Returns: possibly-changed string or NULL if @string is FALSE
 	 */
-	public function GetPostVars($id, $key)
+	public function FilteredPassword($string)
 	{
-		if (is_array($key)) {
-			$postvars = [];
-			foreach ($key as $val) {
-				$postvars[$id.$val] = FILTER_SANITIZE_STRING;
-			}
-			return filter_input_array(INPUT_POST, $postvars, TRUE);
+		if ($string) {
+			$t = filter_var($string, FILTER_UNSAFE_RAW, FILTER_FLAG_STRIP_LOW);
+			return $t;
 		}
-		return filter_input(INPUT_POST, $id.$key, TRUE);
+		return NULL;
+	}
+
+	/**
+	 * Eliminate from @string some of the more egregious injections, if found
+	 * This supports a fuck-off hint to crackers, the real protection is query-parameterisation
+	 * @string: string to be checked, maybe FALSE
+	 * Returns: possibly-changed string or NULL if @string is FALSE
+	 */
+	public function FilteredString($string)
+	{
+		if ($string) {
+			$t = filter_var($string, FILTER_UNSAFE_RAW,
+				FILTER_FLAG_STRIP_LOW | FILTER_FLAG_STRIP_BACKTICK);
+			$t = addslashes($t);
+			$t = str_replace('";', '"\\;', $t);
+			return $t;
+		}
+		return NULL;
 	}
 
 	/**

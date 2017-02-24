@@ -28,18 +28,22 @@ switch ($lvl) {
  case Auther::LOSEC:
  case Auther::MIDSEC:
  case Auther::CHALLENGED:
-	$postvars = $vfuncs->GetPostVars($id, [
+	//common stuff
+	$postvars = [];
+	foreach ([
 		'login',
 		'passwd',
 		'passwd2',
 		'name',
 		'contact',
 		'captcha'
-	]);
+	] as $t) {
+		$key = $id.$t;
+		$postvars[$key] = isset($_POST[$key]) ? $_POST[$key] : NULL;
+	}
 	$flds = [];
-	//common stuff
 	$key = $id.'login';
-	$t = $postvars[$key];
+	$t = $vfuncs->FilteredString($postvars[$key]);
 	if (isset($_POST[$key]) && $_POST[$key] != $t) {
 		$login = FALSE;
 		$t = ($cdata['email_login']) ? 'title_email':'title_identifier';
@@ -75,14 +79,14 @@ switch ($lvl) {
 	}
 
 	if ($jax) {
-		$t = filter_var($sent['passwd'], FILTER_SANITIZE_STRING);
+		$t = $vfuncs->FilteredPassword($sent['passwd']);
 		if ($sent['passwd'] != $t) {
 			$msgs[] = $mod->Lang('invalid_type', $mod->Lang('password'));
 			if (!$focus) { $focus = 'passwd'; }
 		}
 	} else {
 		$key = $id.'passwd';
-		$t = $postvars[$key];
+		$t = $vfuncs->FilteredPassword($postvars[$key]);
 		if (isset($_POST[$key]) && $_POST[$key] != $t) {
 			$msgs[] = $mod->Lang('invalid_type', $mod->Lang('password'));
 			if (!$focus) { $focus = 'passwd'; }
@@ -104,7 +108,7 @@ switch ($lvl) {
 
 	if (!$jax) { //i.e. lengths not matched in browser
 		$key = $id.'passwd2';
-		$t = $postvars[$key];
+		$t = $vfuncs->FilteredPassword($postvars[$key]);
 		if (isset($_POST[$key]) && $_POST[$key] != $t) {
 			$pw2 = NULL;
 			$msgs[] = $mod->Lang('invalid_type', $mod->Lang('password'));
@@ -120,7 +124,7 @@ switch ($lvl) {
 	}
 
 	$key = $id.'name';
-	$t = $postvars[$key];
+	$t = $vfuncs->FilteredString($postvars[$key]);
 	if (isset($_POST[$key]) && $_POST[$key] != $t) {
 		$msgs[] = $mod->Lang('invalid_type', $mod->Lang('name'));
 		if (!$focus) { $focus = 'name'; }
@@ -146,7 +150,7 @@ switch ($lvl) {
 	}
 
 	$key = $id.'contact';
-	$t = $postvars[$key];
+	$t = $vfuncs->FilteredString($postvars[$key]);
 	if (isset($_POST[$key]) && $_POST[$key] != $t) {
 		$msgs[] = $mod->Lang('invalid_type', $mod->Lang('title_contact'));
 		if (!$focus) { $focus = 'contact'; }
@@ -173,7 +177,7 @@ switch ($lvl) {
 	//check stuff
 		if (!$jax) {
 			$key = $id.'captcha';
-			$t = $postvars[$key];
+			$t = $vfuncs->FilteredPassword($postvars[$key]);
 			if (!$t) {
 				$msgs[] = $mod->Lang('missing_type', 'CAPTCHA');
 				if (!$focus) { $focus = 'captcha'; }

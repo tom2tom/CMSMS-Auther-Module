@@ -17,11 +17,15 @@ $sent array iff ajax-sourced
 [passwd] => "passnow"
 */
 
-$postvars = $vfuncs->GetPostVars($id, [
+$postvars = [];
+foreach ([
 	'login',
 	'passwd',
 	'captcha'
-]);
+] as $t) {
+	$key = $id.$t;
+	$postvars[$key] = isset($_POST[$key]) ? $_POST[$key] : NULL;
+}
 
 $lvl = $cdata['security_level'];
 switch ($lvl) {
@@ -34,7 +38,7 @@ switch ($lvl) {
 		}
 	} else {
 		$key = $id.'captcha';
-		$t = $postvars[$key];
+		$t = $vfuncs->FilteredPassword($postvars[$key]);
 		if (!$t) {
 			$msgs[] = $mod->Lang('missing_type', 'CAPTCHA');
 			$focus = 'captcha';
@@ -49,7 +53,7 @@ switch ($lvl) {
  case Auther::CHALLENGED:
 	//common stuff
 	$key = $id.'login';
-	$t = $postvars[$key];
+	$t = $vfuncs->FilteredString($postvars[$key]);
 	if (isset($_POST[$key]) && $_POST[$key] != $t) {
 		$login = FALSE;
 		$t = ($cdata['email_login']) ? 'title_email':'title_identifier';
@@ -65,14 +69,14 @@ switch ($lvl) {
 	}
 
 	if ($jax) {
-		$t = filter_var($sent['passwd'], FILTER_SANITIZE_STRING);
+		$t = $vfuncs->FilteredPassword($sent['passwd']);
 		if ($sent['passwd'] != $t) {
 			$msgs[] = $mod->Lang('invalid_type', $mod->Lang('password'));
 			if (!$focus) { $focus = 'passwd'; }
 		}
 	} else {
 		$key = $id.'passwd';
-		$t = $postvars[$key];
+		$t = $vfuncs->FilteredPassword($postvars[$key]);
 		if (isset($_POST[$key]) && $_POST[$key] != $t) {
 			$msgs[] = $mod->Lang('invalid_type', $mod->Lang('password'));
 			if (!$focus) { $focus = 'passwd'; }
@@ -115,7 +119,7 @@ switch ($lvl) {
 	//check stuff
 		if (!$jax) {
 			$key = $id.'captcha';
-			$t = $postvars[$key];
+			$t = $vfuncs->FilteredPassword($postvars[$key]);
 			if (!$t) {
 				$msgs[] = $mod->Lang('missing_type', 'CAPTCHA');
 				if (!$focus) { $focus = 'captcha'; }
