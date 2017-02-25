@@ -42,119 +42,106 @@ switch ($lvl) {
 		$postvars[$key] = isset($_POST[$key]) ? $_POST[$key] : NULL;
 	}
 	$flds = [];
-	$key = $id.'login';
-	$t = $vfuncs->FilteredString($postvars[$key]);
-	if (isset($_POST[$key]) && $_POST[$key] != $t) {
+	$t = $postvars[$id.'login'];
+	if ($vfuncs->FilteredString($t)) {
+		$login = trim($t);
+		if ($login) {
+			$res = $afuncs->ValidateLogin($login);
+			if ($res[0]) {
+				if (0) { //TODO extra test criterion
+					$res = $afuncs->SensibleLogin($login);
+				}
+			}
+			if ($res[0]) {
+				$res = $afuncs->UniqueLogin($login);
+				if ($res[0]) {
+					$flds['publicid'] = $login;
+				} else {
+					$msgs[] = $mod->Lang('retry'); //NOT the default 'invalid' message!
+					$focus = 'login';
+				}
+			} else {
+				$msgs[] = $res[1];
+				$focus = 'login';
+			}
+		} else {
+			$t = ($cdata['email_login']) ? 'title_email':'title_identifier';
+			$msgs[] = $mod->Lang('missing_type', $mod->Lang($t));
+			$focus = 'login';
+		}
+	} else {
 		$login = FALSE;
 		$t = ($cdata['email_login']) ? 'title_email':'title_identifier';
 		$msgs[] = $mod->Lang('invalid_type', $mod->Lang($t));
 		$focus = 'login';
-	} else {
-		$login = trim($t);
 	}
 
-	if ($login) {
-		$res = $afuncs->ValidateLogin($login);
-		if ($res[0]) {
-			if (0) { //TODO extra test criterion
-				$res = $afuncs->SensibleLogin($login);
-			}
-		}
-		if ($res[0]) {
-			$res = $afuncs->UniqueLogin($login);
+	$t = ($jax) ? $sent['passwd'] : $postvars[$id.'passwd'];
+	if ($vfuncs->FilteredPassword($t)) {
+		$pw = trim($t);
+		if ($pw) {
+			$res = $afuncs->ValidatePassword($pw);
 			if ($res[0]) {
-				$flds['publicid'] = $login;
+				if (!$msgs) {
+					$flds['privhash'] = $pw; //hash when required
+				}
 			} else {
-				$msgs[] = $mod->Lang('retry'); //NOT the default 'invalid' message!
-				$focus = 'login';
+				$msgs[] = $res[1];
+				if (!$focus) { $focus = 'passwd'; }
 			}
 		} else {
-			$msgs[] = $res[1];
-			$focus = 'login';
-		}
-	} else {
-		$t = ($cdata['email_login']) ? 'title_email':'title_identifier';
-		$msgs[] = $mod->Lang('missing_type', $mod->Lang($t));
-		$focus = 'login';
-	}
-
-	if ($jax) {
-		$t = $vfuncs->FilteredPassword($sent['passwd']);
-		if ($sent['passwd'] != $t) {
-			$msgs[] = $mod->Lang('invalid_type', $mod->Lang('password'));
+			$msgs[] = $mod->Lang('missing_type', $mod->Lang('password'));
 			if (!$focus) { $focus = 'passwd'; }
 		}
 	} else {
-		$key = $id.'passwd';
-		$t = $vfuncs->FilteredPassword($postvars[$key]);
-		if (isset($_POST[$key]) && $_POST[$key] != $t) {
-			$msgs[] = $mod->Lang('invalid_type', $mod->Lang('password'));
-			if (!$focus) { $focus = 'passwd'; }
-		}
-	}
-	$pw = trim($t);
-	if ($pw) {
-		$res = $afuncs->ValidatePassword($pw);
-		if ($res[0]) {
-			$flds['privhash'] = $pw;
-		} else {
-			$msgs[] = $res[1];
-			if (!$focus) { $focus = 'passwd'; }
-		}
-	} else {
-		$msgs[] = $mod->Lang('missing_type', $mod->Lang('password'));
+		$pw = FALSE;
+		$msgs[] = $mod->Lang('invalid_type', $mod->Lang('password'));
 		if (!$focus) { $focus = 'passwd'; }
 	}
 
-	if (!$jax) { //i.e. lengths not matched in browser
-		$key = $id.'passwd2';
-		$t = $vfuncs->FilteredPassword($postvars[$key]);
-		if (isset($_POST[$key]) && $_POST[$key] != $t) {
-			$pw2 = NULL;
+	if (!$jax) { //i.e. passwords not matched in browser
+		$t = $postvars[$id.'passwd2'];
+		if ($vfuncs->FilteredPassword($t)) {
+			if ($pw !== trim($t)) {
+				unset($flds['privhash']);
+				$msgs[] = $mod->Lang('newpassword_nomatch'); //TODO not new
+				if (!$focus) { $focus = 'passwd2'; }
+			}
+		} else {
 			$msgs[] = $mod->Lang('invalid_type', $mod->Lang('password'));
 			if (!$focus) { $focus = 'passwd2'; }
-		} else {
-			$pw2 = trim($postvars[$key]);
-		}
-		if ($pw !== $pw2) {
-			unset($flds['privhash']);
-			$msgs[] = $mod->Lang('newpassword_nomatch'); //TODO not new
-			if (!$focus) { $focus = 'passwd2'; }
 		}
 	}
 
-	$key = $id.'name';
-	$t = $vfuncs->FilteredString($postvars[$key]);
-	if (isset($_POST[$key]) && $_POST[$key] != $t) {
+	$t = $postvars[$id.'name'];
+	if ($vfuncs->FilteredString($t)) {
+		$t = $vfuncs->SanitizeName($t);
+		if ($t) {
+			$res = $afuncs->ValidateName($t);
+			if ($res[0]) {
+				if (0) { //TODO extra test criterion
+					$res = $afuncs->SensibleName($t);
+				}
+			}
+			if ($res[0]) {
+				$flds['name'] = $t; //crypt if/when needed
+			} else {
+				$msgs[] = $res[1];
+				if (!$focus) { $focus = 'name'; }
+			}
+		} elseif ($cdata['name_required']) {
+			$msgs[] = $mod->Lang('missing_type', $mod->Lang('name'));
+			if (!$focus) { $focus = 'name'; }
+		} else {
+			$flds['name'] = '';
+		}
+	} else {
 		$msgs[] = $mod->Lang('invalid_type', $mod->Lang('name'));
 		if (!$focus) { $focus = 'name'; }
-	} elseif ($t) {
-		$t = $vfuncs->SanitizeName($t);
-		$res = $afuncs->ValidateName($t);
-		if ($res[0]) {
-			if (0) { //TODO extra test criterion
-				$res = $afuncs->SensibleName($t);
-			}
-		}
-		if ($res[0]) {
-			$flds['name'] = $t; //crypt if/when needed
-		} else {
-			$msgs[] = $res[1];
-			if (!$focus) { $focus = 'name'; }
-		}
-	} elseif ($cdata['name_required']) {
-		$msgs[] = $mod->Lang('missing_type', $mod->Lang('name'));
-		if (!$focus) { $focus = 'name'; }
-	} else {
-		$flds['name'] = '';
 	}
 
-	$key = $id.'contact';
-	$t = $vfuncs->FilteredString($postvars[$key]);
-	if (isset($_POST[$key]) && $_POST[$key] != $t) {
-		$msgs[] = $mod->Lang('invalid_type', $mod->Lang('title_contact'));
-		if (!$focus) { $focus = 'contact'; }
-	} else {
+	$t = $postvars[$id.'contact'];
+	if ($vfuncs->FilteredString($t)) {
 		$t = trim($t);
 		if ($t) {
 			$res = $afuncs->ValidateAddress($t);
@@ -170,19 +157,26 @@ switch ($lvl) {
 		} else {
 			$flds['address'] = '';
 		}
+	} else {
+		$msgs[] = $mod->Lang('invalid_type', $mod->Lang('title_contact'));
+		if (!$focus) { $focus = 'contact'; }
 	}
 
 	switch ($lvl) {
 	 case Auther::MIDSEC:
 	//check stuff
 		if (!$jax) {
-			$key = $id.'captcha';
-			$t = $vfuncs->FilteredPassword($postvars[$key]);
-			if (!$t) {
-				$msgs[] = $mod->Lang('missing_type', 'CAPTCHA');
-				if (!$focus) { $focus = 'captcha'; }
-			} elseif ($t != $_POST[$key] || $t != $params['captcha']) {
-				$msgs[] = $mod->Lang('err_captcha');
+			$t = $postvars[$id.'captcha'];
+			if ($vfuncs->FilteredPassword($t)) {
+				if (!$t) {
+					$msgs[] = $mod->Lang('missing_type', 'CAPTCHA');
+					if (!$focus) { $focus = 'captcha'; }
+				} elseif ($t != $params['captcha']) {
+					$msgs[] = $mod->Lang('err_captcha');
+					if (!$focus) { $focus = 'captcha'; }
+				}
+			} else {
+				$msgs[] = $mod->Lang('invalid_type', 'CAPTCHA');
 				if (!$focus) { $focus = 'captcha'; }
 			}
 		}
@@ -197,7 +191,7 @@ switch ($lvl) {
  case Auther::HISEC:
  //TODO
 	break;
-} //switch $lvl
+} //switch level
 
 if (!$msgs) {
 	if ($lvl == Auther::CHALLENGED) {

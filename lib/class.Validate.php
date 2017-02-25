@@ -205,33 +205,39 @@ class Validate
 	 * Eliminate from @string some of the more egregious injections, if found
 	 * This supports a fuck-off hint to crackers, the real protection is query-parameterisation
 	 * @string: string to be checked, maybe FALSE
-	 * Returns: possibly-changed string or NULL if @string is FALSE
+	 * Returns: boolean indicating @string passes the tests, TRUE if @string is FALSE
 	 */
 	public function FilteredPassword($string)
 	{
 		if ($string) {
 			$t = filter_var($string, FILTER_UNSAFE_RAW, FILTER_FLAG_STRIP_LOW);
-			return $t;
+			return $t === $string;
 		}
-		return NULL;
+		return TRUE;
 	}
 
 	/**
-	 * Eliminate from @string some of the more egregious injections, if found
+	 * Evaluate @string to check for some of the more egregious injections
 	 * This supports a fuck-off hint to crackers, the real protection is query-parameterisation
 	 * @string: string to be checked, maybe FALSE
-	 * Returns: possibly-changed string or NULL if @string is FALSE
+	 * Returns: boolean indicating @string passes the tests, TRUE if @string is FALSE
 	 */
 	public function FilteredString($string)
 	{
 		if ($string) {
 			$t = filter_var($string, FILTER_UNSAFE_RAW,
 				FILTER_FLAG_STRIP_LOW | FILTER_FLAG_STRIP_BACKTICK);
+			if ($t !== $string) {
+				return FALSE;
+			}
+			$t = preg_replace('/[\'"]\s?;/', '', $t);
+			if ($t !== $string) {
+				return FALSE;
+			}
 			$t = addslashes($t);
-			$t = str_replace('";', '"\\;', $t);
-			return $t;
+			return $t === $string;
 		}
-		return NULL;
+		return TRUE;
 	}
 
 	/**

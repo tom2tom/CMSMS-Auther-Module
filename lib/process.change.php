@@ -45,66 +45,57 @@ switch ($lvl) {
 		$postvars[$key] = isset($_POST[$key]) ? $_POST[$key] : NULL;
 	}
 	$flds = [];
-	$key = $id.'login';
-	$t = $vfuncs->FilteredString($postvars[$key]);
-	if (isset($_POST[$key]) && $_POST[$key] != $t) {
-		$login = FALSE;
-		$t = ($cdata['email_login']) ? 'title_email':'title_identifier';
-		$msgs[] = $mod->Lang('invalid_type', $mod->Lang($t));
-		$focus = 'login';
-	} else {
+	$t = $postvars[$id.'login'];
+	if ($vfuncs->FilteredString($t)) {
 		$login = trim($t);
 		if (!$login) {
 			$t = ($cdata['email_login']) ? 'title_email':'title_identifier';
 			$msgs[] = $mod->Lang('missing_type', $mod->Lang($t));
 			$focus = 'login';
 		}
+	} else {
+		$login = FALSE;
+		$t = ($cdata['email_login']) ? 'title_email':'title_identifier';
+		$msgs[] = $mod->Lang('invalid_type', $mod->Lang($t));
+		$focus = 'login';
 	}
 
-	if ($jax) {
-		$t = $vfuncs->FilteredPassword($sent['passwd']);
-		if ($sent['passwd'] != $t) {
-			$msgs[] = $mod->Lang('invalid_type', $mod->Lang('password'));
+	$t = ($jax) ? $sent['passwd'] : $postvars[$id.'passwd'];
+	if ($vfuncs->FilteredPassword($t)) {
+		$pw = trim($t);
+		if (!$pw) {
+			$msgs[] = $mod->Lang('missing_type', $mod->Lang('password'));
 			if (!$focus) { $focus = 'passwd'; }
+		} elseif ($login) { //ok, already fail if no login
+			$res = $afuncs->IsRegistered($login, $pw);
+			$fake = !$res[0];
+			$sdata = $res[1];
+			if ($res[0]) {
+				if ($vfuncs->IsForced(FALSE, $login, $cdata['id'])) {
+					$forcereset = TRUE;
+					break;
+				}
+			} else {
+				$n = $cdata['ban_count'];
+				if ($sdata['attempts'] >= $n) {
+	//TODO status 'blocked'
+					$vfuncs->SetForced(1, FALSE, $login, $cdata['id']);
+					$forcereset = TRUE;
+					$msgs[] = $mod->Lang('reregister2');
+				} else {
+					$n = $cdata['raise_count'];
+					if ($sdata['attempts'] >= $n) {
+						$msgs[] = $mod->Lang('reregister');
+	// SILENT		} else {
+	//					$msgs[] = $mod->Lang('invalid_type', $mod->Lang('title_login'));
+					}
+					$focus = 'login';
+				}
+			}
 		}
 	} else {
-		$key = $id.'passwd';
-		$t = $vfuncs->FilteredPassword($postvars[$key]);
-		if (isset($_POST[$key]) && $_POST[$key] != $t) {
-			$msgs[] = $mod->Lang('invalid_type', $mod->Lang('password'));
-			if (!$focus) { $focus = 'passwd'; }
-		}
-	}
-	$pw = trim($t);
-	if (!$pw) {
-		$msgs[] = $mod->Lang('missing_type', $mod->Lang('password'));
+		$msgs[] = $mod->Lang('invalid_type', $mod->Lang('password'));
 		if (!$focus) { $focus = 'passwd'; }
-	} elseif ($login) { //ok, already fail if no login
-		$res = $afuncs->IsRegistered($login, $pw);
-		$fake = !$res[0];
-		$sdata = $res[1];
-		if ($res[0]) {
-			if ($vfuncs->IsForced(FALSE, $login, $cdata['id'])) {
-				$forcereset = TRUE;
-				break;
-			}
-		} else {
-			$n = $cdata['ban_count'];
-			if ($sdata['attempts'] >= $n) {
-//TODO status 'blocked'
-				$vfuncs->SetForced(1, FALSE, $login, $cdata['id']);
-				$forcereset = TRUE;
-				$msgs[] = $mod->Lang('reregister2');
-			} else {
-				$n = $cdata['raise_count'];
-				if ($sdata['attempts'] >= $n) {
-					$msgs[] = $mod->Lang('reregister');
-// SILENT		} else {
-//					$msgs[] = $mod->Lang('invalid_type', $mod->Lang('title_login'));
-				}
-				$focus = 'login';
-			}
-		}
 	}
 
 	$pass1 = $_POST[$id.'phase'] == 'who';
@@ -112,12 +103,8 @@ switch ($lvl) {
 		break;
 	}
 
-	$key = $id.'login2';
-	$t = $vfuncs->FilteredString($postvars[$key]);
-	if (isset($_POST[$key]) && $_POST[$key] != $t) {
-		$msgs[] = $mod->Lang('invalid_type', $mod->Lang('title_login')); //TODO replacement
-		if (!$focus) { $focus = 'login2'; }
-	} else {
+	$t = $postvars[$id.'login2'];
+	if ($vfuncs->FilteredString($t)) {
 		$t = trim($t);
 		if ($t) {
 			$res = $afuncs->ValidateLogin($t);
@@ -139,14 +126,13 @@ switch ($lvl) {
 				if (!$focus) { $focus = 'login2'; }
 			}
 		}
+	} else {
+		$msgs[] = $mod->Lang('invalid_type', $mod->Lang('title_login')); //TODO 'replacement' into message
+		if (!$focus) { $focus = 'login2'; }
 	}
 
-	$key = $id.'name';
-	$t = $vfuncs->FilteredString($postvars[$key]);
-	if (isset($_POST[$key]) && $_POST[$key] != $t) {
-		$msgs[] = $mod->Lang('invalid_type', $mod->Lang('name'));
-		if (!$focus) { $focus = 'name'; }
-	} elseif ($t) {
+	$t = $postvars[$id.'name'];
+	if ($vfuncs->FilteredString($t)) {
 		$t = $vfuncs->SanitizeName($t);
 		$res = $afuncs->ValidateName($t);
 		if ($res[0]) {
@@ -160,14 +146,13 @@ switch ($lvl) {
 			$msgs[] = $res[1];
 			if (!$focus) { $focus = 'name'; }
 		}
+	} else {
+		$msgs[] = $mod->Lang('invalid_type', $mod->Lang('name'));
+		if (!$focus) { $focus = 'name'; }
 	}
 
-	$key = $id.'contact';
-	$t = $vfuncs->FilteredString($postvars[$key]);
-	if (isset($_POST[$key]) && $_POST[$key] != $t) {
-		$msgs[] = $mod->Lang('invalid_type', $mod->Lang('title_contact'));
-		if (!$focus) { $focus = 'contact'; }
-	} else {
+	$t = $postvars[$id.'contact'];
+	if ($vfuncs->FilteredString($t)) {
 		$t = trim($t);
 		if ($t) {
 			$res = $afuncs->ValidateAddress($t);
@@ -178,19 +163,26 @@ switch ($lvl) {
 				if (!$focus) { $focus = 'contact'; }
 			}
 		}
+	} else {
+		$msgs[] = $mod->Lang('invalid_type', $mod->Lang('title_contact'));
+		if (!$focus) { $focus = 'contact'; }
 	}
 
 	switch ($lvl) {
 	 case Auther::MIDSEC:
 	//check stuff
 		if (!$jax) {
-			$key = $id.'captcha';
-			$t = $vfuncs->FilteredPassword($postvars[$key]);
-			if (!$t) {
-				$msgs[] = $mod->Lang('missing_type', 'CAPTCHA');
-				if (!$focus) { $focus = 'captcha'; }
-			} elseif ($t != $_POST[$key] || $t != $params['captcha']) {
-				$msgs[] = $mod->Lang('err_captcha');
+			$t = $postvars[$id.'captcha'];
+			if ($vfuncs->FilteredPassword($t)) {
+				if (!$t) {
+					$msgs[] = $mod->Lang('missing_type', 'CAPTCHA');
+					if (!$focus) { $focus = 'captcha'; }
+				} elseif ($t != $params['captcha']) {
+					$msgs[] = $mod->Lang('err_captcha');
+					if (!$focus) { $focus = 'captcha'; }
+				}
+			} else {
+				$msgs[] = $mod->Lang('invalid_type', 'CAPTCHA');
 				if (!$focus) { $focus = 'captcha'; }
 			}
 		}
@@ -205,7 +197,7 @@ switch ($lvl) {
  case Auther::HISEC:
  //TODO
 	break;
-} //switch $lvl
+} //switch level
 
 if ($msgs || $fake) {
 	$afuncs->AddAttempt();
