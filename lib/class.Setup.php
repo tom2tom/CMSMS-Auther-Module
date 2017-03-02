@@ -107,7 +107,7 @@ final class Setup
 		return substr($s1, 0, $length);
 	}
 
-	//Returns: enum [1,3..6] or FALSE (2 disabled)
+	//Returns: enum [1,3,6] or FALSE (2,4,5 disabled)
 	private function CheckHandler($handler)
 	{
 		$type = FALSE;
@@ -137,19 +137,21 @@ final class Setup
 				$fp = $dir.DIRECTORY_SEPARATOR.'action.'.$handler[1].'.php';
 				if (@is_file($fp) && isset($handler[2])) {
 					$type = 3; //NB type 3 needs $handler[2] == originator's $id for DoAction() arg
-				} elseif (strpos($handler[1],'method.') === 0) {
+				} /*elseif (strpos($handler[1],'method.') === 0) {
 					$fp = $dir.DIRECTORY_SEPARATOR.$handler[1].'.php';
 					if (@is_file($fp)) {
 						$type = 4;
 					}
 				}
+*/
 			}
 		} elseif (is_string($handler)) {
-			if (@is_file($handler)) {
+			/* if (@is_file($handler)) {
 				if (substr_compare($handler,'.php',-4,4,TRUE) === 0) {
 					$type = 5;
 				}
-			} elseif (function_exists('curl_init')) {
+			} else */
+			if (function_exists('curl_init')) {
 				$config = \cmsms()->GetConfig();
 				$u = (empty($_SERVER['HTTPS'])) ? $config['root_url'] : $config['ssl_url'];
 				$u .= '/index.php?mact=';
