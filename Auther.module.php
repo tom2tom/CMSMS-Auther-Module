@@ -40,44 +40,47 @@ class Auther extends CMSModule
 		global $CMS_VERSION;
 		$this->before20 = (version_compare($CMS_VERSION, '2.0') < 0);
 
-		spl_autoload_register([$this, 'auther_spacedload']);
+		spl_autoload_register([$this, 'cmsms_spacedload']);
 	}
 
 	public function __destruct()
 	{
-		spl_autoload_unregister([$this, 'auther_spacedload']);
+		spl_autoload_unregister([$this, 'cmsms_spacedload']);
 		if (function_exists('parent::__destruct')) {
 			parent::__destruct();
 		}
 	}
 
-	private function auther_spacedload($class)
+	/* namespace autoloader - CMSMS default autoloader doesn't do spacing */
+	private function cmsms_spacedload($class)
 	{
 		$prefix = get_class().'\\'; //our namespace prefix
-		$p = strpos($class, $prefix);
-		if (!($p === 0 || ($p === 1 && $class[0] == '\\') || $p === FALSE)) {
-			return;
-		}
-		// get the relative class name
-		if ($p !== FALSE) {
-			$len = strlen($prefix);
-			if ($p == 1) {
-				$len++;
-			}
-			$relative_class = trim(substr($class, $len), '\\');
+		$o = ($class[0] != '\\') ? 0:1;
+		$p = strpos($class, $prefix, $o);
+		if ($p === 0 || ($p == 1 && $o == 1)) {
+			// directory for the namespace
+			$bp = __DIR__.DIRECTORY_SEPARATOR.'lib'.DIRECTORY_SEPARATOR;
 		} else {
-			$relative_class = trim($class, '\\');
+			$p = strpos($class, '\\', 1);
+			if ($p === FALSE) {
+				return;
+			}
+			$prefix = substr($class, $o, $p-$o);
+			$bp = dirname(__DIR__).DIRECTORY_SEPARATOR.$prefix.DIRECTORY_SEPARATOR.'lib'.DIRECTORY_SEPARATOR;
 		}
+		// relative class name
+		$len = strlen($prefix) + $o;
+		$relative_class = trim(substr($class, $len), '\\');
+
 		if (($p = strrpos($relative_class, '\\', -1)) !== FALSE) {
 			$relative_dir = strtr ($relative_class, '\\', DIRECTORY_SEPARATOR);
 			$base = substr($relative_dir, $p+1);
-			$relative_dir = substr($relative_dir, 0, $p).DIRECTORY_SEPARATOR;
+			$relative_dir = substr($relative_dir, 0, $p);
+			$bp .= $relative_dir.DIRECTORY_SEPARATOR;
 		} else {
 			$base = $relative_class;
-			$relative_dir = '';
 		}
-		// directory for the namespace
-		$bp = __DIR__.DIRECTORY_SEPARATOR.'lib'.DIRECTORY_SEPARATOR.$relative_dir;
+
 		$fp = $bp.'class.'.$base.'.php';
 		if (file_exists($fp)) {
 			include $fp;
