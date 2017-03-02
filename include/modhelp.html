@@ -48,12 +48,9 @@ $handler = something to receive and process feedback after the form has been pro
 <ul>
 <li>an array [$classname,$methodname] where $methodname is static and the method returns boolean for success</li>
 <li>a string 'classname::methodname' where the method returns boolean for success</li>
-<li>an array [$modulename,$actionname,$id] AND the action should be a 'doer', not a 'shower', returns HTML code</li>
-<li>an array [$modulename,'method.whatever'] to be included, the code must conclude with variable $res = T/F indicating success</li>
-<li>a string 'absolute-path-to-whatever.php' to be included, the code must conclude with variable $res = T/F indicating success</li>
+<li>an array [$modulename,$actionname,$id]</li>
 <li>an URL like <server-root-url>/index.php?mact=<modulename>,cntnt01,<actionname>,0
  - provided the PHP curl extension is available</li>
-<li><b>BUT NOT</b> a closure in a static context (PHP 5.3+) OR static closure (PHP 5.4+)</li>
 </ul>
 $id = module ID string, as widely used in the CMSModule class<br />
 <i>(if available)</i> $token = identifier provided to $handler by a previous Get()<br />
@@ -65,6 +62,16 @@ in whatever manner is appropriate.<br /><br />
 You can roll-your-own user-interface, and work with the Auth-class API directly.<br /><br />
 This approach would be appropriate if authority must be checked without an actual login, for example.
 <h4>API</h4>
+The handler must be able to deal with:
+<ul>
+<li>cancellation (if supported), indicated by presence of a 'cancel' parameter or $cancel variable</li>
+<li>successful completion, indicated by presence of the respective mode parameter/variable as nominated above,
+ together with the user-supplied values</li>
+<li>a repeat-instruction, indicated by presence of the respective mode parameter/variable,
+ and a 'repeat' parameter/variable, and a 'token' paramter/variable to be provided in the next Get()</li>
+</ul>
+<strong>NOTE</strong> that data provided upon successful completion comprise user-input,
+ which might be malicious, and so all SQL involving such data <strong>must be parameterised!</strong><br /><br />
 <h3>Styling</h3>
 The following are defaults, which you might like to adapt and/or introduce where the authentication is initialised.<br /><br />
 <code>%s</code>
