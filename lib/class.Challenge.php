@@ -257,8 +257,8 @@ class Challenge extends Session
 	protected function DeleteChallenge($token)
 	{
 		$sql = 'DELETE FROM '.$this->pref.'module_auth_cache WHERE token=?';
-		$res = $this->db->Execute($sql, [$token]);
-		return ($res != FALSE);
+		$this->db->Execute($sql, [$token]);
+		return ($this->db->Affected_Rows() > 0);
 	}
 
 	/**

@@ -179,8 +179,8 @@ class Session
 	protected function DeleteUserSessions($uid)
 	{
 		$sql = 'DELETE FROM '.$this->pref.'module_auth_cache WHERE user_id=?';
-		$res = $this->db->Execute($sql, [$uid]);
-		return ($res != FALSE);
+		$this->db->Execute($sql, [$uid]);
+		return ($this->db->Affected_Rows() > 0);
 	}
 
 	/**
@@ -191,8 +191,8 @@ class Session
 	protected function DeleteSourceSessions($ip)
 	{
 		$sql = 'DELETE FROM '.$this->pref.'module_auth_cache WHERE ip=?';
-		$res = $this->db->Execute($sql, [$ip]);
-		return ($res != FALSE);
+		$this->db->Execute($sql, [$ip]);
+		return ($this->db->Affected_Rows() > 0);
 	}
 
 	/**
@@ -203,8 +203,8 @@ class Session
 	protected function DeleteSession($token)
 	{
 		$sql = 'DELETE FROM '.$this->pref.'module_auth_cache WHERE token=?';
-		$res = $this->db->Execute($sql, [$token]);
-		return ($res != FALSE);
+		$this->db->Execute($sql, [$token]);
+		return ($this->db->Affected_Rows() > 0);
 	}
 
 	/**
@@ -362,13 +362,13 @@ class Session
 		}
 		if ($all) {
 			$sql = 'UPDATE '.$this->pref.'module_auth_cache SET attempts=0 WHERE ip=?';
-			$res = $this->db->Execute($sql, [$ip]);
+			$this->db->Execute($sql, [$ip]);
 		} else {
 			$sql = 'UPDATE '.$this->pref.'module_auth_cache SET attempts=0 WHERE ip=? AND expire<?';
 			$nowtime = time();
-			$res = $this->db->Execute($sql, [$ip, $nowtime]);
+			$this->db->Execute($sql, [$ip, $nowtime]);
 		}
-		return ($res != FALSE);
+		return ($this->db->Affected_Rows() > 0);
 	}
 
 	/**
