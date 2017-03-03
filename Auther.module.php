@@ -18,8 +18,7 @@
 # Read it online at http://www.gnu.org/licenses/licenses.html#AGPL
 #-----------------------------------------------------------------------
 
-if (!extension_loaded('mcrypt')) return;
-//if (!extension_loaded('openssl')) return; //for U2F
+if (!extension_loaded('openssl')) return;
 
 class Auther extends CMSModule
 {
@@ -74,9 +73,8 @@ class Auther extends CMSModule
 
 		if (($p = strrpos($relative_class, '\\', -1)) !== FALSE) {
 			$relative_dir = strtr ($relative_class, '\\', DIRECTORY_SEPARATOR);
+			$bp .= substr($relative_dir, 0, $p+1);
 			$base = substr($relative_dir, $p+1);
-			$relative_dir = substr($relative_dir, 0, $p);
-			$bp .= $relative_dir.DIRECTORY_SEPARATOR;
 		} else {
 			$base = $relative_class;
 		}
