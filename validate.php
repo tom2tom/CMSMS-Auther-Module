@@ -42,7 +42,7 @@ need explicit success / user_id / token /$id + the following:
 		unset($ob);
 		//TODO handle $res == 400+
 		break;
-	 case 4: //code inclusion
+/*	 case 4: //code inclusion NOT POSSIBLE WHEN 'repeat' MAY BE NECESSARY
 		$ob = cms_utils::get_module($params['handler'][0]);
 		$fp = $ob->GetModulePath().DIRECTORY_SEPARATOR.$params['handler'][1].'.php';
 		unset($ob);
@@ -53,6 +53,7 @@ need explicit success / user_id / token /$id + the following:
 		$res = FALSE;
 		require $params['handler'];
 		break;
+*/		
 	 case 6: //URL
 		$ch = curl_init();
 		//can't be bothered with GET URL construction
