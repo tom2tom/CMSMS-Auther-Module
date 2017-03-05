@@ -29,7 +29,7 @@
  */
 namespace Auther;
 
-final class Encryption
+class Encryption
 {
 	/*
 	Maximum value of $rounds which will be exponentiated to 2**$rounds
@@ -175,7 +175,7 @@ final class Encryption
 		}
 		$rounds = 1 << $rounds;
 		if ($rounds < BCRYPT_MINROUNDS) {
-			throw new Exception('Invalid rounds');
+			throw new \Exception('Invalid rounds');
 		}
 
 		$state = blowfish.initstate()
