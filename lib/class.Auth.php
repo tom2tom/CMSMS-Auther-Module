@@ -683,9 +683,9 @@ class Auth extends Session
 			unset($data['id']);
 			unset($data['privhash']);
 			if (!$raw) {
-				$funcs = new Crypter();
-				$data['name'] = $funcs->decrypt_value($this->mod, $data['name']);
-				$data['address'] = $funcs->decrypt_value($this->mod, $data['address']);
+				$cfuncs = new Crypter($this->mod);
+				$data['name'] = $cfuncs->decrypt_value($data['name']);
+				$data['address'] = $cfuncs->decrypt_value($data['address']);
 //TODO context ??
 				$dt = new \DateTime('@0', NULL);
 				$dt->setTimestamp($data['addwhen']);
@@ -771,9 +771,9 @@ class Auth extends Session
 		$data = $this->db->GetRow($sql, [$login, $this->context]);
 
 		if ($data) {
-			$funcs = new Crypter();
-			$data['name'] = $funcs->decrypt_value($this->mod, $data['name']);
-			$data['address'] = $funcs->decrypt_value($this->mod, $data['address']);
+			$cfuncs = new Crypter($this->mod);
+			$data['name'] = $cfuncs->decrypt_value($data['name']);
+			$data['address'] = $cfuncs->decrypt_value($data['address']);
 //TODO zone offset
 			$dt = new \DateTime('@0',NULL);
 			$dt->setTimestamp($data['addwhen']);
@@ -821,15 +821,15 @@ class Auth extends Session
 		$data = $this->db->GetArray($sql, $args);
 
 		if ($data) {
-			$funcs = new Crypter();
+			$cfuncs = new Crypter($this->mod);
 //TODO zone offset
 			$dt = new \DateTime('@0', NULL);
 			foreach ($data as &$one) {
 				if (!empty($one['name'])) {
-					$one['name'] = $funcs->decrypt_value($this->mod, $one['name']);
+					$one['name'] = $cfuncs->decrypt_value($one['name']);
 				}
 				if (!empty($one['address'])) {
-					$one['address'] = $funcs->decrypt_value($this->mod, $one['address']);
+					$one['address'] = $cfuncs->decrypt_value($one['address']);
 				}
 				if (!empty($one['addwhen'])) {
 					$dt->setTimestamp($one['addwhen']);
@@ -856,14 +856,14 @@ class Auth extends Session
 	{
 		reset($data);
 		if (is_numeric(key($data))) {
-			$funcs = new Crypter();
+			$cfuncs = new Crypter($this->mod);
 			$dt = new \DateTime('@0', NULL);
 			foreach ($data as &$row) {
 				foreach ($row as $name=>&$one) {
 					switch ($name) {
 					 case 'name':
 					 case 'address':
-						$one = $funcs->decrypt_value($this->mod, $one);
+						$one = $cfuncs->decrypt_value($one);
 						break;
 					 case 'addwhen':
 					 case 'lastuse':
@@ -882,16 +882,16 @@ class Auth extends Session
 			}
 			unset ($row);
 		} else { //single row of data
-			$funcs = NULL;
+			$cfuncs = NULL;
 			$dt = NULL;
 			foreach ($data as $name=>&$one) {
 				switch ($name) {
 				 case 'name':
 				 case 'address':
-					if (!$funcs) {
-						$funcs = new Crypter();
+					if (!$cfuncs) {
+						$cfuncs = new Crypter($this->mod);
 					}
-					$one = $funcs->decrypt_value($this->mod, $one);
+					$one = $cfuncs->decrypt_value($one);
 					break;
 				 case 'addwhen':
 				 case 'lastuse':
@@ -940,11 +940,11 @@ class Auth extends Session
 		$sql .= ' ORDER BY publicid';
 		$data = $this->db->GetArray($sql, [$this->context]);
 		if ($data && !$raw) {
-			$funcs = new Crypter();
-			$pw = $funcs->decrypt_preference($this->mod, 'masterpass');
+			$cfuncs = new Crypter($this->mod);
+			$pw = $cfuncs->decrypt_preference('masterpass');
 			foreach ($data as &$one) {
-				$one['name'] = $funcs->decrypt_value($this->mod, $one['name'], $pw);
-				$one['address'] = $funcs->decrypt_value($this->mod, $one['address'], $pw);
+				$one['name'] = $cfuncs->decrypt_value($one['name'], $pw);
+				$one['address'] = $cfuncs->decrypt_value($one['address'], $pw);
 			}
 			unset ($one);
 		}
@@ -968,14 +968,14 @@ class Auth extends Session
 
 		$password = password_hash($password, PASSWORD_DEFAULT);
 
-		$funcs = new Crypter();
+		$cfuncs = new Crypter($this->mod);
 		if ($name || is_numeric($name)) {
-			$name = $funcs->encrypt_value($this->mod, $name);
+			$name = $cfuncs->encrypt_value($name);
 		} else {
 			$name = NULL;
 		}
 		if ($address || is_numeric($address)) {
-			$address = $funcs->encrypt_value($this->mod, $address);
+			$address = $cfuncs->encrypt_value($address);
 		} else {
 			$address = NULL;
 		}
@@ -1076,7 +1076,7 @@ class Auth extends Session
 
 		$namers = [];
 		$args = [];
-		$funcs = new Crypter();
+		$cfuncs = new Crypter($this->mod);
 
 		//TODO consider - password change too?
 		if ($login && $login !== $oldlogin) {
@@ -1085,11 +1085,11 @@ class Auth extends Session
 		}
 		if ($name || $name === '' || is_numeric($name)) {
 			$namers[] = 'name';
-			$args[] = $funcs->encrypt_value($this->mod, $name);
+			$args[] = $cfuncs->encrypt_value($name);
 		}
 		if ($address || $address === '' || is_numeric($address)) {
 			$namers[] = 'address';
-			$args[] = $funcs->encrypt_value($this->mod, $address);
+			$args[] = $cfuncs->encrypt_value($address);
 		}
 		if ($active !== FALSE) {
 			$namers[] = 'active';

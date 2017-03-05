@@ -134,8 +134,8 @@ if (isset($params['cancel'])) {
 					$funcs = new Auther\Auth($this, $t);
 					$status = $funcs->validatePassword($val);
 					if ($status[0]) {
-						$cfuncs = new Auther\Crypter();
-						$val = $cfuncs->encrypt_value($this, $val);
+						$cfuncs = new Auther\Crypter($this);
+						$val = $cfuncs->encrypt_value($val);
 					} else {
 						$msg = $status[1];
 						break 2;
@@ -355,11 +355,11 @@ ORDER BY U.last_name,U.first_name';
 			break;
 		 case 'default_password':
 			if ($mod) {
-				$funcs = new Auther\Crypter();
+				$cfuncs = new Auther\Crypter($this);
 				if ($data[$kn]) {
-					$val = $funcs->decrypt_value($this, $data[$kn]);
+					$val = $cfuncs->decrypt_value($data[$kn]);
 				} else {
-					$val = $funcs->decrypt_preference($this, 'default_password');
+					$val = $cfuncs->decrypt_preference('default_password');
 				}
 				$l = $props[$i+2];
 				$one->input = $this->CreateInputText($id, $kn, $val, $l, $l);

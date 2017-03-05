@@ -31,9 +31,9 @@ if (!function_exists('GetUserProperties')) {
 if (isset($params['cancel'])) {
 	$this->Redirect($id, 'users', '', ['ctx_id'=>$params['ctx_id']]); //TODO parms
 } elseif (isset($params['submit'])) {
-	$funcs = new Auther\Auth($this, $params['ctx_id']);
-	$cfuncs = new Auther\Crypter();
-	$t = $cfuncs->decrypt_preference($this, 'masterpass');
+	$afuncs = new Auther\Auth($this, $params['ctx_id']);
+	$cfuncs = new Auther\Crypter($this);
+	$t = $cfuncs->decrypt_preference('masterpass');
 	$msg = FALSE;
 
 	$props = GetUserProperties ();
@@ -59,25 +59,25 @@ if (isset($params['cancel'])) {
 				switch ($kf) {
 				 case 'name':
 //					$val = c.f. Validate->SanitizeName($val); TODO cleanup whitespace etc
-					$status = $funcs->validateName($val);
+					$status = $afuncs->validateName($val);
 					if ($status[0]) {
-						$val = $cfuncs->encrypt_value($this, $val, $t);
+						$val = $cfuncs->encrypt_value($val, $t);
 					} else {
 						$msg = $this->Lang('invalid_type', $this->Lang('title_'.$props[$i+1]));
 						break 2;
 					}
 					break;
 				 case 'address':
-					$status = $funcs->validateAddress($val);
+					$status = $afuncs->validateAddress($val);
 					if ($status[0]) {
-						$val = $cfuncs->encrypt_value($this, $val, $t);
+						$val = $cfuncs->encrypt_value($val, $t);
 					} else {
 						$msg = $status[1];
 						break 2;
 					}
 					break;
 				 case 'publicid':
-					$status = $funcs->validateLogin($val);
+					$status = $afuncs->validateLogin($val);
 					if (!$status[0]) {
 						$msg = $status[1];
 						break 2;
@@ -88,7 +88,7 @@ if (isset($params['cancel'])) {
 						//no replacement password
 						continue 2;
 					} else {
-						$status = $funcs->validatePassword($val);
+						$status = $afuncs->validatePassword($val);
 						if ($status[0]) {
 							$val = password_hash($val, PASSWORD_DEFAULT);
 						} else {
@@ -138,7 +138,7 @@ if (!is_numeric($params['ctx_id'])) {
 	$params['ctx_id'] = $utils->ContextID($params['ctx_id']);
 }
 
-$cfuncs = new Auther\Crypter();
+$cfuncs = new Auther\Crypter($this);
 $pre = cms_db_prefix();
 
 if (empty($msg)) {
@@ -239,7 +239,7 @@ for ($i = 0; $i < $c; $i += 6) {
 		switch ($kf) {
 		 case 'name':
 		 case 'address':
-			$val = $cfuncs->decrypt_value($this, $val);
+			$val = $cfuncs->decrypt_value($val);
 			if ($pmod) {
 				$one->input = $this->CreateInputText($id, $kf, $val, $props[$i+3], $props[$i+4]);
 			} else {

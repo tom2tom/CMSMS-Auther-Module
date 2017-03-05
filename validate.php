@@ -53,7 +53,7 @@ need explicit success / user_id / token /$id + the following:
 		$res = FALSE;
 		require $params['handler'];
 		break;
-*/		
+*/
 	 case 6: //URL
 		$ch = curl_init();
 		//can't be bothered with GET URL construction
@@ -112,8 +112,8 @@ require $inc;
 $mod = cms_utils::get_module('Auther');
 $errmsg = $mod->Lang('err_ajax');
 
-$cfuncs = new Auther\Crypter();
-$pw = $cfuncs->decrypt_preference($mod, 'masterpass');
+$cfuncs = new Auther\Crypter($mod);
+$pw = $cfuncs->decrypt_preference('masterpass');
 $iv = base64_decode($_POST[$id.'IV']);
 $t = openssl_decrypt($_POST[$kn], 'BF-CBC', $pw, 0, $iv);
 if (!$t) {

@@ -20,7 +20,7 @@ parameters @ https://developers.google.com/recaptcha/docs/display#render_param
 send a POST request with these parameters:
 URL: https://www.google.com/recaptcha/api/siteverify
 secret (required)	the secret key
-from $cfuncs->decrypt_preference($mod,'recaptcha_secret'); //6LfgfxMUAAAAAEmGmfYe5gL_kBTq2bs82dGVcEVQ
+from $cfuncs->decrypt_preference('recaptcha_secret'); //6LfgfxMUAAAAAEmGmfYe5gL_kBTq2bs82dGVcEVQ
 response (required)	The value of 'g-recaptcha-response' $_POST['g-recaptcha-response']
 remoteip	The end-user's ip address $_SERVER['REMOTE_ADDR']
 

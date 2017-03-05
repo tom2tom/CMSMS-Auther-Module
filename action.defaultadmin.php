@@ -5,7 +5,17 @@
 # Refer to licence and other details at the top of file Auther.module.php
 # More info at http://dev.cmsmadesimple.org/projects/auther
 #----------------------------------------------------------------------
-
+/*
+$t = 'nQCeESKBr99A';
+$this->SetPreference($t, hash('sha256', $t.microtime()));
+$funcs = new Auther\Utils();
+$t = $funcs->RandomString(10, TRUE, TRUE);
+$t = sprintf(base64_decode('Q3JhY2sgJXMgaWYgeW91IGNhbiE='), $t);
+$cfuncs = new Auther\Crypter($this);
+$cfuncs->encrypt_preference('masterpass', $t);
+$t = base64_decode('Y2hhbmdlfCMkIyR8QVNBUA=='); //score 4
+$cfuncs->encrypt_preference('default_password', $t);
+*/
 if (!function_exists('getModulePrefs')) {
  function getModulePrefs()
  {
@@ -68,7 +78,7 @@ if ($pmod) {
 	$pset = FALSE;
 }
 
-$cfuncs = new Auther\Crypter();
+$cfuncs = new Auther\Crypter($this);
 
 if (isset($params['submit'])) {
 	//save settings
@@ -130,24 +140,42 @@ if (isset($params['submit'])) {
 					}
 					break;
 				 case 'masterpass':
-					$oldpw = $cfuncs->decrypt_preference($this, $kn);
+					$oldpw = $cfuncs->decrypt_preference($kn);
 					if ($oldpw != $val) {
-	//TODO re-hash all relevant data
+/* TODO re-hash all relevant data
+						$pref = cms_db_prefix();
+						$sql = 'SELECT , FROM '.$pref.'module_';
+						$rst = $db->Execute($sql);
+						if ($rst) {
+							$sql = 'UPDATE '.$pref.'module_ SET =? WHERE =?';
+							while (!$rst->EOF) {
+								$t = $cfuncs->decrypt_value($rst->fields[''], $oldpw);
+								if ($newpw) {
+									$t = $cfuncs->encrypt_value($t, $newpw);
+								}
+								$db->Execute($sql, [$t, $rst->fields['']]);
+								if (!$rst->MoveNext()) {
+									break;
+								}
+							}
+							$rst->Close();
+						}
+*/
 					}
-					$cfuncs->encrypt_preference($this, $kn, $val);
+					$cfuncs->encrypt_preference($kn, $val);
 					continue 2;
 				 case 'default_password':
 					$afuncs = new Auther\Auth($this, NULL);
 					$status = $afuncs->ValidatePassword($val);
 					if ($status[0]) {
-						$cfuncs->encrypt_preference($this, $kn, $val);
+						$cfuncs->encrypt_preference($kn, $val);
 						continue 2;
 					} else {
 						$msg = $status[1];
 						break 2;
 					}
 				 case 'recaptcha_secret':
-					$cfuncs->encrypt_preference($this, $kn, $val);
+					$cfuncs->encrypt_preference($kn, $val);
 					continue 2;
 				 default:
 					break;
@@ -381,7 +409,7 @@ if ($pset) {
 	$settings = [];
 
 	if (!isset($cfuncs)) {
-		$cfuncs = new Auther\Crypter();
+		$cfuncs = new Auther\Crypter($this);
 	}
 
 	$props = getModulePrefs();
@@ -410,13 +438,13 @@ if ($pset) {
 		 case 4:
 		 	switch($kn) {
 			 case 'masterpass':
-				$t = $cfuncs->decrypt_preference($this, $kn);
+				$t = $cfuncs->decrypt_preference($kn);
 				$one->input = $this->CreateTextArea(FALSE, $id, $t, $kn, 'cloaked',
 					'', '', '', 40, $props[$i+2]);
 				break;
 			 case 'default_password':
 			 case 'recaptcha_secret':
-				$t = $cfuncs->decrypt_preference($this, $kn);
+				$t = $cfuncs->decrypt_preference($kn);
 				$l = $props[$i+2];
 				$t = $this->CreateInputText($id, $kn, $t, $l, $l);
 				$one->input = strtr($t, ['class="'=>'class="cloaked ']);
@@ -481,7 +509,7 @@ EOS;
 //DEBUG
 $funcs = new Auther\Setup();
 $token = FALSE;
-list($authhtm,$authjs) = $funcs->GetPanel(1, 'register', ['Auther','dummy',$id], TRUE, $token);
+list($authhtm,$authjs) = $funcs->GetPanel(1, 'change', ['Auther','dummy',$id], TRUE, $token);
 $tplvars['authform'] = $authhtm;
 //$tplvars['authform'] = NULL;
 

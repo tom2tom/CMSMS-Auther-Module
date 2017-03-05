@@ -101,14 +101,14 @@ if ($data) {
 	}
 	$dt = new DateTime('@0', NULL);
 
-	$funcs = new Auther\Crypter();
+	$cfuncs = new Auther\Crypter($this);
 
 	$rows = [];
 	foreach ($data as &$one) {
 		$uid = (int)$one['id'];
 		$oneset = new stdClass();
 		if ($one['name']) {
-			$t = $funcs->decrypt_value($this, $one['name']);
+			$t = $cfuncs->decrypt_value($one['name']);
 		} else {
 			$t = $one['publicid'];
 		}

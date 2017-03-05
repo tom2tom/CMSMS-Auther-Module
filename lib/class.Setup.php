@@ -390,8 +390,8 @@ EOS;
 		//append as appropriate to arrays: $cache, $hidden, $elements, $tplvars, $jsincs, $jsfuncs, $jsloads
 		require __DIR__.DIRECTORY_SEPARATOR.'setup.'.$task.'.php';
 
-		$cfuncs = new Crypter();
-		$pw = $cfuncs->decrypt_preference($mod, 'masterpass');
+		$cfuncs = new Crypter($mod);
+		$pw = $cfuncs->decrypt_preference('masterpass');
 		$iv = openssl_random_pseudo_bytes(8); //sized for Blowfish in openssl
 		//serialize $cache cuz' random-bytes in far-nonce BUT RAW DATA ALWAYS FAILS! DITTO FOR JSON
 		$t = openssl_encrypt(serialize($cache), 'BF-CBC', $pw, 0, $iv); //low security

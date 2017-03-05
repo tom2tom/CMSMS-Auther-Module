@@ -21,7 +21,7 @@ class Validate
 		}
 		$this->afuncs = $afuncs;
 		if (!$cfuncs) {
-			$cfuncs = new Crypter();
+			$cfuncs = new Crypter($mod);
 		}
 		$this->cfuncs = $cfuncs;
 	}
@@ -64,7 +64,7 @@ class Validate
 	 */
 	public function CheckEncrypted($val, $authmethod, $failkey=FALSE)
 	{
-		$val = $this->cfuncs->decrypt_value($this->mod, $val);
+		$val = $this->cfuncs->decrypt_value($val);
 		return $this->CheckValue($val, $authmethod, $failkey);
 	}
 

@@ -145,7 +145,7 @@ if ($msgs || $fake) {
 } else {
 	if ($lvl == Auther::CHALLENGED) {
 		$flds = ['login' => $login, 'passwd' => $pw];
-		$enc = $cfuncs->encrypt_value($mod, json_encode($flds));
+		$enc = $cfuncs->encrypt_value(json_encode($flds));
 		$sql = 'UPDATE '.$pref.'module_auth_cache SET data=? WHERE token=?';
 		$db->Execute($sql, [$enc, $token]);
 //TODO initiate challenge

@@ -9,10 +9,7 @@ namespace Auther;
 
 class Import
 {
-	const DEFAULTPASS = 'changethis1ASAP'; //this exceeds complexity 3, but not 4
-
-	private $cfuncs = FALSE; //Crypter-class object
-	private $afuncs = FALSE; //Auth-class object
+	const DEFAULTPASS = 'change#2468#ASAP'; //this exceeds complexity 3, but not 4
 
 	private function ToChr($match)
 	{
@@ -73,8 +70,10 @@ class Import
 			$t = strtolower($t);
 		}
 		$alias = substr($t, 0, 16);
-		$pw = $this->cfuncs->decrypt_preference($mod, 'default_password');
-		$hash = $this->cfuncs->encrypt_value($mod, $pw);
+
+		$cfuncs = new Crypter($mod);
+		$t = $cfuncs->decrypt_preference('default_password');
+		$hash = $cfuncs->encrypt_value($t);
 
 		$sql = 'INSERT INTO '.$pref.'module_auth_contexts (id,name,alias,default_password) VALUES (?,?,?,?)';
 		$db->Execute($sql, [$cid, $name, $alias, $hash]);
@@ -149,10 +148,10 @@ class Import
 			$exist = $db->GetArray('SELECT id,publicid FROM '.$pref.'module_auth_users ORDER BY id'); //TODO use this for dup-check
 
 			$utils = new Utils();
-			$this->afuncs = new Auth($mod); //context [re]set in loop
-			$this->cfuncs = new Crypter();
+			$afuncs = new Auth($mod); //context [re]set in loop
+			$cfuncs = new Crypter($mod);
 
-			$masterkey = $this->cfuncs->decrypt_preference($mod, 'masterpass');;
+			$masterkey = $cfuncs->decrypt_preference('masterpass');
 			$cached = [];
 			$st = time(); //UTC stamp
 			$skips = 0;
@@ -247,9 +246,16 @@ class Import
 						continue; //too bad about any newly-created context(s)!
 					}
 
-					$this->afuncs->SetContext($cid);
+					$afuncs->SetContext($cid);
 
-					$res = $this->afuncs->ValidateAll([
+					if ($password == self::DEFAULTPASS) {
+						$t = $afuncs->GetConfig('default_password');
+						$t = $cfuncs->decrypt_value($t, $masterkey);
+						if ($t) {
+							$password = $t;
+						}
+					}
+					$res = $afuncs->ValidateAll([
 						'publicid'=>$data['publicid'],
 						'password'=>$password, //temp random value if raw password is to be installed
 						'name'=>$data['name'],
@@ -261,8 +267,8 @@ class Import
 						$data['privhash'] = $passhash ?
 							pack('H*', $passhash) :
 							password_hash($password, PASSWORD_DEFAULT);
-						$data['name'] = $this->cfuncs->encrypt_value($mod, $data['name'], $masterkey);
-						$data['address'] = $this->cfuncs->encrypt_value($mod, $data['address'], $masterkey);
+						$data['name'] = $cfuncs->encrypt_value($data['name'], $masterkey);
+						$data['address'] = $cfuncs->encrypt_value($data['address'], $masterkey);
 
 						$done = FALSE;
 						if ($update) { //TODO robust UPSERT
