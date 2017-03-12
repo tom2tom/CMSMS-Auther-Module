@@ -208,7 +208,7 @@ class Import
 									}
 									$password = $randompass; //something to use during validation
 								} else {
-									$password = self::DEFAULTPASS;
+									$password = self::DEFAULTPASS; //placeholder
 								}
 								break;
 							 case 'passhash': //ignore these
@@ -249,8 +249,7 @@ class Import
 					$afuncs->SetContext($cid);
 
 					if ($password == self::DEFAULTPASS) {
-						$t = $afuncs->GetConfig('default_password');
-						$t = $cfuncs->decrypt_value($t, $masterkey);
+						$t = $afuncs->GetConfig('default_password'); //plaintext
 						if ($t) {
 							$password = $t;
 						}
