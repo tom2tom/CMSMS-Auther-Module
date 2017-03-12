@@ -436,7 +436,7 @@ class Session
 	/**
 	* Gets specified property(ies) for the current context
 	* @propkey: string property-name or array of them (not validated here)
-	* Returns: property value or assoc. array of them
+	* Returns: property value or assoc. array of them (with property 'default_password' as plaintext)
 	*/
 	public function GetConfig($propkey)
 	{
@@ -457,6 +457,10 @@ class Session
 			if ($data) {
 				//grab defaults for 'empty' settings
 				foreach ($data as $key=>&$val) {
+					if ($key == 'default_password') {
+						$cfuncs = new Crypter($this->mod);
+						$val = $cfuncs->decrypt_value($key);
+					}
 					if (0) { //TODO empty test
 						$val = $this->mod->GetPreference($key, NULL);
 					}
@@ -474,11 +478,21 @@ class Session
 		if (is_array($propkey)) {
 			$data = [];
 			foreach ($propkey as $key) {
-				$data[$key] = $this->mod->GetPreference($key, NULL);
+				if ($key == 'default_password') {
+					$cfuncs = new Crypter($this->mod);
+					$data[$key] = $cfuncs->decrypt_preference($key);
+				} else {
+					$data[$key] = $this->mod->GetPreference($key, NULL);
+				}
 			}
 			return $data;
 		} else {
-			return $this->mod->GetPreference($propkey, NULL);
+			if ($propkey == 'default_password') {
+				$cfuncs = new Crypter($this->mod);
+				return $cfuncs->decrypt_preference($propkey);
+			} else {
+				return $this->mod->GetPreference($propkey, NULL);
+			}
 		}
 	}
 
