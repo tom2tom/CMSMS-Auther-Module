@@ -140,9 +140,7 @@ class Auth extends Session
 		if ($val > 0 && strlen($password) < $val) {
 			return [FALSE, $this->mod->Lang('password_short')];
 		}
-		//NB once-only else crash
-		require_once __DIR__.DIRECTORY_SEPARATOR.'ZxcvbnPhp'.DIRECTORY_SEPARATOR.'Zxcvbn.php';
-		$funcs = new \ZxcvbnPhp\Zxcvbn();
+		$funcs = new ZxcvbnPhp\Zxcvbn();
 		$check = $funcs->passwordStrength($password);
 
 		$val = (int)$this->GetConfig('password_min_score');
