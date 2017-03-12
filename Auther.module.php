@@ -59,6 +59,16 @@ class Auther extends CMSModule
 		if ($p === 0 || ($p == 1 && $o == 1)) {
 			// directory for the namespace
 			$bp = __DIR__.DIRECTORY_SEPARATOR.'lib'.DIRECTORY_SEPARATOR;
+		} elseif (($p = strpos($class, 'ZxcvbnPhp\\', $o)) === 0 || ($p == 1 && $o == 1)) {
+			$parts = explode('\\',$class);
+			$fn = array_pop($parts);
+			$fp = __DIR__.DIRECTORY_SEPARATOR.'lib'.DIRECTORY_SEPARATOR
+				.implode(DIRECTORY_SEPARATOR,$parts).DIRECTORY_SEPARATOR
+				.$fn.'.php';
+			if (@file_exists($fp)) {
+				include($fp);
+			}
+			return;
 		} else {
 			$p = strpos($class, '\\', 1);
 			if ($p === FALSE) {
