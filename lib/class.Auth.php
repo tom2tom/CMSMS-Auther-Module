@@ -140,7 +140,7 @@ class Auth extends Session
 		if ($val > 0 && strlen($password) < $val) {
 			return [FALSE, $this->mod->Lang('password_short')];
 		}
-		$funcs = new ZxcvbnPhp\Zxcvbn();
+		$funcs = new \ZxcvbnPhp\Zxcvbn();
 		$check = $funcs->passwordStrength($password);
 
 		$val = (int)$this->GetConfig('password_min_score');
@@ -251,31 +251,33 @@ class Auth extends Session
 	{
 		extract($params);
 		$errs = [];
-		$res = $this->ValidateLogin($publicid);
-		if (!$res[0]) {
-			$errs[] = $res[1];
+		if (isset($publicid)) {
+			$res = $this->ValidateLogin($publicid);
+			if (!$res[0]) {
+				$errs[] = $res[1];
+			}
+			$res = $this->UniqueLogin($publicid,$except,$explicit);
+			if (!$res[0]) {
+				$errs[] = $res[1];
+			}
 		}
-		$res = $this->UniqueLogin($publicid,$except,$explicit);
-		if (!$res[0]) {
-			$errs[] = $res[1];
+		if (isset($password)) {
+			$res = $this->ValidatePassword($password);
+			if (!$res[0]) {
+				$errs[] = $res[1];
+			}
 		}
-		$res = $this->ValidatePassword($password);
-		if (!$res[0]) {
-			$errs[] = $res[1];
+		if (isset($name)) {
+			$res = $this->ValidateName($name);
+			if (!$res[0]) {
+				$errs[] = $res[1];
+			}
 		}
-		if (!isset($name)) {
-			$name = '';
-		}
-		$res = $this->ValidateName($name);
-		if (!$res[0]) {
-			$errs[] = $res[1];
-		}
-		if (!isset($address)) {
-			$address = '';
-		}
-		$res = $this->ValidateAddress($address);
-		if (!$res[0]) {
-			$errs[] = $res[1];
+		if (isset($address)) {
+			$res = $this->ValidateAddress($address);
+			if (!$res[0]) {
+				$errs[] = $res[1];
+			}
 		}
 		if ($errs) {
 			return [FALSE, implode(PHP_EOL, $errs)];
