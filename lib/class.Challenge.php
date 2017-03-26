@@ -304,7 +304,7 @@ class Challenge extends Session
 		} else {
 			//construct frontend-url (so no admin login is needed)
 			$u = $this->mod->create_url('cntnt01', 'validate', '', ['cauthc'=>$token]);
-			$url = strtr($u, '&amp;', '&');
+			$url = str_replace('&amp;', '&', $u);
 
 			$mlr->SetBody($this->mod->Lang('email_url_body', $part, $url, $part2, $site));
 			$mlr->SetAltBody($this->mod->Lang('email_url_altbody', $part, $url, $part2, $site));
