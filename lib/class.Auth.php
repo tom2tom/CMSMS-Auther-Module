@@ -297,7 +297,22 @@ class Auth extends Session
 		return ($this->GetConfig('password_rescue') > 0);
 	}
 
-	// by design, there's no method to set a raw/hashed password value directly
+	/**
+	 * Set new password for @uid
+	 * @uid: int user enumerator
+	 * @newpass: plaintext string
+	 * Returns: array [0]=boolean for success, [1]=message or ''
+	 */
+	public function ChangePasswordReal($uid, $newpass, $raw=FALSE)
+	{
+		if (!$raw) {
+			$newpass = password_hash($newpass, PASSWORD_DEFAULT);
+		}
+		$sql = 'UPDATE '.$this->pref.'module_auth_users SET privhash=? WHERE id=?';
+		$this->db->Execute($sql, [$newpass, $uid]);
+		return [TRUE, $this->mod->Lang('password_changed')];
+	}
+
 	/**
 	 * If action-status warrants or @check=FALSE, changes a user's password
 	 *
