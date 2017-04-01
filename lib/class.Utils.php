@@ -277,9 +277,13 @@ EOS;
 	*/
 	public function ProcessTemplate(&$mod, $tplname, $tplvars, $cache=TRUE)
 	{
-		global $smarty;
 		if ($mod->before20) {
-			$smarty->assign($tplvars);
+			global $smarty;
+		} else {
+			$smarty = $mod->GetActionTemplateObject();
+		}
+		$smarty->assign($tplvars);
+		if ($mod->oldtemplates) {
 			return $mod->ProcessTemplate($tplname);
 		} else {
 			if ($cache) {
@@ -307,9 +311,13 @@ EOS;
 	*/
 	public function ProcessTemplateFromData(&$mod, $data, $tplvars)
 	{
-		global $smarty;
-		$smarty->assign($tplvars);
 		if ($mod->before20) {
+			global $smarty;
+		} else {
+			$smarty = $mod->GetActionTemplateObject();
+		}
+		$smarty->assign($tplvars);
+		if ($mod->oldtemplates) {
 			return $mod->ProcessTemplateFromData($data);
 		} else {
 			$tpl = $smarty->CreateTemplate('eval:'.$data, NULL, NULL, $smarty, $tplvars);

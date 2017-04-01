@@ -5,17 +5,6 @@
 # Refer to licence and other details at the top of file Auther.module.php
 # More info at http://dev.cmsmadesimple.org/projects/auther
 #----------------------------------------------------------------------
-/*
-$t = 'nQCeESKBr99A';
-$this->SetPreference($t, hash('sha256', $t.microtime()));
-$funcs = new Auther\Utils();
-$t = $funcs->RandomString(10, TRUE, TRUE);
-$t = sprintf(base64_decode('Q3JhY2sgJXMgaWYgeW91IGNhbiE='), $t);
-$cfuncs = new Auther\Crypter($this);
-$cfuncs->encrypt_preference('masterpass', $t);
-$t = base64_decode('Y2hhbmdlfCMkIyR8QVNBUA=='); //score 4
-$cfuncs->encrypt_preference('default_password', $t);
-*/
 if (!function_exists('getModulePrefs')) {
  function getModulePrefs()
  {
@@ -210,32 +199,38 @@ $tplvars = [
 	'set' => $pset
 ];
 
-if (isset($params['active_tab']))
+if (isset($params['active_tab'])) {
 	$showtab = $params['active_tab'];
-else
+} else {
 	$showtab = 'items'; //default
+}
 $seetab1 = ($showtab=='items');
 $seetab2 = ($showtab=='challenges');
 
 if ($pset) {
 	$seetab3 = ($showtab=='settings');
 
-	$tplvars['tab_headers'] = $this->StartTabHeaders().
+	$t = $this->StartTabHeaders().
 		$this->SetTabHeader('items',$this->Lang('title_contexts'),$seetab1).
 		$this->SetTabHeader('challenges',$this->Lang('title_challenges'),$seetab2).
 		$this->SetTabHeader('settings',$this->Lang('title_settings'),$seetab3).
 		$this->EndTabHeaders().
 		$this->StartTabContent();
 } else {
-	$tplvars['tab_headers'] = $this->StartTabHeaders().
+	$t = $this->StartTabHeaders().
 		$this->SetTabHeader('items',$this->Lang('title_items'),$seetab1).
 		$this->SetTabHeader('challenges',$this->Lang('title_challenges'),$seetab2).
 		$this->EndTabHeaders().
 		$this->StartTabContent();
 }
-$tplvars['tab_footers'] = $this->EndTabContent();
-$tplvars['end_tab'] = $this->EndTab();
-$tplvars['endform'] = $this->CreateFormEnd();
+
+//workaround CMSMS2 crap 'auto-end', EndTab() & EndTabContent() before [1st] StartTab()
+$tplvars += array(
+	'tab_headers' => $t,
+	'end_tab' => $this->EndTab(),
+	'tab_footers' => $this->EndTabContent(),
+	'endform' => $this->CreateFormEnd()
+);
 
 if (!empty($msg)) {
 	$tplvars['message'] = $msg;
@@ -244,11 +239,11 @@ if (!empty($msg)) {
 }
 
 $utils = new Auther\Utils();
-$baseurl = $this->GetModuleURLPath();
 
 $jsfuncs = []; //script accumulators
 $jsloads = [];
 $jsincs = [];
+$baseurl = $this->GetModuleURLPath();
 
 //CONTEXTS TAB
 $tplvars['start_items_tab'] = $this->StartTab('items');
