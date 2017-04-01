@@ -32,12 +32,14 @@ class Auther extends CMSModule
 	//NB ordinal: in several places, NOBOT is treated as min. enum value, and HISEC as max. value
 
 	public $before20;
+	public $oldtemplates;
 
 	public function __construct()
 	{
 		parent::__construct();
 		global $CMS_VERSION;
 		$this->before20 = (version_compare($CMS_VERSION, '2.0') < 0);
+		$this->oldtemplates = $this->before20 || 1; //TODO
 
 		spl_autoload_register([$this, 'cmsms_spacedload']);
 	}
