@@ -68,7 +68,7 @@ class Auther extends CMSModule
 				.implode(DIRECTORY_SEPARATOR,$parts).DIRECTORY_SEPARATOR
 				.$fn.'.php';
 			if (@file_exists($fp)) {
-				include($fp);
+				include $fp;
 			}
 			return;
 		} else {
@@ -181,7 +181,7 @@ class Auther extends CMSModule
 
 	public function GetChangeLog()
 	{
-		return ''.@file_get_contents(__DIR__.DIRECTORY_SEPARATOR.'include'.DIRECTORY_SEPARATOR.'changelog.html');
+		return ''.@file_get_contents(cms_join_path(__DIR__,'lib','doc','changelog.htm'));
 	}
 
 	public function GetDependencies()
@@ -203,8 +203,7 @@ class Auther extends CMSModule
 		} else {
 			$example = 'MISSING!';
 		}
-		$fn = cms_join_path(__DIR__,'include','modhelp.html');
-		$cont = @file_get_contents($fn);
+		$cont = ''.@file_get_contents(cms_join_path(__DIR__,'lib','doc','modhelp.htm'));
 		return sprintf($cont,$example);
 	}
 
