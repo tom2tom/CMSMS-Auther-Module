@@ -143,7 +143,7 @@ EOS;
 		$tplvars['captcha'] = $one;
 
 		$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/gibberish-aes.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/gibberish-aes.js"></script>
 EOS;
 		//function returns js object
 		$jsfuncs[] = <<<EOS
@@ -181,10 +181,10 @@ EOS;
 		break;
 	}
 
-//<script type="text/javascript" src="{$baseurl}/include/jquery.alertable.min.js"></script> N/A unless its styling can be provided
+//<script type="text/javascript" src="{$baseurl}/lib/js/jquery.alertable.min.js"></script> N/A unless its styling can be provided
 	$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/mailcheck.min.js"></script>
-<script type="text/javascript" src="{$baseurl}/include/levenshtein.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/mailcheck.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/levenshtein.min.js"></script>
 EOS;
 
 	$pref = $mod->GetPreference('email_topdomains');

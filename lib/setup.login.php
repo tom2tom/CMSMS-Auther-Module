@@ -56,7 +56,7 @@ switch ($cdata['security_level']) {
 	$cache['captcha'] = $t;
 	//TODO js for captcha processing ETC
 	//javascript:alert(grecaptcha.getResponse(widgetId1));
-	//<script type="text/javascript" src="{$baseurl}/include/auth.js"></script>
+	//<script type="text/javascript" src="{$baseurl}/lib/js/auth.js"></script>
 	//TODO backend for captcha processing
 	//TODO captcha encoding per $config['locale'] if that exists or else Lang setting?
 	// add to URL &hl=whatever with 'en' for 'en_US' etc
@@ -144,7 +144,7 @@ EOS;
 		$tplvars['captcha'] = $one;
 
 		$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/gibberish-aes.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/gibberish-aes.js"></script>
 EOS;
 		//function returns js object
 		$jsfuncs[] = <<<EOS
@@ -182,10 +182,10 @@ EOS;
 		break;
 	}
 
-//<script type="text/javascript" src="{$baseurl}/include/jquery.alertable.min.js"></script> N/A unless its styling can be provided
+//<script type="text/javascript" src="{$baseurl}/lib/js/jquery.alertable.min.js"></script> N/A unless its styling can be provided
 	$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/mailcheck.min.js"></script>
-<script type="text/javascript" src="{$baseurl}/include/levenshtein.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/mailcheck.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/levenshtein.min.js"></script>
 EOS;
 
 	$pref = $mod->GetPreference('email_topdomains');
