@@ -343,7 +343,7 @@ function any_selected() {
 }
 EOS;
 		$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/jquery.alertable.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/jquery.alertable.min.js"></script>
 EOS;
 		$t = $this->Lang('confirm_delsel');
 		$jsloads[] = <<<EOS
@@ -480,7 +480,7 @@ if ($pset) {
 	$tplvars['settings'] = $settings;
 
 	$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/jquery-inputCloak.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/jquery-inputCloak.min.js"></script>
 EOS;
 	$l1 = Auther::MIDSEC;
 	$l2 = Auther::CHALLENGED;

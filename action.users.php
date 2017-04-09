@@ -150,8 +150,8 @@ if ($data) {
 
 	if ($uc > 1) {
 		$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/jquery.metadata.min.js"></script>
-<script type="text/javascript" src="{$baseurl}/include/jquery.SSsort.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/jquery.metadata.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/jquery.SSsort.min.js"></script>
 EOS;
 		//TODO make page-rows count window-size-responsive
 		$pagerows = $this->GetPreference('pagerows', 20); //TODO init this
@@ -244,7 +244,7 @@ EOS;
 			'title="'.$this->Lang('tip_deluser').'"');
 
 		$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/jquery.alertable.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/jquery.alertable.min.js"></script>
 EOS;
 
 		$jsfuncs[] = <<<EOS

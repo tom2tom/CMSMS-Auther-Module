@@ -281,9 +281,9 @@ $options['publicid']->must = ($cdata['address_required'] > 0 || $cdata['email_lo
 
 if ($pmod) {
 	$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/mailcheck.js"></script>
-<script type="text/javascript" src="{$baseurl}/include/levenshtein.min.js"></script>
-<script type="text/javascript" src="{$baseurl}/include/jquery.alertable.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/mailcheck.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/levenshtein.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/jquery.alertable.min.js"></script>
 EOS;
 
 	function ConvertDomains($pref)
@@ -357,7 +357,7 @@ EOS;
 EOS;
 
 /* NB cloaking not compatible with strengthify, cuz the former hides original & works with duplicate object, same id
-<script type="text/javascript" src="{$baseurl}/include/jquery-inputCloak.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/jquery-inputCloak.min.js"></script>
 .inputCloak({
   type:'see4',
   symbol:'\u25CF'
@@ -377,12 +377,12 @@ strengthify unused opts
   ]
 */
 	$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/jquery.strengthify.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/jquery.strengthify.js"></script>
 EOS;
 
 	$jsloads[] = <<<EOS
  $('#{$id}privhash').strengthify({
-  zxcvbn: '{$baseurl}/include/zxcvbn/zxcvbn.js'
+  zxcvbn: '{$baseurl}/lib/js/zxcvbn/zxcvbn.js'
  });
 EOS;
 } //$pmod

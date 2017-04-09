@@ -366,7 +366,7 @@ ORDER BY U.last_name,U.first_name';
 				$one->must = ($props[$i+3] > 0);
 
 				$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/include/jquery-inputCloak.min.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/jquery-inputCloak.min.js"></script>
 EOS;
 				$jsloads[] = <<<EOS
  $('#{$id}{$kn}').inputCloak({
