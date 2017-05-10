@@ -20,7 +20,8 @@ $lang['alias'] = 'Alias';
 $lang['all'] = 'All';
 $lang['allpermitted'] = 'Everyone permitted';
 
-$lang['blank_same'] = 'If blank/empty, your current setting will remain';
+//$lang['blank_same'] = 'If blank/empty, your current setting will remain';
+$lang['blank_same2'] = 'For any replacement that is blank/empty, the current value will be retained';
 
 /* challenges TODO
 $lang[''] = 'Open precribed URL'
@@ -31,6 +32,7 @@ $lang[''] = 'Answer security question'
 $lang[''] = 'Proof of self'
 */
 $lang['cancel'] = 'Cancel';
+$lang['change_success'] = 'Account details changed';
 $lang['close'] = 'Close';
 $lang['compulsory_items'] = 'Properties marked with a <strong>*</strong> are compulsory.' ;
 $lang['confirm'] = 'Are you sure ?';
@@ -47,26 +49,42 @@ $lang['delete_success'] = 'Account deleted successfully';
 
 $lang['email_banned'] = 'The specified email address is not allowed';
 $lang['email_changed'] = 'Email address changed successfully';
-//'spaced' ('activate' etc) strings for various tasks, to be included in email messages
-$lang['email_do_activate'] = 'activate your account';
-$lang['email_do_change'] = 'change your account';
-$lang['email_do_delete'] = 'delete your account';
-$lang['email_do_reset'] = 'reset your password';
-$lang['email_request_activate'] = 'sign up';
-$lang['email_request_change'] = 'request any change';
-$lang['email_request_delete'] = 'request such deletion';
-$lang['email_request_reset'] = 'request a password reset';
+/*
+activate'
+change'
+delete'
+recover'
+reset'
+*/
+//'spaced' ('activate' etc) strings for various tasks, to be included in email/text messages
+$lang['body_do_activate'] = 'activate your account';
+$lang['body_do_change'] = 'change your account';
+$lang['body_do_delete'] = 'delete your account';
+$lang['body_do_recover'] = 'reinstate your password';
+$lang['body_do_reset'] = 'reset your password';
+
+$lang['body_request_activate'] = 'sign up';
+$lang['body_request_change'] = 'request any change';
+$lang['body_request_delete'] = 'request such deletion';
+$lang['body_request_recover'] = 'initiate password recovery';
+$lang['body_request_reset'] = 'request a password reset';
+
 $lang['email_subject_activate'] = 'Activate account';
 $lang['email_subject_change'] = 'Change account details';
 $lang['email_subject_delete'] = 'Delete account';
-$lang['email_subject_reset'] = 'Password reset';
+$lang['email_subject_recover'] = 'Reinstate password';
+$lang['email_subject_reset'] = 'Reset password';
 //templates which include relevant parts from those above
 $lang['email_subject'] = '%s - %s';
-$lang['email_token_body'] = 'Hello,<br /><br />To %s, you will need to use the following token:<br /><br />%s<br /><br />If you did not %s on the %s recently then this message was sent in error, please ignore it.';
-$lang['email_token_altbody'] = 'Hello,'."\n\n".'To %s, you will need to use the following token:'."\n\n".'%s'."\n\n".'If you did not %s on the %s recently then this message was sent in error, please ignore it.';
-$lang['email_url_body'] = 'Hello,<br /><br />To %s, click <a href="%s">this link</a>.<br /><br />If you did not %s on the %s recently then this message was sent in error, please ignore it.';
-$lang['email_url_altbody'] = 'Hello,'."\n\n".'To %s, visit the following URL:'."\n".' %s'."\n\n".'If you did not %s on the %s recently then this message was sent in error, please ignore it.';
+$lang['email_token_body'] = 'Hello,<br /><br />To %s on the %s, you will need to use the following token:<br /><br />%s<br /><br />If you did not %s recently, something or somebody has misbehaved, so you should keep watch on your account.';
+$lang['email_token_altbody'] = 'Hello,'."\n\n".'To %s on the %s, you will need to use the following token:'."\n\n".'%s'."\n\n".'If you did not %s recently, something or somebody has misbehaved, so you should keep watch on your account.';
+$lang['email_url_body'] = 'Hello,<br /><br />To %s on the %s, click <a href="%s">this link</a>.<br /><br />If you did not %s recently, something or somebody has misbehaved, so you should keep watch on your account.';
+$lang['email_url_altbody'] = 'Hello,'."\n\n".'To %s on the %s, visit the following URL:'."\n".' %s'."\n\n".'If you did not %s recently, something or somebody has misbehaved, so you should keep watch on your account.';
+//ibid for SMS messages
+$lang['text_token_body'] = 'To %s on the %s, use the following token: %s';
+$lang['text_url_body'] = 'To %s on the %s, visit: %s';
 
+//VARIOUS ERRORS
 $lang['err_ajax'] = 'Server communication error';
 //$lang['err_baduser'] = 'Missing or unrecognised user';
 $lang['err_captcha'] = 'The entered captcha text was wrong';
@@ -82,10 +100,25 @@ $lang['err_system'] = 'System error';
 //$lang['err_'] = 'The login is not available';
 //$lang['err_'] = 'The password entries are not the same';
 //$lang['err_'] = 'The password is too easy to crack';
+$lang['err_text']='Invalid SMS content';
 $lang['already_activated'] = 'Account is already activated';
+$lang['incorrect_type'] = '%s is wrong';
+$lang['incorrect_activatekey'] = 'Activation token is wrong'; //type-specific *key
+//$lang['incorrect_email'] = 'Email address is incorrect';
+//$lang['incorrect_login'] = 'Login name is not recognised';
+//$lang['incorrect_password'] = 'Password is wrong';
+$lang['incorrect_resetkey'] = 'Reset token is wrong'; //type-specific *key
+$lang['incorrect_vague'] = 'Unrecognised login and/or password';
+$lang['invalid_type'] = '%s is not valid';
+$lang['invalid_activatekey'] = 'Activation token is not valid'; //type-specific *key
+//$lang['invalid_email'] = 'Email address is not valid';
+//$lang['invalid_newpassword'] = 'New password must contain at least one uppercase and lowercase character, and at least one digit';
+//$lang['invalid_remember_me'] = 'The remember me field is not valid';
+$lang['invalid_resetkey'] = 'Reset token is not valid'; //type-specific *key
 //$lang['login_long'] = 'Login name is too long';
 $lang['login_short'] = 'Login name is too short';
 $lang['login_taken'] = 'Login name is already in use';
+$lang['login_taken2'] = 'Login \'%s\' is not available, but you could use \'%s\' instead';
 $lang['newemail_match'] = 'New email matches previous email';
 $lang['newpassword_long'] = 'New password is too long';
 $lang['newpassword_match'] = 'New password is the same as the old password';
@@ -96,6 +129,7 @@ $lang['password_short'] = 'Password is too short';
 $lang['password_weak'] = 'Password is too easy to crack';
 $lang['request_exists'] = 'A request already exists';
 $lang['resetkey_expired'] = 'Reset key has expired'; //type-specific prefix
+$lang['want_email'] = 'Login or contact must be a valid email address';
 
 $lang['first'] = 'First';
 $lang['friendlyname'] = 'Authenticator';
@@ -121,7 +155,7 @@ $lang['help_default_password'] = 'Applied if necessary when adding or importing 
 $lang['help_email_banlist'] = '';
 $lang['help_email_domains'] = 'Comma-separated series of email domains, e.g. \'msn.com,gmail.com\' to use instead of the default values used by the mailcheck script for initial address-validation';
 $lang['help_email_login'] = 'A poor choice if email is shared e.g. in families';
-$lang['help_email_required'] = 'Either username or contact must be a valid email address';
+$lang['help_email_required'] = 'Either username or contact <strong>must</strong> be a valid email address';
 $lang['help_email_subdomains'] = 'Comma-separated series of partial domains, e.g. \'yahoo,hotmail\' to use instead of the default values used by the mailcheck script for secondary address-validation';
 $lang['help_email_topdomains'] = 'Comma-separated series of top domains, e.g. \'com,com.tw,de,net,net.au\' to use instead of the default values used by the mailcheck script for final address-validation';
 $lang['help_password_rescue'] = '';
@@ -134,12 +168,14 @@ $lang['help_message_charset'] = '';
 $lang['help_name_required'] = '';
 $lang['help_nameswap'] = 'which means the last part is for personal/friendly addressing';
 $lang['help_owner'] = 'Admin user assigned to manage this context';
-$lang['help_password'] = 'Must have %d or more characters, and not be too predictable';
+$lang['help_password'] = 'At least %d characters, and not too predictable';
 $lang['help_password_forget'] = 'Length of time between forced password-resets, something like \'1 month\' or \'2 weeks\' (unquoted, in english that <a href="http://php.net/manual/en/datetime.formats.relative.php">PHP understands</a>), or if blank/empty, no expiry';
 $lang['help_password_min_length'] = '';
 $lang['help_password_min_score'] = 'Number 1..5 broadly indicating the difficulty of cracking a password (1 is easiest)';
 $lang['help_password_new'] = 'When provided, must have length &gt;= %d and complexity-score &gt= %d';
+$lang['help_password_recover'] = 'A temporary password token has been sent to your address. Retrieve that token, and insert it below.';
 $lang['help_password_reset'] = 'Require password to be renewed at next login';
+//$lang['help_password_token'] = 'The temporary password token sent to your address';
 $lang['help_raise_count'] = 'After this many failed attempts, a user is required to provide extra authentication. 0 disables this protection.';
 $lang['help_recaptcha_key'] = 'Token obtained from <a href="https://www.google.com/recaptcha/admin#list">Google</a>. If this is not provided, level 1 authentication will be much less friendly.';
 $lang['help_recaptcha_secret'] = 'Private/secret token complementing the public token entered above';
@@ -147,24 +183,12 @@ $lang['help_request_key_expiration'] = 'Length of time before sent confirmation-
 $lang['help_security_level'] = 'Determines the process for, and extent of security-checking during, logins etc';
 //$lang['help_send_activate_message'] = '';
 //$lang['help_send_reset_message'] = '';
+$lang['help_sms_prefix']='One or more numbers e.g. 1 for USA. <a href="http://countrycode.org">Search</a>';
 
 $lang['id'] = 'ID';
 $lang['import_count'] = '%s item(s) imported';
 $lang['import_fails'] = '%s item(s) could not be imported';
 $lang['import'] = 'Import';
-$lang['incorrect_type'] = '%s is wrong';
-$lang['incorrect_activatekey'] = 'Activation token is wrong'; //type-specific *key
-//$lang['incorrect_email'] = 'Email address is incorrect';
-//$lang['incorrect_login'] = 'Login name is not recognised';
-//$lang['incorrect_password'] = 'Password is wrong';
-$lang['incorrect_resetkey'] = 'Reset token is wrong'; //type-specific *key
-$lang['incorrect_vague'] = 'Incorrect login and/or password';
-$lang['invalid_type'] = '%s is not valid';
-$lang['invalid_activatekey'] = 'Activation token is not valid'; //type-specific *key
-//$lang['invalid_email'] = 'Email address is not valid';
-//$lang['invalid_newpassword'] = 'New password must contain at least one uppercase and lowercase character, and at least one digit';
-//$lang['invalid_remember_me'] = 'The remember me field is not valid';
-$lang['invalid_resetkey'] = 'Reset token is not valid'; //type-specific *key
 
 $lang['last'] = 'Last';
 $lang['level_NOBOT'] = 'Anonymous non-robot';
@@ -255,6 +279,8 @@ $lang['title_captcha'] = 'I\'m not a robot';
 $lang['title_captcha2'] = 'enter the displayed text';
 $lang['title_captcha3'] = 'Captcha text';
 $lang['title_challenges'] = 'Challenges';
+$lang['title_changes'] = 'CHANGES';
+$lang['title_completed'] = 'Completed';
 $lang['title_contact'] = 'Contact';
 $lang['title_contextadd'] = 'Add authentication-context';
 $lang['title_context_address'] = 'Email-address used as messages source';
@@ -297,9 +323,12 @@ $lang['title_passagain'] = 'Password (again)';
 $lang['title_password_forget'] = 'Password lifetime';
 $lang['title_password_min_length'] = 'Minimum password-length';
 $lang['title_password_min_score'] = 'Password-complexity minimum score';
-$lang['title_password_new'] = 'Replacement password';
+//$lang['title_password_new'] = 'Replacement password';
+//$lang['title_password_recover'] = 'Password reinstate';
 $lang['title_password_reset'] = 'Password reset';
 $lang['title_pending_reset'] = 'Reset<br />flagged';
+//$lang['title_password_token'] = 'Temporary password / token';
+$lang['title_password_token'] = 'Token';
 $lang['title_raise_count'] = 'Login (etc) attempts before extra attention';
 $lang['title_recaptcha_key'] = 'reCaptcha public key';
 $lang['title_recaptcha_secret'] = 'reCaptcha private key';
@@ -309,10 +338,10 @@ $lang['title_security_level'] = 'Security level';
 $lang['title_send_activate_message'] = 'Send account-activation emails';
 $lang['title_send_reset_message'] = 'Send password-reset emails';
 $lang['title_settings'] = 'Settings';
+$lang['title_sms_prefix']='Country-code to be prepended to phone numbers';
 $lang['title_useradd'] = 'Add user';
 $lang['title_userfull'] = 'User properties';
 $lang['title_usersfor'] = 'Registered users for \\\'%s\\\'';
-$lang['token_temp'] = 'Temporary token';
 
 $lang['upload'] = 'Upload';
 $lang['user_blocked'] = 'You are locked out of the system for a while. Try again later.';
