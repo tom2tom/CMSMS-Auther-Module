@@ -17,7 +17,7 @@ switch ($cdata['security_level']) {
  case self::NOBOT:
 	$one = new \stdClass();
 	$one->title = $mod->Lang('noauth');
-	$elements[] = $one;
+	$elements1[] = $one;
 	//TODO filter parms as appropriate
 	$jsfuncs[] = <<<EOS
 function transfers(\$inputs) {
@@ -35,7 +35,7 @@ EOS;
  case self::LOSEC:
  case self::MIDSEC:
  case self::CHALLENGED:
-	$hidden[] = $mod->CreateInputHidden($id, 'phase', 'who'); //TODO or 'pass' iff ?
+	$hidden[] = $mod->CreateInputHidden($id, 'phase', 'who');
 
 	$one = new \stdClass();
 	if ($cdata['email_login']) {
@@ -47,10 +47,10 @@ EOS;
 		$one->input = $this->GetInputText($id, 'login', 'login', $tabindex++, '', 20, 32);
         $logtype = 1;
 	}
-	$elements[] = $one;
+	$elements1[] = $one;
 
 	$one = new \stdClass();
-	$one->title = $mod->Lang('password');
+	$one->title = $mod->Lang('current_typed', $mod->Lang('password'));
 	$one->input = $this->GetInputPasswd($id, 'passwd', 'passwd', $tabindex++, '', 20, 72);
 	if ($cdata['password_rescue']) {
 		$one->extra = '<label for="recover">'.$mod->Lang('lostpass').'</label>'.
@@ -58,25 +58,34 @@ EOS;
 	} else {
 		$one->extra = $mod->Lang('lostpass_renew');
 	}
-	$elements[] = $one;
+	$elements1[] = $one;
 	$one = new \stdClass();
-	$one->prehtml = '<div id="authchange" style="display:none">';
-	$one->posthtml = '<p id="authfeedback" class="authtitle"></p>';
-	$elements[] = $one;
-
-	$same = $mod->Lang('blank_same');
+	$one->title = '<em>'.$mod->Lang('title_changes').'</em>';
+	$one->extra = $mod->Lang('blank_same2');
+	$elements2[] = $one;
 
 	$one = new \stdClass();
 	if ($logtype == 0) {
 		$one->title = $mod->Lang('new_typed', $mod->Lang('title_email'));
 		$one->input = $this->GetInputText($id, 'login2', 'login2', $tabindex++, '', 32, 96);
-		$one->extra = $mod->Lang('help_contact').'<br />'.$same;
+		$one->extra = $mod->Lang('help_contact');
 	} else {
 		$one->title = $mod->Lang('new_typed', $mod->Lang('title_login'));
 		$one->input = $this->GetInputText($id, 'login2', 'login2', $tabindex++, '', 20, 32);
-		$one->extra = $mod->Lang('help_login').'<br />'.$same;
+		$one->extra = $mod->Lang('help_login');
 	}
-	$elements[] = $one;
+	$elements2[] = $one;
+
+	$one = new \stdClass();
+	$one->title = $mod->Lang('new_typed', $mod->Lang('password'));
+	$one->input = $this->GetInputPasswd($id, 'passwd2', 'passwd2', $tabindex++, '', 20, 72);
+	$n = (int)$cdata['password_min_length'];
+	$one->extra = $mod->Lang('help_password', $n);
+	$elements2[] = $one;
+	$one = new \stdClass();
+	$one->title = $mod->Lang('new_typed', $mod->Lang('title_passagain'));
+	$one->input = $this->GetInputPasswd($id, 'passwd3', 'passwd3', $tabindex++, '', 20, 72);
+	$elements2[] = $one;
 
  	$one = new \stdClass();
 	if($cdata['name_required']) {
@@ -87,11 +96,7 @@ EOS;
 		$optname = 1;
 	}
 	$one->input = $this->GetInputText($id, 'name', 'name', $tabindex++, '', 20, 32);
-	$one->extra = $same;
-	if ($logtype == 0) {
-		$one->posthtml = '</div>';
-	}
-	$elements[] = $one;
+	$elements2[] = $one;
 
 	if ($logtype == 1) {
 	 	$one = new \stdClass();
@@ -103,12 +108,11 @@ EOS;
 			$optcontact = 1;
 		}
 		$one->input = $this->GetInputText($id, 'contact', 'contact', $tabindex++, '', 32, 96);
-		$one->extra = $mod->Lang('help_contact2').'<br />'.$same;
+		$one->extra = $mod->Lang('help_contact2');
 		if ($cdata['email_required']) {
 			$one->extra .= '<br />'.$mod->Lang('help_email_required');
 		}
-		$one->posthtml = '</div>';
-		$elements[] = $one;
+		$elements2[] = $one;
 	} else {
 		$optcontact = 1;
 	}
@@ -143,35 +147,41 @@ EOS;
 		$tplvars['captcha'] = $one;
 
 		$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/lib/js/gibberish-aes.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/gibberish-aes.min.js"></script>
 EOS;
 		//function returns js object
 		$jsfuncs[] = <<<EOS
 function transfers(\$inputs) {
- var sent = JSON.stringify({
-  passwd: $('#passwd').val()
- }),
-  far = "$far",
-  iv = GibberAES.a2s(GibberAES.randArr(16));
- var parms = {
-  {$id}jsworks: 'TRUE',
-  {$id}sent: GibberAES.encString(far+sent,far,iv)
- };
+ var far = "$far",
+  iv = GibberAES.a2s(GibberAES.randArr(16)),
+  parms = {
+   {$id}jsworks: 'TRUE',
+   {$id}sent: ''
+  },
+  passes = {},
+  v;
  $('#{$id}nearn').val(GibberAES.Base64.encode(iv));
  $('#authcontainer input:hidden').add(\$inputs).each(function() {
   var \$el = $(this),
    t = \$el.attr('type'),
-   n, v;
+   n;
   if (t == 'password') {
-   return;
+   v = \$el.val();
+   if (v != '') {
+    n = \$el.attr('id'); //or this.id;
+    passes[n] = v;
+    return;
+   }
   } else if (t == 'checkbox' && !\$el.is(':checked')) {
    v = '0';
   } else {
    v = \$el.val();
   }
-  n = \$el.attr('name');
+  n = \$el.attr('name'); //or this.name
   parms[n] = v;
  });
+ v = JSON.stringify(passes);
+ parms.{$id}sent = GibberAES.encString(far+v,far,iv);
  return parms;
 }
 EOS;
@@ -251,7 +261,7 @@ EOS;
       if (\$cb.length > 0 && \$cb.val() > 0) { return; }
       type = '{$mod->Lang('password')}';
       break;
-     case 'captcha':
+     default:
       return;
     }
     var msg = '{$mod->Lang('missing_type','%s')}'.replace('%s',type);
@@ -259,19 +269,41 @@ EOS;
     valid = false;
     return false;
    } else {
-    if (id == 'login' || id == 'login2') {
-     if (!{$logtype}) {
-      if (val.search(/^.+@.+\..+$/) == -1) {
-       doerror(\$el,'{$mod->Lang('invalid_type',$mod->Lang('title_email'))}');
+    switch (id) {
+     case 'login':
+     case 'login2':
+      if ($logtype == 0) {
+       if (val.search(/^.+@.+\..+$/) == -1) {
+        doerror(\$el,'{$mod->Lang('invalid_type',$mod->Lang('title_email'))}');
+        valid = false;
+        return false;
+       }
+      }
+      break;
+     case 'passwd2':
+      var \$el2 = \$ins.filter('#passwd3');
+      if (\$el2.val() !== val) {
+       doerror(\$el2,'{$mod->Lang('newpassword_nomatch')}');
        valid = false;
        return false;
       }
-     }
+      break;
+     case 'passwd3':
+      var val2 = \$ins.filter('#passwd2').val();
+      if (val2 !== val) {
+       doerror(\$el,'{$mod->Lang('newpassword_nomatch')}');
+       valid = false;
+       return false;
+      }
+     default:
+      break;
     }
    }
   });
   if (valid) {
-   var parms = transfers(\$ins);
+// document.body.style.cursor = 'wait';
+   var details,
+    parms = transfers(\$ins);
    $.ajax({
     type: 'POST',
     method: 'POST',
@@ -282,24 +314,33 @@ EOS;
     success: function(data,status,jqXHR) {
      switch (jqXHR.status) {
       case 202:
-       var \$el = $('#authform');
-       \$el.find(':input:not([type=hidden])').removeAttr('name');
-	   \$el.prepend('<input type="hidden" name="{$id}success" value="1" />');
-       \$el.trigger('submit');
+       $('#authelements #phase1,#phase2').css('display','none');
+       details = JSON.parse(jqXHR.responseText);
+       ajaxresponse(details,'{$mod->Lang('completed')}',false);
+       setTimeout(function() {
+        var \$el = $('#authform');
+        \$el.find(':input:not([type=hidden])').removeAttr('name');
+        \$el.prepend('<input type="hidden" name="{$id}success" value="'+details.success+'" />');
+        \$el.trigger('submit');
+        },1000);
        break;
       case 200:
-       ajaxresponse(jqXHR.responseJSON,'');
-       $('#authchange').css('display','block');
+       clearresponse();
+//     document.body.style.cursor = 'auto';
+       $(btn).prop('disabled',false);
+       $('#authelements #phase2').css('display','block');
+       $('#login2')[0].focus();
+       $('#{$id}phase').val('what');
        break;
       default:
        break;
      }
-     $(btn).prop('disabled',false);
     },
     error: function(jqXHR, status, errmsg) {
      details = JSON.parse(jqXHR.responseText);
-     ajaxresponse (details, errmsg);
+     ajaxresponse(details,errmsg,true);
      $(btn).prop('disabled',false);
+//   document.body.style.cursor = 'auto';
     }
    });
   } else {

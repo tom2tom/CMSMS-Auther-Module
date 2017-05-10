@@ -71,7 +71,7 @@ class Session
 	public function GetSourceSession($ip)
 	{
 		$sql = 'SELECT token FROM '.$this->pref.'module_auth_cache WHERE ip=? AND context_id=?';
-		return $this->db->GetOne($sql,  [$ip, $this->context]);
+		return $this->db->GetOne($sql, [$ip, $this->context]);
 	}
 
 	/**
@@ -85,25 +85,32 @@ class Session
 	}
 
 	/**
-	* Gets session data for user @uid and/or source @ip
- 	* Returns: array or FALSE
+	* Gets session data for @token and/or user @uid and/or source @ip
+	* Session token is updated if needed
+ 	* Returns: array, or FALSE
 	*/
-	protected function SessionExists($uid, $ip)
+	protected function CurrentSession($token, $uid, $ip)
 	{
 		$nowtime = time();
-		$sql = 'SELECT * FROM '.$this->pref.'module_auth_cache WHERE (ip=? OR user_id=?) AND expire>=? AND context_id=?';
-		return $this->db->GetRow($sql, [$uid, $ip, $nowtime, $this->context]);
+		$sql = 'SELECT * FROM '.$this->pref.'module_auth_cache WHERE (token=? OR ip=? OR user_id=?) AND expire>=? AND context_id=?';
+		$row = $this->db->GetRow($sql, [$token, $ip, $uid, $nowtime, $this->context]);
+		if ($row && $token && $token != $row['token']) {
+			$sql = 'UPDATE '.$this->pref.'module_auth_cache SET token=? WHERE token=?';
+			$this->db->Execute($sql, [$token, $row['token']]);
+			$row['token'] = $token;
+		}
+		return $row;
 	}
 
 	/**
 	* Creates a session for user @uid, with 1 attempt
 	* Returns: string session-token
 	*/
-	public function MakeUserSession($uid, $remember=TRUE)
+	public function MakeUserSession($uid, $token=FALSE, $remember=TRUE)
 	{
 		$ip = $this->GetIp();
-		$data = $this->AddSession($uid, $ip, $remember);
-		$this->AddAttempt();
+		$data = $this->AddSession($uid, $ip, $token, $remember);
+		$this->AddAttempt($data['token']);
 		return $data['token'];
 	}
 
@@ -111,21 +118,22 @@ class Session
 	* Creates a session for source @ip, with 1 attempt
 	* Returns: string session-token
 	*/
-	public function MakeSourceSession($ip, $remember=TRUE)
+	public function MakeSourceSession($ip, $token=FALSE, $remember=TRUE)
 	{
-		$data = $this->AddSession(FALSE, $ip, $remember);
-		$this->AddAttempt();
+		$data = $this->AddSession(FALSE, $ip, $token, $remember);
+		$this->AddAttempt($data['token']);
 		return $data['token'];
 	}
 
 	/**
 	* Creates a session for user @uid/source @ip, with 0 attempts
-	* @uid: int user enumerator or FALSE
+	* @uid: int user enumerator, or FALSE
 	* @ip: source ip address (V4 or 6)
+	* @token: string previously-determined cache key, or FALSE
 	* @remember: boolean whether to setup an expiry time for the session
 	* Returns: array with members 'token','cookie_token','expire','expiretime', or else FALSE
 	*/
-	protected function AddSession($uid, $ip, $remember)
+	protected function AddSession($uid, $ip, $token, $remember)
 	{
 		if ($uid) {
 			$sql = 'SELECT id FROM '.$this->pref.'module_auth_users WHERE id=? AND active>0';
@@ -137,7 +145,9 @@ class Session
 			$this->DeleteSourceSessions($ip);
 		}
 
-		$token = $this->UniqueToken(24);
+		if (!$token) {
+			$token = $this->UniqueToken(24);
+		}
 		$val = $this->mod->GetPreference('session_salt');
 		$data = ['token'=>$token,'cookie_token'=>sha1($token.$val)];
 
@@ -312,31 +322,45 @@ class Session
 	}
 
 	/**
-	* Adds an attempt to the session related to the current source ip address
+	* Adds an attempt to the session related to @token and/or the current source ip address
+	* The session is created if necessary
+	* @token 24-byte session-key, or FALSE
 	* Returns: Nothing
 	*/
-	public function AddAttempt()
+	public function AddAttempt($token)
 	{
 		$dt = new \DateTime('@'.time(), NULL);
 		$val = $this->GetConfig('attack_mitigation_span');
 		$dt->modify('+'.$val);
 		$expiry = $dt->getTimestamp();
+		$newsession = FALSE;
 
 		$ip = $this->GetIp();
-		$token = $this->GetSourceSession($ip);
 		if ($token) {
-		//SESSION STATUS CHANGE?
-			$sql = 'UPDATE '.$this->pref.'module_auth_cache SET expire=?, attempts=attempts+1 WHERE token=?';
+			$sdata = $this->GetSessionData($token);
+			if (!$sdata) {
+				$this->MakeSourceSession($ip, $token);
+				$newsession = TRUE;
+			}
+		} else {
+			$token = $this->GetSourceSession($ip);
+			if (!$token) {
+				$token = $this->MakeSourceSession($ip);
+				$newsession = TRUE;
+			}
+		}
+		if ($newsession) {
+			$sql = 'UPDATE '.$this->pref.'module_auth_cache SET expire=? WHERE token=?';
 			$this->db->Execute($sql, [$expiry, $token]);
 		} else {
-			$token = $this->MakeSourceSession($ip);
-			$sql = 'UPDATE '.$this->pref.'module_auth_cache SET expire=? WHERE token=?';
+		//SESSION STATUS CHANGE?
+			$sql = 'UPDATE '.$this->pref.'module_auth_cache SET expire=?, attempts=attempts+1 WHERE token=?';
 			$this->db->Execute($sql, [$expiry, $token]);
 		}
 	}
 
 	/**
-	 * Sets from session(s) data attempts-count to 1 for the given IP
+	 * Sets session(s) data attempts-count to 1 for the given IP
 	 * @ip: optional string source ip address, default = FALSE
 	 * Returns: nothing
 	 */
@@ -498,7 +522,7 @@ class Session
 
 	/**
 	* Gets a slightly random string (not as diverse as from Setup::UniqueToken())
-	* @length: int wanted byte-count for the string
+	* @length: int wanted byte-length of the string
 	* Returns: string
 	*/
 	public function UniqueToken($length)
@@ -515,5 +539,24 @@ class Session
 		} else {
 			return substr(str_shuffle($s1), 0, $length);
 		}
+	}
+
+	/**
+	 * Gets a slightly random string (with dissimilar contents) for public use
+	 * @length: int wanted byte-length of the token
+	 * Returns: string
+	 */
+	public function SimpleToken($length)
+	{
+		$ret = str_repeat('A', $length);
+		//TODO support mb_string & translated token
+		//$chars = $this->mod->Lang('token_chars');
+		$chars = 'ACDHJKLMNTVXY3479#%^*+abcdefhkprstwxyz';
+		$cl = strlen($chars) - 1;
+		for ($i = 0; $i < $length; $i++) {
+			$ch = $chars[mt_rand(0, $cl)];
+			$ret[$i] = $ch;
+		}
+		return $ret;
 	}
 }

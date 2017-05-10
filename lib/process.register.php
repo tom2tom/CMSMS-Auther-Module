@@ -32,8 +32,8 @@ switch ($lvl) {
 	$postvars = [];
 	foreach ([
 		'login',
-		'passwd',
-		'passwd2',
+		'passwd', //present if !$jax, or no replacement password provided
+		'passwd2', //ditto
 		'name',
 		'contact',
 		'captcha'
@@ -57,7 +57,16 @@ switch ($lvl) {
 				if ($res[0]) {
 					$flds['publicid'] = $login;
 				} else {
-					$msgs[] = $mod->Lang('retry'); //NOT the default 'invalid' message!
+					if (!$cdata['email_login']) {
+						$alt = $afuncs->NumberedLogin($login);
+						if ($alt) {
+							$msgs[] = $mod->Lang('login_taken2', $login, $alt);
+						} else {
+							$msgs[] = $mod->Lang('retry'); //NOT the default 'invalid' message!
+						}
+					} else {
+						$msgs[] = $mod->Lang('retry'); //NOT the default 'invalid' message!
+					}
 					$focus = 'login';
 				}
 			} else {
@@ -83,7 +92,7 @@ switch ($lvl) {
 			$res = $afuncs->ValidatePassword($pw);
 			if ($res[0]) {
 				if (!$msgs) {
-					$flds['privhash'] = $pw; //hash when required
+					$flds['privhash'] = $pw; //hash later
 				}
 			} else {
 				$msgs[] = $res[1];
@@ -104,7 +113,7 @@ switch ($lvl) {
 		if ($vfuncs->FilteredPassword($t)) {
 			if ($pw !== trim($t)) {
 				unset($flds['privhash']);
-				$msgs[] = $mod->Lang('newpassword_nomatch'); //TODO not new
+				$msgs[] = $mod->Lang('password_nomatch');
 				if (!$focus) { $focus = 'passwd2'; }
 			}
 		} else {
@@ -124,7 +133,7 @@ switch ($lvl) {
 				}
 			}
 			if ($res[0]) {
-				$flds['name'] = $t; //crypt if/when needed
+				$flds['name'] = $t; //crypt later
 			} else {
 				$msgs[] = $res[1];
 				if (!$focus) { $focus = 'name'; }
@@ -133,7 +142,7 @@ switch ($lvl) {
 			$msgs[] = $mod->Lang('missing_type', $mod->Lang('name'));
 			if (!$focus) { $focus = 'name'; }
 		} else {
-			$flds['name'] = '';
+			$flds['name'] = NULL;
 		}
 	} else {
 		$msgs[] = $mod->Lang('invalid_type', $mod->Lang('name'));
@@ -142,11 +151,11 @@ switch ($lvl) {
 
 	$t = $postvars[$id.'contact'];
 	if ($vfuncs->FilteredString($t)) {
-		$t = trim($t);
-		if ($t) {
-			$res = $afuncs->ValidateAddress($t);
+		$contact = trim($t);
+		if ($contact) {
+			$res = $afuncs->ValidateAddress($contact);
 			if ($res[0]) {
-				$flds['address'] = $t; //crypt if/when needed
+				$flds['address'] = $contact; //crypt if/when needed
 			} else {
 				$msgs[] = $res[1];
 				if (!$focus) { $focus = 'contact'; }
@@ -155,11 +164,19 @@ switch ($lvl) {
 			$msgs[] = $mod->Lang('missing_type', $mod->Lang('title_contact'));
 			if (!$focus) { $focus = 'contact'; }
 		} else {
-			$flds['address'] = '';
+			$flds['address'] = NULL;
 		}
 	} else {
+		$contact = FALSE;
 		$msgs[] = $mod->Lang('invalid_type', $mod->Lang('title_contact'));
 		if (!$focus) { $focus = 'contact'; }
+	}
+
+	if ($cdata['email_required']) {
+		if (!(preg_match(Auth::PATNEMAIL, $login) || preg_match(Auth::PATNEMAIL, $contact))) {
+			$msgs[] = $mod->Lang('want_email');
+			if (!$focus) { $focus = 'contact'; }
+		}
 	}
 
 	switch ($lvl) {
@@ -204,9 +221,10 @@ if (!$msgs) {
 		if ($res[0]) {
 			$uidnew = $res[1]; //for use by includer
 			$afuncs->ResetAttempts();
+			$msgtext = $mod->Lang('register_success'); //feedback
 		} else {
 			$msgs[] = $res[1];
-//TODO		$afuncs->AddAttempt();
+			$afuncs->AddAttempt($params['token']); //CHECKME ok?
 		}
 	}
 }

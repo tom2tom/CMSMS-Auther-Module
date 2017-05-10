@@ -14,6 +14,7 @@ include __DIR__.DIRECTORY_SEPARATOR.'password.php';
 class Auth extends Session
 {
 	const PATNEMAIL = '/^\S+@[^\s.]+\.\S+$/';
+	const PATNPHONE = '/^(\+\d{1,4} *)?[\d ]{5,15}$/';
 	const NAMEDIR = 'usernames'; //subdir name
 	const PHRASEDIR = 'phrases';
 
@@ -340,9 +341,10 @@ class Auth extends Session
 		}
 
 		$status = $this->matchPassword($uid, $password);
+		$token = FALSE; //TODO
 
 		if (!$status[0]) {
-			$this->AddAttempt();
+			$this->AddAttempt($token);
 			return $status;
 		}
 
@@ -357,12 +359,12 @@ class Auth extends Session
 		$userdata = $this->GetUserBase($uid);
 
 		if (!$userdata) {
-			$this->AddAttempt();
+			$this->AddAttempt($token);
 			return [FALSE, $this->mod->Lang('system_error', '#14')];
 		}
 
 		if (!$this->DoPasswordCheck($password, $userdata['password']/*, $tries TODO*/)) {
-			$this->AddAttempt();
+			$this->AddAttempt($token);
 			return [FALSE, $this->mod->Lang('incorrect_type', $this->mod->Lang('password'))];
 		}
 
@@ -462,9 +464,10 @@ class Auth extends Session
 		}
 
 		$uid = $this->GetUserID($login);
+		$token = FALSE; //TODO
 
 		if (!$uid) {
-			$this->AddAttempt();
+			$this->AddAttempt($token);
 			$parms = []; //TODO API
 			$this->mod->SendEvent('OnLoginFail', $parms);
 			return [FALSE, $this->mod->Lang('incorrect_type', $this->mod->Lang('title_login'))];
@@ -473,7 +476,7 @@ class Auth extends Session
 		$userdata = $this->GetUserBase($uid);
 
 		if (!$userdata['active']) {
-			$this->AddAttempt();
+			$this->AddAttempt($token);
 			$parms = []; //TODO API
 			$this->mod->SendEvent('OnLoginFail', $parms);
 			return [FALSE, $this->mod->Lang('account_inactive')];
@@ -482,22 +485,22 @@ class Auth extends Session
 		$status = $this->matchPassword($uid, $password);
 
 		if (!$status[0]) {
-			$this->AddAttempt();
+			$this->AddAttempt($token);
 			$parms = []; //TODO API
 			$this->mod->SendEvent('OnLoginFail', $parms);
 			return [FALSE, $this->mod->Lang('incorrect_type', $this->mod->Lang('password'))];
 		}
 
 		if (!is_bool($remember)) {
-			$this->AddAttempt();
+			$this->AddAttempt($token);
 			$parms = []; //TODO API
 			$this->mod->SendEvent('OnLoginFail', $parms);
 			return [FALSE, $this->mod->Lang('invalid_type', $this->mod->Lang('rememberme'))];
 		}
 
-		$sessiondata = $this->AddSession($uid, $remember);
+		$sdata = $this->AddSession($uid, $token, $remember);
 
-		if (!$sessiondata) {
+		if (!$sdata) {
 			$parms = []; //TODO API
 			$this->mod->SendEvent('OnLoginFail', $parms);
 			return [FALSE, $this->mod->Lang('system_error', '#01')];
@@ -507,8 +510,8 @@ class Auth extends Session
 		$this->mod->SendEvent('OnLogin', $parms);
 
 		$data = [TRUE, $this->mod->Lang('logged_in')];
-		$data['token'] = $sessiondata['token'];
-		$data['expire'] = $sessiondata['expiretime'];
+		$data['token'] = $sdata['token'];
+		$data['expire'] = $sdata['expiretime'];
 		return $data;
 	}
 
@@ -536,35 +539,36 @@ class Auth extends Session
 	 * @password: optional plaintext string, or FALSE to skip password-validation, default = FALSE
 	 * @active: optional boolean whether to check for active user, default TRUE
 	 * @fast: optional boolean whether to return immediately if not recognized, default = FALSE
+	 * @token: optional string 24-byte session-data key, default = FALSE
 	 * Returns: 2-member array [0]=boolean indicating success [1]=array of data from row of session table
 	 */
-	public function IsRegistered($login, $password=FALSE, $active=TRUE, $fast=FALSE)
+	public function IsRegistered($login, $password=FALSE, $active=TRUE, $fast=FALSE, $token=FALSE)
 	{
 		$sql = 'SELECT id,privhash,active FROM '.$this->pref.'module_auth_users WHERE publicid=? AND context_id=?';
 		$userdata = $this->db->GetRow($sql, [$login, $this->context]);
 		$uid = ($userdata) ? $userdata['id'] : -1;
 		$ip = $this->GetIp();
-		$sdata = $this->SessionExists($uid, $ip);
+		$sdata = $this->CurrentSession($token, $uid, $ip);
 		if ($userdata && (!$active || $userdata['active'] > 0)) {
 			if ($password === FALSE) {
 				if ($sdata) {
 					//cleanup TODO change status if NEW_FOR_IP
 					$sql = 'UPDATE '.$this->pref.'module_auth_cache SET user_id=?,attempts=1 WHERE token=?';
-					$this->db->Execute($sql, [$uid, $token]);
+					$this->db->Execute($sql, [$uid, $token]); //TODO update token WHERE token=sdata[token]
 					$sdata['user_id'] = $uid;
 					$sdata['attempts'] = 1;
 				} else {
-					$token = $this->MakeUserSession($uid);
+					$token = $this->MakeUserSession($uid, $token);
 					$sql = 'SELECT * FROM '.$this->pref.'module_auth_cache WHERE token=?';
 					$sdata = $this->db->GetRow($sql, [$token]);
 				}
 				return [TRUE, $sdata];
 			}
 			if ($sdata) {
-				$this->Addttempt();
+				$this->AddAttempt($sdata['token']); //TODO update token WHERE token=sdata[token]
 				$sdata['attempts']++;
 			} else {
-				$token = $this->MakeUserSession($uid);
+				$token = $this->MakeUserSession($uid, $token);
 				$sql = 'SELECT * FROM '.$this->pref.'module_auth_cache WHERE token=?';
 				$sdata = $this->db->GetRow($sql, [$token]);
 			}
@@ -573,10 +577,10 @@ class Auth extends Session
 			return [$res, $sdata];
 		} else {
 			if ($sdata) {
-				$this->Addttempt();
+				$this->AddAttempt($sdata['token']);
 				$sdata['attempts']++;
 			} else {
-				$token = $this->MakeSourceSession($ip);
+				$token = $this->MakeSourceSession($ip, $token);
 				$sql = 'SELECT * FROM '.$this->pref.'module_auth_cache WHERE token=?';
 				$sdata = $this->db->GetRow($sql, [$token]);
 			}
@@ -651,24 +655,24 @@ class Auth extends Session
 		$status = $this->matchPassword($uid, $password);
 
 		if (!$status[0]) {
-			$this->AddAttempt();
+			$this->AddAttempt($token);
 			return $status;
 		}
 
 		$userdata = $this->GetUserBase($uid);
 
 		if (!$userdata) {
-			$this->AddAttempt();
+			$this->AddAttempt($token);
 			return [FALSE, $this->mod->Lang('system_error', '#05')];
 		}
 
 		if (!$this->DoPasswordCheck($password, $userdata['password']/*, $tries TODO*/)) {
-			$this->AddAttempt();
+			$this->AddAttempt($token);
 			return [FALSE, $this->mod->Lang('incorrect_type', $this->mod->Lang('password'))];
 		}
 
 		if ($login == $userdata['publicid']) {
-			$this->AddAttempt();
+			$this->AddAttempt($token);
 			return [FALSE, $this->mod->Lang('newlogin_match')];
 		}
 
@@ -680,6 +684,42 @@ class Auth extends Session
 		}
 
 		return [TRUE, $this->mod->Lang('login_changed')];
+	}
+
+	/**
+	 * Get a variant of (non-email) @login which is not currently recorded
+	 *
+	 * @login: string user identifier
+	 * Returns: string, @login with a numeric suffix, or FALSE
+	 */
+	public function NumberedLogin($login)
+	{
+		if (!login || preg_match(self::PATNEMAIL, $login)) {
+			return FALSE;
+		}
+		$sql = 'SELECT publicid FROM '.$this->pref.'module_auth_users WHERE publicid LIKE ?% AND context_id=? ORDER BY publicid';
+		$rows = $this->db->GeCol($sql, [$login, $this->context]);
+		if ($rows) {
+			$suffs = [];
+			$pl = strlen($login);
+			foreach ($rows as $one) {
+				$s = substr($one, $pl);
+				if ($s && is_numeric($s)) {
+					$suffs[] = (int)$s;
+				}
+			}
+			foreach ($suffs as $i=>$one) {
+				if (isset($suffs[$i+1])) {
+					if ($suffs[$i+1] - $one > 1) {
+						$s = $one+1;
+						return $login.$s;
+					}
+				}
+			}
+			$s = count($suffs)+1;
+			return $login.$s;
+		}
+		return FALSE; //should never get here
 	}
 
 	/**
@@ -1149,7 +1189,7 @@ class Auth extends Session
 			}
 		}
 
-		$res = $this->IsRegistered($oldlogin, $password, FALSE);
+		$res = $this->IsRegistered($oldlogin, $password, FALSE);  //FALSE, $token);
 		if (!$res[0]) {
 			return $res;
 		}
@@ -1237,7 +1277,7 @@ class Auth extends Session
 			}
 		}
 
-		$res = $this->IsRegistered($login, $password, FALSE);
+		$res = $this->IsRegistered($login, $password, FALSE);  // FALSE, $token);
 		if ($res[0]) {
 			$res = $this->DeleteUserReal($login);
 			if ($res[0]) {

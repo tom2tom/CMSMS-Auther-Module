@@ -34,7 +34,7 @@ switch ($cdata['security_level']) {
 	if ($pubkey) {
 		$one = new \stdClass();
 		$one->input = '<div id="g-recaptcha"></div>';
-		$elements[] = $one;
+		$elements1[] = $one;
 		//fallback if no js
 		$one = new \stdClass();
 		$one->title = $mod->Lang('title_captcha');
@@ -50,7 +50,7 @@ switch ($cdata['security_level']) {
 		$one->input = $this->GetInputText($id, 'captcha', 'captcha', $tabindex++, '', 8, 8);
 		list($t,$img) = $this->CaptchaImage($mod);
 		$one->xtra = $img;
-		$elements[] = $one;
+		$elements1[] = $one;
 	}
 	//TODO record $t code for later use
 	$cache['captcha'] = $t;
@@ -101,7 +101,7 @@ EOS;
 		$one->input = $this->GetInputText($id, 'login', 'login', $tabindex++, '', 20, 32);
         $logtype = 1;
 	}
-	$elements[] = $one;
+	$elements1[] = $one;
 
 	$one = new \stdClass();
 	$one->title = $mod->Lang('password');
@@ -112,7 +112,7 @@ EOS;
 	} else {
 		$one->extra = $mod->Lang('lostpass_renew');
 	}
-	$elements[] = $one;
+	$elements1[] = $one;
 
 	switch ($cdata['security_level']) {
 	 case self::LOSEC:
@@ -144,7 +144,7 @@ EOS;
 		$tplvars['captcha'] = $one;
 
 		$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/lib/js/gibberish-aes.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/gibberish-aes.min.js"></script>
 EOS;
 		//function returns js object
 		$jsfuncs[] = <<<EOS
@@ -272,7 +272,9 @@ EOS;
    }
   });
   if (valid) {
-   var parms = transfers(\$ins);
+// document.body.style.cursor = 'wait';
+   var details,
+    parms = transfers(\$ins);
    $.ajax({
     type: 'POST',
     method: 'POST',
@@ -283,13 +285,24 @@ EOS;
     success: function(data,status,jqXHR) {
      switch (jqXHR.status) {
       case 202:
-       var \$el = $('#authform');
-       \$el.find(':input:not([type=hidden])').removeAttr('name');
-	   \$el.prepend('<input type="hidden" name="{$id}success" value="1" />');
-       \$el.trigger('submit');
+       $('#authelements #phase1').css('display','none');
+       details = JSON.parse(jqXHR.responseText);
+       ajaxresponse(details,'{$mod->Lang('title_completed')}',false);
+       setTimeout(function() {
+        var \$el = $('#authform');
+        \$el.find(':input:not([type=hidden])').removeAttr('name');
+        \$el.prepend('<input type="hidden" name="{$id}success" value="'+details.success+'" />');
+        \$el.trigger('submit');
+       },1000);
        break;
       case 200:
-       ajaxresponse(jqXHR.responseJSON,somemsg);
+       clearresponse();
+//       document.body.style.cursor = 'auto';
+       $(btn).prop('disabled',false);
+//       $('#authelements #phase2').css('display','block');
+//       $('#login2')[0].focus();
+//       $('#{$id}phase').val('what');
+//TODO more
        break;
       default:
        break;
@@ -298,8 +311,9 @@ EOS;
     },
     error: function(jqXHR,status,errmsg) {
      details = JSON.parse(jqXHR.responseText);
-     ajaxresponse (details, errmsg);
+     ajaxresponse(details,errmsg,true);
      $(btn).prop('disabled',false);
+//   document.body.style.cursor = 'auto';
     }
    });
   } else {

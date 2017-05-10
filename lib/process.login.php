@@ -78,16 +78,17 @@ switch ($lvl) {
 			$msgs[] = $mod->Lang('missing_type', $mod->Lang('password'));
 			if (!$focus) { $focus = 'passwd'; }
 		} elseif ($login) {
-			$res = $afuncs->IsRegistered($login, $pw);
-			$fake = !$res[0];
-			$sdata = $res[1];
+			$res = $afuncs->IsRegistered($login, $pw, TRUE, FALSE, $params['token']);
 			if ($res[0]) {
+				$fake = FALSE;
 				if ($vfuncs->IsForced(FALSE, $login, $cdata['id'])) {
 					$forcereset = TRUE;
 					break;
 				}
 			} else {
+				$fake = TRUE;
 				$n = $cdata['ban_count'];
+				$sdata = $res[1];
 				if ($sdata['attempts'] >= $n) {
 //TODO status 'blocked'
 					$vfuncs->SetForced(1, FALSE, $login, $cdata['id']);
@@ -141,7 +142,7 @@ switch ($lvl) {
 } //switch level
 
 if ($msgs || $fake) {
-	$afuncs->AddAttempt();
+	$afuncs->AddAttempt($params['token']);
 } else {
 	if ($lvl == Auther::CHALLENGED) {
 		$flds = ['login' => $login, 'passwd' => $pw];
@@ -152,5 +153,6 @@ if ($msgs || $fake) {
 	} else {
 		$afuncs->Login($login, $pw, TRUE);
 		$afuncs->ResetAttempts();
+		$msgtext = $mod->Lang('logged_in'); //feedback
 	}
 }

@@ -17,7 +17,7 @@ switch ($cdata['security_level']) {
  case self::NOBOT:
 	$one = new \stdClass();
 	$one->title = $mod->Lang('noauth');
-	$elements[] = $one;
+	$elements1[] = $one;
 	//TODO filter parms as appropriate
 	$jsfuncs[] = <<<EOS
 function transfers(\$inputs) {
@@ -45,22 +45,22 @@ EOS;
 		$one->input = $this->GetInputText($id, 'login', 'login', $tabindex++, '', 20, 32);
         $logtype = 1;
 	}
-	$elements[] = $one;
+	$elements1[] = $one;
 
 	$one = new \stdClass();
 	$one->title = $mod->Lang('current_typed', $mod->Lang('password'));
 	$one->input = $this->GetInputPasswd($id, 'passwd', 'passwd', $tabindex++, '', 20, 72);
-	$elements[] = $one;
+	$elements1[] = $one;
 	$one = new \stdClass();
 	$one->title = $mod->Lang('new_typed', $mod->Lang('password'));
 	$one->input = $this->GetInputPasswd($id, 'passwd2', 'passwd2', $tabindex++, '', 20, 72);
 	$n = (int)$cdata['password_min_length'];
 	$one->extra = $mod->Lang('help_password', $n);
-	$elements[] = $one;
+	$elements2[] = $one;
 	$one = new \stdClass();
 	$one->title = $mod->Lang('new_typed', $mod->Lang('title_passagain'));
 	$one->input = $this->GetInputPasswd($id, 'passwd3', 'passwd3', $tabindex++, '', 20, 72);
-	$elements[] = $one;
+	$elements2[] = $one;
 
 	switch ($cdata['security_level']) {
 	 case self::LOSEC:
@@ -92,7 +92,7 @@ EOS;
 		$tplvars['captcha'] = $one;
 
 		$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/lib/js/gibberish-aes.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/gibberish-aes.min.js"></script>
 EOS;
 		//function returns js object
 		$jsfuncs[] = <<<EOS
@@ -225,7 +225,9 @@ EOS;
    }
   });
   if (valid) {
-   var parms = transfers(\$ins);
+// document.body.style.cursor = 'wait';
+   var details,
+    parms = transfers(\$ins);
    $.ajax({
     type: 'POST',
     method: 'POST',
@@ -236,13 +238,23 @@ EOS;
     success: function(data,status,jqXHR) {
      switch (jqXHR.status) {
       case 202:
-       var \$el = $('#authform');
-       \$el.find(':input:not([type=hidden])').removeAttr('name');
-	   \$el.prepend('<input type="hidden" name="{$id}success" value="1" />');
-       \$el.trigger('submit');
+       $('#authelements #phase1,#phase2').css('display','none');
+       details = JSON.parse(jqXHR.responseText);
+       ajaxresponse(details,'{$mod->Lang('title_completed')}',false);
+       setTimeout(function() {
+        var \$el = $('#authform');
+        \$el.find(':input:not([type=hidden])').removeAttr('name');
+        \$el.prepend('<input type="hidden" name="{$id}success" value="'+details.success+'" />');
+        \$el.trigger('submit');
+       },1000);
        break;
       case 200:
-       ajaxresponse(jqXHR.responseJSON,somemsg);
+       clearresponse();
+//       document.body.style.cursor = 'auto';
+       $(btn).prop('disabled',false);
+       $('#authelements #phase2').css('display','block');
+       $('#passwd2')[0].focus();
+       $('#{$id}phase').val('what');
        break;
       default:
        break;
@@ -251,8 +263,9 @@ EOS;
     },
     error: function(jqXHR,status,errmsg) {
      details = JSON.parse(jqXHR.responseText);
-     ajaxresponse (details,errmsg);
+     ajaxresponse(details,errmsg,true);
      $(btn).prop('disabled',false);
+//   document.body.style.cursor = 'auto';
     }
    });
   } else {

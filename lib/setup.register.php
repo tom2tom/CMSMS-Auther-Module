@@ -17,7 +17,7 @@ switch ($cdata['security_level']) {
  case self::NOBOT:
 	$one = new \stdClass();
 	$one->title = $mod->Lang('noauth');
-	$elements[] = $one;
+	$elements1[] = $one;
 	//TODO filter parms as appropriate
 	$jsfuncs[] = <<<EOS
 function transfers(\$inputs) {
@@ -46,18 +46,18 @@ EOS;
 		$one->extra = $mod->Lang('help_login');
         $logtype = 1;
 	}
-	$elements[] = $one;
+	$elements1[] = $one;
 
 	$one = new \stdClass();
 	$one->title = $mod->Lang('password');
 	$one->input = $this->GetInputPasswd($id, 'passwd', 'passwd', $tabindex++, '', 20, 72);
 	$n = (int)$cdata['password_min_length'];
 	$one->extra = $mod->Lang('help_password', $n);
-	$elements[] = $one;
+	$elements1[] = $one;
 	$one = new \stdClass();
 	$one->title = $mod->Lang('title_passagain');
 	$one->input = $this->GetInputPasswd($id, 'passwd2', 'passwd2', $tabindex++, '', 20, 72);
-	$elements[] = $one;
+	$elements1[] = $one;
 
  	$one = new \stdClass();
 	if($cdata['name_required']) {
@@ -68,7 +68,7 @@ EOS;
 		$optname = 1;
 	}
 	$one->input = $this->GetInputText($id, 'name', 'name', $tabindex++, '', 20, 32);
-	$elements[] = $one;
+	$elements1[] = $one;
 
 	if ($logtype == 1) {
 	 	$one = new \stdClass();
@@ -84,7 +84,7 @@ EOS;
 		if ($cdata['email_required']) {
 			$one->extra .= '<br />'.$mod->Lang('help_email_required');
 		}
-		$elements[] = $one;
+		$elements1[] = $one;
 	} else {
 		$optcontact = 1;
 	}
@@ -119,35 +119,41 @@ EOS;
 		$tplvars['captcha'] = $one;
 
 		$jsincs[] = <<<EOS
-<script type="text/javascript" src="{$baseurl}/lib/js/gibberish-aes.js"></script>
+<script type="text/javascript" src="{$baseurl}/lib/js/gibberish-aes.min.js"></script>
 EOS;
 		//function returns js object
 		$jsfuncs[] = <<<EOS
 function transfers(\$inputs) {
- var sent = JSON.stringify({
-  passwd: $('#passwd').val()
- }),
-  far = "$far",
-  iv = GibberAES.a2s(GibberAES.randArr(16));
- var parms = {
+ var far = "$far",
+  iv = GibberAES.a2s(GibberAES.randArr(16)),
+  parms = {
   {$id}jsworks: 'TRUE',
-  {$id}sent: GibberAES.encString(far+sent,far,iv)
- };
+   {$id}sent: ''
+  },
+  passes = {},
+  v;
  $('#{$id}nearn').val(GibberAES.Base64.encode(iv));
  $('#authcontainer input:hidden').add(\$inputs).each(function() {
   var \$el = $(this),
    t = \$el.attr('type'),
-   n, v;
+   n;
   if (t == 'password') {
+   v = \$el.val();
+   if (v != '') {
+    n = \$el.attr('id'); //or this.id;
+    passes[n] = v;
    return;
+   }
   } else if (t == 'checkbox' && !\$el.is(':checked')) {
    v = '0';
   } else {
    v = \$el.val();
   }
-  n = \$el.attr('name');
+  n = \$el.attr('name'); //or this.name
   parms[n] = v;
  });
+ v = JSON.stringify(passes);
+ parms.{$id}sent = GibberAES.encString(far+v,far,iv);
  return parms;
 }
 EOS;
@@ -208,7 +214,6 @@ EOS;
  $('#authsubmit').click(function() {
   var btn = this;
   setTimeout(function() {
-   //document.body.style.cursor = 'wait';
    btn.disabled = true;
   },10);
   var valid = true,
@@ -237,7 +242,7 @@ EOS;
       if ({$optcontact}) { return; }
       type = '{$mod->Lang('title_contact')}';
       break;
-     case 'captcha':
+     default:
       return;
     }
     var msg = '{$mod->Lang('missing_type','%s')}'.replace('%s',type);
@@ -245,25 +250,37 @@ EOS;
     valid = false;
     return false;
    } else {
-    if (id == 'login') {
-     if (!{$logtype}) {
+    switch (id) {
+     case 'login':
+     if ($logtype == 0) {
       if (val.search(/^.+@.+\..+$/) == -1) {
        doerror(\$el,'{$mod->Lang('invalid_type',$mod->Lang('title_email'))}');
        valid = false;
        return false;
       }
      }
-    } else if (id == 'passwd2') {
+     break;
+    case 'passwd':
+     if (val !== $('#passwd2').val()) {
+      doerror(\$el,'{$mod->Lang('password_nomatch')}');
+      valid = false;
+      return false;
+     }
+     break;
+    case 'passwd2':
      if (val !== $('#passwd').val()) {
       doerror(\$el,'{$mod->Lang('password_nomatch')}');
       valid = false;
       return false;
      }
+     break;
     }
    }
   });
   if (valid) {
-   var parms = transfers(\$ins);
+// document.body.style.cursor = 'wait';
+   var details,
+    parms = transfers(\$ins);
    $.ajax({
     type: 'POST',
     method: 'POST',
@@ -272,33 +289,26 @@ EOS;
     dataType: 'json',
     global: false,
     success: function(data,status,jqXHR) {
-     switch (jqXHR.status) {
-      case 202:
-       var \$el = $('#authform');
-       \$el.find(':input:not([type=hidden])').removeAttr('name');
-	   \$el.prepend('<input type="hidden" name="{$id}success" value="1" />');
-       \$el.trigger('submit');
-       break;
-      case 200:
-       ajaxresponse(jqXHR.responseJSON,somemsg);
-       break;
-      default:
-       break;
-     }
-     $(btn).prop('disabled',false);
-     //document.body.style.cursor = 'auto';
+     $('#authelements #phase1').css('display','none');
+     details = JSON.parse(jqXHR.responseText);
+     ajaxresponse(details,'{$mod->Lang('completed')}',false);
+     setTimeout(function() {
+      var \$el = $('#authform');
+      \$el.find(':input:not([type=hidden])').removeAttr('name');
+      \$el.prepend('<input type="hidden" name="{$id}success" value="'+details.success+'" />');
+      \$el.trigger('submit');
+     },1000);
     },
     error: function(jqXHR,status,errmsg) {
      details = JSON.parse(jqXHR.responseText);
-     ajaxresponse (details,errmsg);
+     ajaxresponse (details,errmsg,true);
      $(btn).prop('disabled',false);
-     //document.body.style.cursor = 'auto';
+//   document.body.style.cursor = 'auto';
     }
    });
   } else {
    setTimeout(function() {
     $(btn).prop('disabled',false);
-    //document.body.style.cursor = 'auto';
    },10);
   }
   return false;

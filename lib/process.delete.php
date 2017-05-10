@@ -110,8 +110,10 @@ if ($msgs) {
 //TODO initiate challenge
 	} else {
 		$res = $afuncs->DeleteUser($login, $pw);
-		if (!$res[0]) {
-			$msgs[] = $rest[1];
+		if ($res[0]) {
+			$msgtext = $mod->Lang('delete_success'); //feedback
+		} else {
+			$msgs[] = $res[1];
 		}
 	}
 }

@@ -388,7 +388,7 @@ class Challenge extends Session
 	public function IsTellable($login, $failkey='not_contactable')
 	{
 		$pref = \cms_db_prefix();
-		$sql = 'SELECT address FROM '.$pref.'module_auth_users WHERE publicid=? AND context=?';
+		$sql = 'SELECT address FROM '.$pref.'module_auth_users WHERE publicid=? AND context_id=?';
 		$contact = \cmsms()->GetDb()->GetOne($sql, [$login, $this->context]);
 		if ($this->GetConfig('email_login')) {
 			$tests = [$login, $contact];

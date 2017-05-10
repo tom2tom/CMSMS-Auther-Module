@@ -11,9 +11,6 @@
 [pA762_submit]	"Submit" iff NOT ajax-sourced
 [pA762_captcha]	"text" maybe iff NOT ajax-sourced
 [pA762_login]	"rogerrabbit"
-[pA762_passwd]	"passnow" iff NOT ajax-sourced
-1st pass:
-various empty inputs
 2nd pass:
 [pA762_passwd]	"token" iff NOT ajax-sourced
 [pA762_passwd2]	"someother" iff NOT ajax-sourced, should not be same as 1
@@ -21,6 +18,7 @@ various empty inputs
 $sent array iff ajax-sourced
 [passwd] => "token"
 [passwd2] => "someother"
+[passwd3] => "someother" should match
 */
 
 $lvl = $cdata['security_level'];
@@ -35,34 +33,36 @@ switch ($lvl) {
 	$postvars = [];
 	foreach ([
 		'login',
- 		'passwd',
- 		'passwd2',
- 		'passwd3',
+		'passwd', //present if !$jax, or no token provided
+		'passwd2', //ditto for new password
+		'passwd3', //ditto
  		'captcha'
 	] as $t) {
 		$key = $id.$t;
 		$postvars[$key] = isset($_POST[$key]) ? $_POST[$key] : NULL;
 	}
+	$phase1 = empty($_POST[$id.'phase']) || $_POST[$id.'phase'] == 'who';
+	$mfuncs = new Auther\Challenge($mod, $params['context']);
+	$sendto = FALSE;
 	$flds = [];
 	$t = $postvars[$id.'login'];
 	if ($vfuncs->FilteredString($t)) {
 		$login = trim($t);
 		if ($login) {
-			$res = $afuncs->IsRegistered($login);
-			$fake = !$res[0];
-			$sdata = $res[1];
+			$res = $afuncs->IsRegistered($login, FALSE, TRUE, FALSE, $params['token']);
 			if ($res[0]) {
-				$res = $vfuncs->IsTellable($login, 'temp_notsent');
+				$fake = FALSE;
+				$res = $mfuncs->IsTellable($login, 'temp_notsent');
 				if ($res[0]) {
-					if (!$pass1) {
-						$token = $sdata['token'];
-					}
+					$sendto = $res[1];
 				} else {
 					$msgs[] = $res[1];
 					$focus = 'login';
 				}
 			} else {
+				$fake = TRUE;
 				$n = $cdata['ban_count'];
+				$sdata = $res[1];
 				if ($sdata['attempts'] >= $n) {
 //TODO status 'blocked'
 					$vfuncs->SetForced(1, FALSE, $login, $cdata['id']);
@@ -90,16 +90,19 @@ switch ($lvl) {
 		$focus = 'login';
 	}
 
-	$pass1 = $_POST[$id.'phase'] == 'who';
-	if ($pass1) {
+	if ($phase1) {
 		break;
 	}
 
+	if ($sdata == FALSE) {
+		$sdata = $TODO;
+$this->Crash();
+	}
 	$t = ($jax) ? $sent['passwd'] : $postvars[$id.'passwd'];
 	if ($vfuncs->FilteredPassword($t)) {
 		$pw = trim($t);
-		$data = json_decode($sdata['cache']);
-		if (!$afuncs->DoPasswordCheck($pw, $data['token'], $sdata['attempts'])) {
+		$data = (array)json_decode($sdata['data']);
+		if (!$afuncs->DoPasswordCheck($pw, $data['temptoken'], $sdata['attempts'])) {
 			$msgs[] = $mod->Lang('incorrect_resetkey');
 			break;
 		}
@@ -173,22 +176,25 @@ switch ($lvl) {
 } //switch level
 
 if ($msgs || $fake) {
-	$afuncs->AddAttempt();
-} elseif ($pass1) {
-	if ($lvl == Auther::CHALLENGED) {
-		$pw = $afuncs->UniqueToken($afuncs->GetConfig('password_min_length'));
-		$hash = password_hash($pw, PASSWORD_DEFAULT);
-		$data = json_encode(['token'=>$hash]);
-		$sql = 'UPDATE '.$pref.'module_auth_cache SET data=? WHERE token=?';
-		$db->Execute($sql, [$data, $token]);
-		$res = $afuncs->RequestReset($login, NULL, $pw); //TODO wrong class etc BAD
-		if (!$res[0]) {
-			$msgs[] = $res[1];
-		} elseif (!$sendmail) {
-			$msgs[] = $mod->Lang('TODO');
+	$afuncs->AddAttempt($params['token']);
+} elseif ($phase1) {
+	$pw = $mfuncs->SimpleToken(8);
+	if (1) { //$lvl == Auther::CHALLENGED) {
+		if ($sendto) {
+			$res = $mfuncs->ChallengeMessage($sendto, 'recover', $pw);
+			if ($res[0]) {
+				$hash = password_hash($pw, PASSWORD_DEFAULT);
+				$data = json_encode(['temptoken'=>$hash]);
+				$sql = 'UPDATE '.$pref.'module_auth_cache SET data=? WHERE token=?';
+				$db->Execute($sql, [$data, $token]);
+			} else {
+				$msgs[] = $res[1];
+			}
+		} else {
+			$msgs[] = $mod->Lang('not_contactable');
 		}
 		if (!$msgs) {
-			$t = ['focus'=>'authfeedback', 'html'=>$mod->Lang('temp_sent')];
+			$t = ['focus'=>'passwd', 'message'=>$mod->Lang('temp_sent')];
 			if ($jax) {
 				header('HTTP/1.1 200 OK');
 				header('Content-Type: application/json; charset=UTF-8');
@@ -199,7 +205,7 @@ if ($msgs || $fake) {
 			}
 		}
 	} else {
-		$t = ['focus'=>'authfeedback', 'html'=>'TODO message'];
+		$t = ['focus'=>'passwd', 'html'=>$pw];
 		if ($jax) {
 			header('HTTP/1.1 200 OK');
 			header('Content-Type: application/json; charset=UTF-8');
@@ -222,5 +228,6 @@ if ($msgs || $fake) {
 		$afuncs->ChangePassword($uid,$pw,$pw2,$pw2,FALSE); //TODO no check?
 		$afuncs->ResetAttempts();
 		$vfuncs->SetForced(0, FALSE, $login, $sdata['id']);
+		$msgtext = $mod->Lang('password_changed'); //feedback
 	}
 }

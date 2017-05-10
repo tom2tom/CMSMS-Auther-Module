@@ -12,15 +12,19 @@
 [pA762_captcha]	"text" maybe iff NOT ajax-sourced
 [pA762_login]	"rogerrabbit"
 [pA762_passwd]	"passnow" iff NOT ajax-sourced
+[pA762_recover]	"0" OR "1" if 1, only login value is relevant
+$sent array iff ajax-sourced
+[passwd] => "passnow"
 1st pass:
 various empty inputs
 2nd pass:
 [pA762_login2]	"somethingorempty"
-[pA762_recover]	"0" OR "1" if 1, only login value is relevant
 [pA762_name]	"whateverorempty"
 [pA762_contact]	"whateverorempty"
 $sent array iff ajax-sourced
 [passwd] => "passnow"
+[passwd2] => "newpass" iff replacement is present
+[passwd3] => "newpass" should match
 */
 
 $lvl = $cdata['security_level'];
@@ -37,6 +41,8 @@ switch ($lvl) {
 		'login',
 		'login2',
 		'passwd',
+		'passwd2', //present if !$jax, or no replacement password provided
+		'passwd3', //ditto
 		'name',
 		'contact',
 		'captcha'
@@ -44,6 +50,9 @@ switch ($lvl) {
 		$key = $id.$t;
 		$postvars[$key] = isset($_POST[$key]) ? $_POST[$key] : NULL;
 	}
+	$phase1 = empty($_POST[$id.'phase']) || $_POST[$id.'phase'] == 'who';
+	$mfuncs = new Auther\Challenge($mod, $params['context']);
+	$sendto = FALSE;
 	$flds = [];
 	$t = $postvars[$id.'login'];
 	if ($vfuncs->FilteredString($t)) {
@@ -67,16 +76,17 @@ switch ($lvl) {
 			$msgs[] = $mod->Lang('missing_type', $mod->Lang('password'));
 			if (!$focus) { $focus = 'passwd'; }
 		} elseif ($login) { //ok, already fail if no login
-			$res = $afuncs->IsRegistered($login, $pw);
-			$fake = !$res[0];
-			$sdata = $res[1];
+			$res = $afuncs->IsRegistered($login, $pw, TRUE, FALSE, $params['token']);
 			if ($res[0]) {
+				$fake = FALSE;
 				if ($vfuncs->IsForced(FALSE, $login, $cdata['id'])) {
 					$forcereset = TRUE;
 					break;
 				}
 			} else {
+				$fake = TRUE;
 				$n = $cdata['ban_count'];
+				$sdata = $res[1];
 				if ($sdata['attempts'] >= $n) {
 	//TODO status 'blocked'
 					$vfuncs->SetForced(1, FALSE, $login, $cdata['id']);
@@ -86,8 +96,8 @@ switch ($lvl) {
 					$n = $cdata['raise_count'];
 					if ($sdata['attempts'] >= $n) {
 						$msgs[] = $mod->Lang('reregister');
-	// SILENT		} else {
-	//					$msgs[] = $mod->Lang('invalid_type', $mod->Lang('title_login'));
+					} else {
+						$msgs[] = $mod->Lang('incorrect_vague'); //CHECKME no need for fake/silence here?
 					}
 					$focus = 'login';
 				}
@@ -98,74 +108,135 @@ switch ($lvl) {
 		if (!$focus) { $focus = 'passwd'; }
 	}
 
-	$pass1 = $_POST[$id.'phase'] == 'who';
-	if ($pass1) {
+	if ($phase1) {
 		break;
 	}
 
 	$t = $postvars[$id.'login2'];
-	if ($vfuncs->FilteredString($t)) {
-		$t = trim($t);
-		if ($t) {
-			$res = $afuncs->ValidateLogin($t);
-			if ($res[0]) {
-				if (0) { //TODO extra test criterion
-					$res = $afuncs->SensibleLogin($t);
+	if ($t) {
+		if ($vfuncs->FilteredString($t)) {
+			$t = trim($t);
+			if ($t) {
+				$res = $afuncs->ValidateLogin($t);
+				if ($res[0]) {
+					if (0) { //TODO extra test criterion
+						$res = $afuncs->SensibleLogin($t);
+					}
+				}
+				if ($res[0]) {
+					$res = $afuncs->UniqueLogin($t, $login);
+					if ($res[0]) {
+						$flds['publicid'] = $t;
+					} else {
+						if (!$cdata['email_login']) {
+							$alt = $afuncs->NumberedLogin($login);
+							if ($alt) {
+								$msgs[] = $mod->Lang('login_taken2', $login, $alt);
+							} else {
+								$msgs[] = $mod->Lang('retry'); //NOT the default 'invalid' message!
+							}
+						} else {
+							$msgs[] = $mod->Lang('retry'); //NOT the default 'invalid' message!
+						}
+						if (!$focus) { $focus = 'login2'; }
+					}
+				} else {
+					$msgs[] = $res[1];
+					if (!$focus) { $focus = 'login2'; }
 				}
 			}
+		} else {
+			$t = ($cdata['email_login']) ? 'title_email':'title_identifier'; //TODO 'replacement' into message
+			$msgs[] = $mod->Lang('invalid_type', $mod->Lang($t));
+			if (!$focus) { $focus = 'login2'; }
+		}
+//	} else { //no replacement login
+	}
+
+	if ($jax && !empty($sent['passwd2'])) {
+		$t = $sent['passwd2'];
+	} else {
+		$t = $postvars[$id.'passwd2'];
+	}
+	if ($t) {
+		if ($vfuncs->FilteredString($t)) {
+			$res = $afuncs->ValidatePassword($t);
 			if ($res[0]) {
-				$res = $afuncs->UniqueLogin($t, $login);
-				if ($res[0]) {
-					$flds['publicid'] = $t;
-				} else {
-					$msgs[] = $mod->Lang('retry'); //NOT the default 'invalid' message!
-					$focus = 'login2';
-				}
+				$flds['privhash'] = $t; //crypt later
 			} else {
 				$msgs[] = $res[1];
-				if (!$focus) { $focus = 'login2'; }
+				if (!$focus) { $focus = 'passwd2'; }
 			}
+		} else {
+			//invalid
+			$msgs[] = $mod->Lang('invalid_type', $mod->Lang('password')); //TODO 'replacement' into message
+			if (!$focus) { $focus = 'passwd2'; }
 		}
-	} else {
-		$msgs[] = $mod->Lang('invalid_type', $mod->Lang('title_login')); //TODO 'replacement' into message
-		if (!$focus) { $focus = 'login2'; }
+//	} else { //no replacement password
+	}
+
+	if (!empty($flds['privhash'])) {
+		if ($jax && !empty($sent['passwd3'])) {
+			$t = $sent['passwd3'];
+		} else {
+			$t = $postvars[$id.'passwd3'];
+		}
+		if ($t != $flds['privhash']) {
+			unset($flds['privhash']);
+			$msgs[] = $mod->Lang('newpassword_nomatch');
+		}
 	}
 
 	$t = $postvars[$id.'name'];
-	if ($vfuncs->FilteredString($t)) {
-		$t = $vfuncs->SanitizeName($t);
-		$res = $afuncs->ValidateName($t);
-		if ($res[0]) {
-			if (0) { //TODO extra test criterion
-				$res = $afuncs->SensibleName($t);
+	if ($t) {
+		if ($vfuncs->FilteredString($t)) {
+			$t = $vfuncs->SanitizeName($t);
+			$res = $afuncs->ValidateName($t);
+			if ($res[0]) {
+				if (0) { //TODO extra test criterion
+					$res = $afuncs->SensibleName($t);
+				}
 			}
-		}
-		if ($res[0]) {
-			$flds['name'] = $t; //crypt if/when needed
+			if ($res[0]) {
+				$flds['name'] = $t; //crypt later
+			} else {
+				$msgs[] = $res[1];
+				if (!$focus) { $focus = 'name'; }
+			}
 		} else {
-			$msgs[] = $res[1];
+			$msgs[] = $mod->Lang('invalid_type', $mod->Lang('name'));
 			if (!$focus) { $focus = 'name'; }
 		}
-	} else {
-		$msgs[] = $mod->Lang('invalid_type', $mod->Lang('name'));
-		if (!$focus) { $focus = 'name'; }
+//	} else { //no replacement name
 	}
 
 	$t = $postvars[$id.'contact'];
-	if ($vfuncs->FilteredString($t)) {
-		$t = trim($t);
-		if ($t) {
-			$res = $afuncs->ValidateAddress($t);
-			if ($res[0]) {
-				$flds['address'] = $t; //crypt if/when needed
-			} else {
-				$msgs[] = $res[1];
-				if (!$focus) { $focus = 'contact'; }
+	if ($t) {
+		if ($vfuncs->FilteredString($t)) {
+			$t = trim($t);
+			if ($t) {
+				$res = $afuncs->ValidateAddress($t);
+				if ($res[0]) {
+					$flds['address'] = $t; //crypt later
+				} else {
+					$msgs[] = $res[1];
+					if (!$focus) { $focus = 'contact'; }
+				}
 			}
+		} else {
+			$msgs[] = $mod->Lang('invalid_type', $mod->Lang('title_contact'));
+			if (!$focus) { $focus = 'contact'; }
 		}
-	} else {
-		$msgs[] = $mod->Lang('invalid_type', $mod->Lang('title_contact'));
-		if (!$focus) { $focus = 'contact'; }
+//	} else { //no replacment contact
+	}
+
+	if ($cdata['email_required']) {
+/*TODO check current & new
+		if (!(preg_match(Auth::PATNEMAIL, $login) || preg_match(Auth::PATNEMAIL, $contact))) {
+			$msgs[] = $mod->Lang('want_email');
+			if (!$focus) { $focus = 'contact'; }
+		}
+*/
 	}
 
 	switch ($lvl) {
@@ -200,19 +271,23 @@ switch ($lvl) {
 } //switch level
 
 if ($msgs || $fake) {
-	$afuncs->AddAttempt();
-} elseif ($pass1) {
+	$afuncs->AddAttempt($params['token']);
+} elseif ($phase1) {
+	$afuncs->ResetAttempts();
+	$pw = $mfuncs->SimpleToken(8);
 	if ($lvl == Auther::CHALLENGED) {
-		$pw = $afuncs->UniqueToken($afuncs->GetConfig('password_min_length'));
-		$hash = password_hash($pw, PASSWORD_DEFAULT);
-		$data = json_encode(['token'=>$hash]);
-		$sql = 'UPDATE '.$pref.'module_auth_cache SET data=? WHERE token=?';
-		$db->Execute($sql, [$data, $token]);
-		$res = $afuncs->RequestReset($login, NULL, $pw); //TODO wrong class etc BAD
-		if (!$res[0]) {
-			$msgs[] = $res[1];
-		} elseif (!$sendmail) {
-			$msgs[] = $mod->Lang('TODO');
+		if ($sendto) {
+			$res = $mfuncs->TellUser($sendto, 'change', $pw);
+			if ($res[0]) {
+				$hash = password_hash($pw, PASSWORD_DEFAULT);
+				$data = json_encode(['temptoken'=>$hash]);
+				$sql = 'UPDATE '.$pref.'module_auth_cache SET data=? WHERE token=?';
+				$db->Execute($sql, [$data, $token]);
+			} else {
+				$msgs[] = $res[1];
+			}
+		} else {
+			$msgs[] = $mod->Lang('not_contactable');
 		}
 		if (!$msgs) {
 			$t = ['focus'=>'authfeedback', 'html'=>$mod->Lang('temp_sent')];
@@ -226,7 +301,7 @@ if ($msgs || $fake) {
 			}
 		}
 	} else {
-		$t = ['focus'=>'authfeedback', 'html'=>'TODO message'];
+		$t = ['focus'=>'login2', 'html'=>$pw];
 		if ($jax) {
 			header('HTTP/1.1 200 OK');
 			header('Content-Type: application/json; charset=UTF-8');
@@ -246,15 +321,20 @@ if ($msgs || $fake) {
 //TODO initiate challenge
 	} else {
 		$namers = [];
-		$args[] = [];
+		$args = [];
 		foreach ($flds as $field=>$val) {
 			$namers[] = $field.'=?';
 			switch ($field) {
 			 case 'publicid':
 				$args[] = $val;
+				break;
+			 case 'privhash':
+				$args[] = password_hash($val, PASSWORD_DEFAULT);
+				break;
 			 case 'name':
 			 case 'address':
-			 	$args[] = $cfuncs->encrypt_value($val);
+				$args[] = $cfuncs->encrypt_value($val);
+				break;
 			}
 		}
 		$fillers = implode(',',$namers);
@@ -263,5 +343,7 @@ if ($msgs || $fake) {
 		$db->Execute($sql, [$args]);
 
 		$afuncs->ResetAttempts();
+//TODO	$vfuncs->SetForced(0, FALSE, $login, $sdata['id']); //iff password changed here
+		$msgtext = $mod->Lang('change_success'); //feedback
 	}
 }
