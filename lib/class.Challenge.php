@@ -39,20 +39,20 @@ class Challenge extends Session
 		}
 
 		if (strlen($token) !== 24) {
-			$this->AddAttempt();
+			$this->AddAttempt($token);
 			return [FALSE, $this->mod->Lang('invalid_activationkey')];
 		}
 
 		$data = $this->GetChallenge($token, 'activate');
 
 		if (!$data[0]) {
-			$this->AddAttempt();
+			$this->AddAttempt($token);
 			return $data;
 		}
 
 		$userdata = $this->GetUserBase($data['uid']); //TODO wrong class
 		if ($userdata['active']) {
-			$this->AddAttempt();
+			$this->AddAttempt($token);
 			$this->DeleteChallenge($token);
 			return [FALSE, $this->mod->Lang('system_error', '#51')];
 		}
@@ -71,7 +71,7 @@ class Challenge extends Session
 	 * @token: string 24-byte token
 	 * @newpass: plaintext string
 	 * @repeatnewpass: plaintext string
-	 * Returns: array [0]=boolean for success, [1]=message or ''
+	 * Returns: 2-member array, [0]=boolean for success, [1]=message or ''
 	 */
 	public function ResetPassword($token, $newpass, $repeatnewpass)
 	{
@@ -111,13 +111,13 @@ class Challenge extends Session
 		$userdata = $this->GetUserBase($data['uid']);
 
 		if (!$userdata) {
-			$this->AddAttempt();
+			$this->AddAttempt($token);
 			$this->DeleteChallenge($token); //TODO no challenges here
 			return [FALSE, $this->mod->Lang('system_error', '#12')];
 		}
 
 		if ($this->DoPasswordCheck($newpass, $userdata['password']/*, $tries TODO*/)) {
-			$this->AddAttempt();
+			$this->AddAttempt($token);
 			return [FALSE, $this->mod->Lang('newpassword_match')];
 		}
 
@@ -138,10 +138,10 @@ class Challenge extends Session
 	* If action-status warrants or @check=FALSE, records a challenge of the specified type
 	*
 	* @login: string user identifier
-	* @type: string 'activate','change','reset' or 'delete'
+	* @type: string one of 'activate','change','delete','reset','recover'
 	* @data: optional string, context-specific data to be cached, default = NULL
-	* Returns: array [0]=boolean for success, [1]=message or '' or challenge-token
 	* @check: optional boolean whether to check action-status before proceeding default = TRUE
+	* Returns: 2-member array, [0]=boolean for success, [1]=message or '' or challenge-token
 	*/
 	protected function AddChallenge($login, $type, $data=NULL, $check=TRUE)
 	{
@@ -226,8 +226,9 @@ class Challenge extends Session
 	* Gets subset of challenge data if @token is valid
 	*
 	* @token: 24-byte string from UniqueToken()
-	* @type: string 'reset','change' or 'activate', only for error-message namespacing
-	* Returns: array [0]=boolean for success, [1]=message or '', if [0] then also 'uid'
+	* @type: string one of 'activate','change','delete','reset','recover' used
+	*  to specify lang keys
+	* Returns: 2(or3)-member array, [0]=boolean for success, [1]=message or '', if [0] then also 'uid'
 	*/
 	public function GetChallenge($token, $type)
 	{
@@ -235,12 +236,12 @@ class Challenge extends Session
 		$row = $this->db->GetRow($sql, [$token]);
 
 		if (!$row) {
-			$this->AddAttempt();
+			$this->AddAttempt($token);
 			return [FALSE, $this->mod->Lang('incorrect_'.$type.'key')];
 		}
 
 		if ($row['expire'] < time()) {
-			$this->AddAttempt();
+			$this->AddAttempt($token);
 			$this->DeleteChallenge($token);
 			return [FALSE, $this->mod->Lang($type.'key_expired')];
 		}
@@ -261,14 +262,18 @@ class Challenge extends Session
 		return ($this->db->Affected_Rows() > 0);
 	}
 
+	//~~~~~~~~~~~~~ COMMUNICATION ~~~~~~~~~~~~~~~~~
+
 	/**
-	* Sends an email challenge
+	* Sends email challenge
 	*
-	* @type: string 'reset','activate','change' or 'delete' used to specify lang keys
+	* @to: suitable email address, not validated here
+	* @type: string one of 'activate','change','delete','reset','recover' used to
+	*  specify lang keys
 	* @token: optional string to be delivered to user instead of an URL, default = FALSE
-	* Returns: array [0]=boolean for success, [1]=message or ''
+	* Returns: 2-member array, [0]=boolean for success, [1]=message or ''
 	*/
-	public function ChallengeMessage($type, $token=FALSE)
+	public function ChallengeEmail($to, $type, $token=FALSE)
 	{
 		if ($this->mod->before20) {
 			$mlr = \cms_utils::get_module('CMSMailer');
@@ -287,7 +292,7 @@ class Challenge extends Session
 			$from = $this->GetConfig('context_address');
 			$mlr->SetFrom($from, $sender);
 		}
-		$mlr->AddAddress($email, '');
+		$mlr->AddAddress($to, ''); //TODO
 
 		$mlr->IsHTML(TRUE);
 
@@ -295,19 +300,19 @@ class Challenge extends Session
 		$part = $this->mod->Lang('email_subject_'.$type);
 		$mlr->SetSubject($this->mod->Lang('email_subject', $site, $part));
 
-		$part = $this->mod->Lang('email_do_'.$type);
-		$part2 = $this->mod->Lang('email_request_'.$type);
+		$what = $this->mod->Lang('body_do_'.$type);
+		$part = $this->mod->Lang('body_request_'.$type);
 
 		if ($token) {
-			$mlr->SetBody($this->mod->Lang('email_token_body', $part, $token, $part2, $site));
-			$mlr->SetAltBody($this->mod->Lang('email_token_altbody', $part, $token, $part2, $site));
+			$mlr->SetBody($this->mod->Lang('email_token_body', $what, $site, $token, $part));
+			$mlr->SetAltBody($this->mod->Lang('email_token_altbody', $what, $site, $token, $part));
 		} else {
-			//construct frontend-url (so no admin login is needed)
+			//construct frontend-URL (so no admin login is needed)
 			$u = $this->mod->create_url('cntnt01', 'validate', '', ['cauthc'=>$token]);
 			$url = str_replace('&amp;', '&', $u);
 
-			$mlr->SetBody($this->mod->Lang('email_url_body', $part, $url, $part2, $site));
-			$mlr->SetAltBody($this->mod->Lang('email_url_altbody', $part, $url, $part2, $site));
+			$mlr->SetBody($this->mod->Lang('email_url_body', $what, $site, $url, $part));
+			$mlr->SetAltBody($this->mod->Lang('email_url_altbody', $what, $site, $url, $part));
 		}
 
 		if ($mlr->Send()) {
@@ -318,5 +323,92 @@ class Challenge extends Session
 			$mlr->reset();
 			return [FALSE, $msg];
 		}
+	}
+
+	/**
+	* Sends SMS challenge
+	*
+	* @to: suitable phone no, not validated here
+	* @type: string one of 'activate','change','delete','reset','recover' used
+	*  to specify lang keys
+	* @token: optional string to be delivered to user instead of an URL, default = FALSE
+	* Returns: 2-member array, [0]=boolean for success, [1]=message or ''
+	*/
+	public function ChallengeText($to, $type, $token=FALSE)
+	{
+		$prefix = $this->GetConfig('sms_prefix');
+		$site = $this->GetConfig('context_site');
+		$what = $this->mod->Lang('body_do_'.$type);
+
+		if ($token) {
+			$body = $this->mod->Lang('text_token_body', $what, $site, $token);
+		} else {
+			//construct frontend-URL (so no admin login is needed)
+			$u = $this->mod->create_url('cntnt01', 'validate', '', ['cauthc'=>$token]);
+			$url = str_replace('&amp;', '&', $u);
+
+			$body = $this->mod->Lang('text_url_body', $what, $site, $url);
+		}
+
+		$funcs = new SMSSender();
+		return $funcs->Send($this->mod, $prefix, $to, FALSE, $body);
+	}
+
+	/**
+	* Send message to @to
+	*
+	* @to: destination address
+	* @type: string one of 'activate','change','delete','reset','recover' used
+	*  to specify lang keys
+	* @token: optional string to be delivered to user instead of an URL, default = FALSE
+	* Returns: 2-member array, [0]=boolean for success, [1]=message or ''
+	*/
+	public function ChallengeMessage($to, $type, $token=FALSE)
+	{
+		if ($to) {
+			if ($this->mod->sendMail && preg_match(Auth::PATNEMAIL, $to)) {
+				return $this->ChallengeEmail($to, $type, $token);
+			}
+			if ($this->mod->sendSMS && preg_match(Auth::PATNPHONE, $to)) {
+				return $this->ChallengeText($to, $type, $token);
+			}
+		}
+		return [FALSE, $this->mod->Lang('temp_notsent')];
+	}
+
+	/**
+	* Checks whether a message can be sent to the user represented by @login
+	*
+	* @login: user identifier
+	* @failkey: optional lang-key for failure-message, default 'not_contactable'
+	* Returns: 2-member array,
+	*	[0] = enum indicating success {1/email|2/text|FALSE},
+	*	[1] = {address|error message}
+	*/
+	public function IsTellable($login, $failkey='not_contactable')
+	{
+		$pref = \cms_db_prefix();
+		$sql = 'SELECT address FROM '.$pref.'module_auth_users WHERE publicid=? AND context=?';
+		$contact = \cmsms()->GetDb()->GetOne($sql, [$login, $this->context]);
+		if ($this->GetConfig('email_login')) {
+			$tests = [$login, $contact];
+		} else {
+			$tests = [$contact, $login];
+		}
+		foreach ($tests as $to) {
+			if ($to && $to == $contact) {
+				$cfuncs = new Crypter($this->mod);
+				$to = $cfuncs->decrypt_value($contact);
+			}
+			if ($to) {
+				if ($this->mod->sendMail && preg_match(Auth::PATNEMAIL, $to)) {
+					return [1, $to];
+				}
+				if ($this->mod->sendSMS && preg_match(Auth::PATNPHONE, $to)) {
+					return [2, $to];
+				}
+			}
+		}
+		return [FALSE, $this->mod->Lang($failkey)];
 	}
 }
