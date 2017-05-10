@@ -169,7 +169,7 @@ $sent = (array)json_decode(substr($t, $p));
 if (!$sent) {
 	if ($jax) {
 		ajax_errreport($errmsg);
-	} else {
+} else {
 		//TODO signal something to handler
 		notify_handler($params, $errmsg);
 	}
@@ -181,7 +181,7 @@ $pref = cms_db_prefix();
 $cdata = $db->GetRow('SELECT * FROM '.$pref.'module_auth_contexts WHERE id=?', [$params['context']]);
 if (!empty($params['token'])) {
 	$token = $params['token'];
-	$sdata = $db->GetRow('SELECT * FROM '.$pref.'module_auth_cache WHERE token=?', [$token]);
+	$sdata = $db->GetRow('SELECT * FROM '.$pref.'module_auth_cache WHERE token=?', [$token]); //maybe FALSE
 } else {
 	$token = FALSE; //may be updated by included code
 	$sdata = FALSE;
@@ -203,7 +203,7 @@ if ($msgs) { //error
 	$msgtext = implode("\n", $msgs); //newline for js alert box
 	$t = ['message'=>$msgtext, 'focus'=>$focus];
 	if ($jax) {
-		header('HTTP/1.1 500 Internal Server Error');
+		header('HTTP/1.1 540 Validation Failure'); //jQuery ajax accepts non-standard error code and/or text
 	}
 } elseif (0) { //TODO not-finished-now e.g. challenge
 	$t = ['message'=>'I\'m back']; //TODO
@@ -211,7 +211,7 @@ if ($msgs) { //error
 		header('HTTP/1.1 200 OK');
 	}
 } else {
-	$t = ['success'=>1];
+	$t = ['success'=>1, 'message'=>$msgtext];
 	if ($jax) {
 		header('HTTP/1.1 202 Accepted');
 	}
