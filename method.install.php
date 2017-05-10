@@ -41,6 +41,7 @@ email_required I(1) DEFAULT 0,
 email_login I(1) DEFAULT 0,
 email_banlist I(1) DEFAULT 1,
 message_charset C(16),
+sms_prefix C(6),
 password_forget C(16),
 password_min_length I(1) DEFAULT 8,
 password_min_score I(1) DEFAULT 3,
@@ -219,6 +220,7 @@ $this->SetPreference('raise_count', 3);
 $this->SetPreference('request_key_expiration', '10 minutes');
 
 $this->SetPreference('security_level', Auther::LOSEC);
+$this->SetPreference('sms_prefix', '1');
 
 $this->CreateEvent('AuthRegister');
 $this->CreateEvent('AuthDeregister');

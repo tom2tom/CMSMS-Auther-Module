@@ -51,6 +51,7 @@ if (!function_exists('getContextProperties')) {
 	'context_sender',		1, 40, 0,
 	'context_address',		1, 60, 0,
 	'message_charset',		1, 16, 0,
+	'sms_prefix',			1, 6, 1,
 
 	'cookie_name',			1, 32, 1,
 //	'cookie_domain',		1, 48, 1,
