@@ -92,13 +92,13 @@ class Validate
 	}
 
 	/**
-	 * Checks validity of suppplied login and password
+	 * Checks validity of supplied login and password
 	 * @passwd may be FALSE, so as to check only the login
 	 * Returns: 2-member array, [0] = boolean indicating success, [1] = error message or ''
 	 */
 /*	public function IsKnown($login, $passwd, $failkey='incorrect_vague')
 	{
-		$res = $this->afuncs->IsRegistered($login, $passwd);
+		$res = $this->afuncs->IsRegistered($login, $passwd); //TRUE, FALSE, $token);
 		if ($res[0]) {
 			return [TRUE, ''];
 		}
@@ -112,38 +112,62 @@ class Validate
 	}
 */
 	/**
-	 * Checks whether a message can be sent to the user represented by @login
-	 * @login: user indentifier
-	 * Returns: 2-member array, [0] = boolean indicating success, [1] = error message or ''
+	 * Cleans up @name
+	 * @enc optional string char-encoding of @name, default = 'UTF-8'
+	 * Returns: string
 	 */
-	public function IsTellable($login, $failkey='not_contactable')
+	public function SanitizeName($name, $enc='UTF-8')
 	{
-		$uid = $this->afuncs->GetUserID($login);
-		if ($uid) {
-			$pref = \cms_db_prefix();
-			$sql = 'SELECT publicid,address FROM '.$pref.'module_auth_users WHERE user_id=?';
-			$row = \cmsms()->GetDb()->GetRow($sql, [$uid]);
-			if ($row) {
-				if ($this->afuncs->GetConfig('email_login')) {
-					$test = ['publicid', 'address'];
-				} else {
-					$test = ['address', 'publicid'];
-				}
-				foreach ($test as $k) {
-					$t = $row[$k];
-					if ($t && preg_match(Auth::EMAILPATN, $t)) {
-						return [TRUE, ''];
-					}
-				}
+		$t = trim($name);
+		$t = preg_replace('/\s{1,}/', ' ', $t);
+		//stet what may be a short capitalised acronym
+		if (strpos($t,' ') !== FALSE || strlen($t) > 5) {
+			if (extension_loaded('mbstring')) {
+				$t = mb_convert_case($t, MB_CASE_TITLE, $enc);
+			} else {
+				$t = ucwords($t);
 			}
 		}
+		return $t;
+	}
 
-		if (is_array($failkey)) {
-			$msg = $this->CompoundMessage($failkey);
-		} else {
-			$msg = $this->mod->Lang($failkey);
+	/**
+	 * Eliminates from @string some of the more egregious injections, if found
+	 * This supports a fuck-off hint to crackers, the real protection is query-parameterisation
+	 * @string: string to be checked, maybe FALSE
+	 * Returns: boolean indicating @string passes the tests, TRUE if @string is FALSE
+	 */
+	public function FilteredPassword($string)
+	{
+		if ($string) {
+			$t = filter_var($string, FILTER_UNSAFE_RAW, FILTER_FLAG_STRIP_LOW);
+			return $t === $string;
 		}
-		return [FALSE, $msg];
+		return TRUE;
+	}
+
+	/**
+	 * Evaluates @string to check for some of the more egregious injections
+	 * This supports a fuck-off hint to crackers, the real protection is query-parameterisation
+	 * @string: string to be checked, maybe FALSE
+	 * Returns: boolean indicating @string passes the tests, TRUE if @string is FALSE
+	 */
+	public function FilteredString($string)
+	{
+		if ($string) {
+			$t = filter_var($string, FILTER_UNSAFE_RAW,
+				FILTER_FLAG_STRIP_LOW | FILTER_FLAG_STRIP_BACKTICK);
+			if ($t !== $string) {
+				return FALSE;
+			}
+			$t = preg_replace('/[\'"]\s?;/', '', $t);
+			if ($t !== $string) {
+				return FALSE;
+			}
+			$t = addslashes($t);
+			return $t === $string;
+		}
+		return TRUE;
 	}
 
 	/**
@@ -168,6 +192,14 @@ class Validate
 		return \cmsms()->GetDb()->GetOne($sql, $args);
 	}
 
+	/**
+	 * Sets forced-password-reset flag for a user
+	 * @state: int 0 or 1, the new setting
+	 * @uid: user identifier or FALSE
+	 * @login: optional alternative user identifier or FALSE
+	 * @cid: optional numeric context indentifier for use with @login
+	 * Returns: nothing
+	 */
 	public function SetForced($state, $uid, $login=FALSE, $cid=FALSE)
 	{
 		$pref = \cms_db_prefix();
@@ -180,130 +212,4 @@ class Validate
 		}
 		\cmsms()->GetDb()->Execute($sql, $args);
 	}
-
-	/**
-	 * Cleans up @name
-	 * @enc optional string char-encoding of @name, default = 'UTF-8'
-	 * Returns: string
-	 */
-	public function SanitizeName($name, $enc='UTF-8')
-	{
-		$t = trim($name);
-		$t = preg_replace('/\s{1,}/', ' ', $t);
-		//stet what may be a short capitalised acronym
-		if (strpos($t,' ') !== FALSE || strlen($t) > 5) {
-			if (extension_loaded('mbstring')) {
-				$t = mb_convert_case($t, MB_CASE_TITLE, $enc);
-			} else {
-				$t = ucwords($t);
-			}
-		}
-		return $t;
-	}
-
-	/**
-	 * Eliminate from @string some of the more egregious injections, if found
-	 * This supports a fuck-off hint to crackers, the real protection is query-parameterisation
-	 * @string: string to be checked, maybe FALSE
-	 * Returns: boolean indicating @string passes the tests, TRUE if @string is FALSE
-	 */
-	public function FilteredPassword($string)
-	{
-		if ($string) {
-			$t = filter_var($string, FILTER_UNSAFE_RAW, FILTER_FLAG_STRIP_LOW);
-			return $t === $string;
-		}
-		return TRUE;
-	}
-
-	/**
-	 * Evaluate @string to check for some of the more egregious injections
-	 * This supports a fuck-off hint to crackers, the real protection is query-parameterisation
-	 * @string: string to be checked, maybe FALSE
-	 * Returns: boolean indicating @string passes the tests, TRUE if @string is FALSE
-	 */
-	public function FilteredString($string)
-	{
-		if ($string) {
-			$t = filter_var($string, FILTER_UNSAFE_RAW,
-				FILTER_FLAG_STRIP_LOW | FILTER_FLAG_STRIP_BACKTICK);
-			if ($t !== $string) {
-				return FALSE;
-			}
-			$t = preg_replace('/[\'"]\s?;/', '', $t);
-			if ($t !== $string) {
-				return FALSE;
-			}
-			$t = addslashes($t);
-			return $t === $string;
-		}
-		return TRUE;
-	}
-
-	/**
-	 * Initiate password recovery if the supplied login is known
-	 * Normally do not provide $failkey
-	 * Returns: 2-member array, [0] = boolean indicating success, [1] = error message or ''
-	 */
-/*	public function DoRecover($login, &$token, $failkey='err_parm')
-	{
-		$res = $this->IsKnown($login, FALSE, $failkey); OR IsRegistered() ??
-		if ($res[0]) {
-				$val = $this->afuncs->GetConfig('security_level');
-TODO if security_level requires .... if (0) {
-				$userdata = $this->afuncs->GetUserPublic($login);
-				if (preg_match(Auther::EMAILPATN, $userdata['address'])) {
-					$sendmail = $userdata['address'];
-				} elseif (preg_match(Auther::EMAILPATN, $login)) {
-					$sendmail = login;
-				} else {
-					$sendmail = FALSE;
-				}
-				if ($sendmail) {
-				// send message
-					if ($token) {
-			//	cache stuff in current session
-					} else {
-			//	make new session
-			//	cache stuff in new session
-					}
-				// setup for downstream message
-					if ($jax) {
-				//	send ['replace'=>'authelements','html'=>'X','message'=>'X']
-					} else {
-				//	send token to handler
-					}
-					return [TRUE, ''];
-				} //sendmail
-			} //send message
-			if (0) { //can do sync reset
-			// set/update session as above
-			//TODO
-				if ($jax) {
-			//	send ['replace'=>'authelements','html'=>'X','message'=>'X']
-				} else {
-			//	send token to handler
-				}
-				return [TRUE, ''];
-			} else { //can't reset
-				if (is_array($failkey)) {
-					$msg = $this->CompoundMessage($failkey);
-				} else {
-					$msg = $this->mod->Lang($failkey);
-				}
-				return [FALSE, $msg];
-			}
-		} else { //login not recognised
-			if ($token) {
-				$tries = $this->afuncs->BumpTries($token);
-//				TODO handle if too many
-			} else {
-				$ip = $this->afuncs->GetIp();
-				$token = $this->afuncs->MakeSourceSession($ip); //upstream gets it too
-				$this->afuncs->BumpTries($token); //1 attempt sofar
-			}
-			return [FALSE, $res[1]];
-		}
-	}
-*/
 }
