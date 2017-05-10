@@ -33,6 +33,8 @@ class Auther extends CMSModule
 
 	public $before20;
 	public $oldtemplates;
+	public $sendMail;
+	public $sendSMS;
 
 	public function __construct()
 	{
@@ -40,6 +42,24 @@ class Auther extends CMSModule
 		global $CMS_VERSION;
 		$this->before20 = (version_compare($CMS_VERSION, '2.0') < 0);
 		$this->oldtemplates = $this->before20 || 1; //TODO
+		if ($this->before20) {
+			$ob = cms_utils::get_module('CMSMailer');
+			if ($ob) {
+				unset($ob);
+				$this->sendMail = TRUE;
+			} else {
+				$this->sendMail = FALSE;
+			}
+		} else {
+			$this->sendMail = TRUE;
+		}
+		$ob = cms_utils::get_module('SMSG');
+		if ($ob) {
+			unset($ob);
+			$this->sendSMS = TRUE;
+		} else {
+			$this->sendSMS = FALSE;
+		}
 
 		spl_autoload_register([$this, 'cmsms_spacedload']);
 	}
