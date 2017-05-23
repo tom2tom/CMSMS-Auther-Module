@@ -21,7 +21,6 @@ $sent array iff ajax-sourced
 [passwd3] => "someother" should match
 */
 
-$lvl = $cdata['security_level'];
 switch ($lvl) {
  case Auther::NOBOT:
 	//nothing to do
@@ -225,12 +224,17 @@ if ($msgs || $fake) {
 //TODO initiate challenge
 	} else {
 		$uid = $afuncs->GetUserID($login);
-		$afuncs->ChangePassword($uid,$pw,$pw2,$pw2,FALSE); //TODO no check?
+		$res = $afuncs->ChangePasswordReal($uid, $pw2);
+		if ($res[0]) {
 //TODO CHECK clear cached session ? what if login duration ?
 //		$sql = 'DELETE FROM '.$pref.'module_auth_cache WHERE token=?';
-//		$db->Execute($sql, [$token]);
-		$afuncs->ResetAttempts();
-		$vfuncs->SetForced(0, FALSE, $login, $sdata['id']);
-		$msgtext = $mod->Lang('password_changed'); //feedback
+			$sql = 'UPDATE '.$pref.'module_auth_cache SET attempts=0,data=NULL WHERE token=?';
+			$db->Execute($sql, [$token]);
+//			$afuncs->ResetAttempts();
+			$vfuncs->SetForced(0, FALSE, $login, $sdata['id']);
+			$msgtext = $mod->Lang('password_changed'); //feedback
+		} else {
+			$msgs[] = $res[1];
+		}
 	}
 }
