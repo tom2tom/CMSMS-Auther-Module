@@ -24,8 +24,6 @@ need explicit success / user_id / token /$id + the following:
 'html'
 'cancel'
 */
-//	$newparms = ['success'=>1];
-//	$newparms = ['cancel'=>1];
 	$newparms = $others; //TODO
 
 	switch ($params['handlertype']) {
@@ -142,13 +140,15 @@ if (empty($params) || $params['identity'] !== substr($id, 2, 3)) {
 }
 
 if (!empty($_POST[$id.'cancel'])) {
-	//TODO pass to handler
 	notify_handler($params, ['cancel'=>1]);
 	exit;
 }
 if (!empty($_POST[$id.'success'])) {
-	//TODO pass to handler
-	notify_handler($params, ['success'=>1]);
+	$others =  ['success'=>1];
+	if (!empty($_POST[$id.'authdata'])) {
+		$others['authdata'] = $_POST[$id.'authdata'];
+	}
+	notify_handler($params, $others);
 	exit;
 }
 
@@ -159,17 +159,18 @@ if (!$t) {
 	if ($jax) {
 		ajax_errreport($errmsg);
 	} else {
-		//TODO signal something to handler
 		notify_handler($params, $errmsg);
 	}
 	exit;
 }
 $p = strpos($t, $params['far']) + strlen($params['far']);
-$sent = (array)json_decode(substr($t, $p));
-if (!$sent) {
+$ob = json_decode(substr($t, $p));
+if ($ob !== NULL) {
+	$sent = (array)$ob;
+} else {
 	if ($jax) {
 		ajax_errreport($errmsg);
-} else {
+	} else {
 		//TODO signal something to handler
 		notify_handler($params, $errmsg);
 	}
@@ -179,6 +180,7 @@ if (!$sent) {
 $db = $gCms->GetDb(); //var defined by inclusion
 $pref = cms_db_prefix();
 $cdata = $db->GetRow('SELECT * FROM '.$pref.'module_auth_contexts WHERE id=?', [$params['context']]);
+$lvl = $cdata['security_level'];
 if (!empty($params['token'])) {
 	$token = $params['token'];
 	$sdata = $db->GetRow('SELECT * FROM '.$pref.'module_auth_cache WHERE token=?', [$token]); //maybe FALSE
