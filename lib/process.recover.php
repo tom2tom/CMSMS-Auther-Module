@@ -226,6 +226,9 @@ if ($msgs || $fake) {
 	} else {
 		$uid = $afuncs->GetUserID($login);
 		$afuncs->ChangePassword($uid,$pw,$pw2,$pw2,FALSE); //TODO no check?
+//TODO CHECK clear cached session ? what if login duration ?
+//		$sql = 'DELETE FROM '.$pref.'module_auth_cache WHERE token=?';
+//		$db->Execute($sql, [$token]);
 		$afuncs->ResetAttempts();
 		$vfuncs->SetForced(0, FALSE, $login, $sdata['id']);
 		$msgtext = $mod->Lang('password_changed'); //feedback
