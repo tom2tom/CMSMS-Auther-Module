@@ -291,7 +291,7 @@ EOS;
     success: function(data,status,jqXHR) {
      $('#authelements #phase1').css('display','none');
      details = JSON.parse(jqXHR.responseText);
-     ajaxresponse(details,'{$mod->Lang('completed')}',false);
+     ajaxresponse(details,'{$mod->Lang('title_completed')}',false);
      setTimeout(function() {
       var \$el = $('#authform');
       \$el.find(':input:not([type=hidden])').removeAttr('name');
