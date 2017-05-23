@@ -27,7 +27,6 @@ foreach ([
 	$postvars[$key] = isset($_POST[$key]) ? $_POST[$key] : NULL;
 }
 
-$lvl = $cdata['security_level'];
 switch ($lvl) {
  case Auther::NOBOT:
 	if ($jax) {

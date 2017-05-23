@@ -20,7 +20,6 @@ $sent array iff ajax-sourced
 [passwd2] => "text" should match
 */
 
-$lvl = $cdata['security_level'];
 switch ($lvl) {
  case Auther::NOBOT:
 	//nothing to do

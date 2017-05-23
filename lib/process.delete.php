@@ -17,7 +17,6 @@ $sent array iff ajax-sourced
 [passwd] => "passnow"
 */
 
-$lvl = $cdata['security_level'];
 switch ($lvl) {
  case Auther::NOBOT:
 	//nothing to do
