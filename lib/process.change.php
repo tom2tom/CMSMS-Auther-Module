@@ -27,7 +27,6 @@ $sent array iff ajax-sourced
 [passwd3] => "newpass" should match
 */
 
-$lvl = $cdata['security_level'];
 switch ($lvl) {
  case Auther::NOBOT:
 	//nothing to do
@@ -342,8 +341,11 @@ if ($msgs || $fake) {
 		$args[] = $afuncs->GetUserID($login);
 		$db->Execute($sql, [$args]);
 
+		if (isset($flds['privhash'])) {
+			$vfuncs->SetForced(0, FALSE, $login, $sdata['id']);
+			$forcereset = FALSE;
+		}
 		$afuncs->ResetAttempts();
-//TODO	$vfuncs->SetForced(0, FALSE, $login, $sdata['id']); //iff password changed here
 		$msgtext = $mod->Lang('change_success'); //feedback
 	}
 }
