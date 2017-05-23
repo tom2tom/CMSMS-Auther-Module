@@ -173,7 +173,7 @@ $lang['help_password_forget'] = 'Length of time between forced password-resets, 
 $lang['help_password_min_length'] = '';
 $lang['help_password_min_score'] = 'Number 1..5 broadly indicating the difficulty of cracking a password (1 is easiest)';
 $lang['help_password_new'] = 'When provided, must have length &gt;= %d and complexity-score &gt= %d';
-$lang['help_password_recover'] = 'A temporary password token has been sent to your address. Retrieve that token, and insert it below.';
+$lang['help_password_recover'] = 'A temporary password token has been sent to your address. Retrieve that token, and insert it above.';
 $lang['help_password_reset'] = 'Require password to be renewed at next login';
 //$lang['help_password_token'] = 'The temporary password token sent to your address';
 $lang['help_raise_count'] = 'After this many failed attempts, a user is required to provide extra authentication. 0 disables this protection.';
