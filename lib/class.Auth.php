@@ -564,16 +564,17 @@ class Auth extends Session
 				}
 				return [TRUE, $sdata];
 			}
-			if ($sdata) {
-				$this->AddAttempt($sdata['token']); //TODO update token WHERE token=sdata[token]
-				$sdata['attempts']++;
-			} else {
+			if (!$sdata) {
 				$token = $this->MakeUserSession($uid, $token);
 				$sql = 'SELECT * FROM '.$this->pref.'module_auth_cache WHERE token=?';
 				$sdata = $this->db->GetRow($sql, [$token]);
 			}
 			$tries = ($fast) ? 0:$sdata['attempts'];
 			$res = $this->DoPasswordCheck($password, $userdata['privhash'], $tries);
+			if (!$res) {
+				$this->AddAttempt($sdata['token']); //TODO update token WHERE token=sdata[token]
+				$sdata['attempts']++;
+			}
 			return [$res, $sdata];
 		} else {
 			if ($sdata) {
@@ -1126,7 +1127,7 @@ class Auth extends Session
 	{
 		$uid = $this->GetUserID($oldlogin);
 		if (!$uid) {
-			return [FALSE, $this->mod->Lang('invalid_type', $this->mod->Lang('title_user'))];
+			return [FALSE, $this->mod->Lang('invalid_type', $this->mod->Lang('title_login'))];
 		}
 
 		$namers = [];
@@ -1232,7 +1233,7 @@ class Auth extends Session
 	{
 		$uid = $this->GetUserID($login);
 		if (!$uid) {
-			return [FALSE, $this->mod->Lang('invalid_type', $this->mod->Lang('title_user'))];
+			return [FALSE, $this->mod->Lang('invalid_type', $this->mod->Lang('title_login'))];
 		}
 
 		$sql = 'DELETE FROM '.$this->pref.'module_auth_users WHERE id=?';
