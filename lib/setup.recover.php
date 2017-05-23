@@ -50,15 +50,10 @@ EOS;
 	$elements1[] = $one;
 
 	$one = new \stdClass();
-	$one->prehtml = '<br />';
-//	$one->title = $mod->Lang('title_password_recover');
-	$one->extra = $mod->Lang('help_password_recover');
-	$elements2[] = $one;
-
-	$one = new \stdClass();
 	$one->title = $mod->Lang('title_password_token');
 //	$one->extra = $mod->Lang('help_password_token');
 	$one->input = $this->GetInputPasswd($id, 'passwd', 'passwd', $tabindex++, '', 12, 20);
+	$one->extra = $mod->Lang('help_password_recover');
 	$elements2[] = $one;
 	$one = new \stdClass();
 	$one->title = $mod->Lang('new_typed', $mod->Lang('password'));
