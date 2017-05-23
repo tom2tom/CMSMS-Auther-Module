@@ -88,33 +88,19 @@ EOS;
 	$elements2[] = $one;
 
  	$one = new \stdClass();
-	if($cdata['name_required']) {
-		$one->title = $mod->Lang('new_typed', $mod->Lang('name'));
-		$optname = 0;
-	} else {
-		$one->title = $mod->Lang('new_typed', $mod->Lang('name_opt'));
-		$optname = 1;
-	}
+	$one->title = $mod->Lang('new_typed', $mod->Lang('name'));
 	$one->input = $this->GetInputText($id, 'name', 'name', $tabindex++, '', 20, 32);
 	$elements2[] = $one;
 
 	if ($logtype == 1) {
 	 	$one = new \stdClass();
-		if ($cdata['address_required']) {
-			$one->title = $mod->Lang('new_typed', $mod->Lang('title_contact'));
-			$optcontact = 0;
-		} else {
-			$one->title = $mod->Lang('new_typed', $mod->Lang('contact_opt'));
-			$optcontact = 1;
-		}
+		$one->title = $mod->Lang('new_typed', $mod->Lang('title_contact'));
 		$one->input = $this->GetInputText($id, 'contact', 'contact', $tabindex++, '', 32, 96);
 		$one->extra = $mod->Lang('help_contact2');
 		if ($cdata['email_required']) {
 			$one->extra .= '<br />'.$mod->Lang('help_email_required');
 		}
 		$elements2[] = $one;
-	} else {
-		$optcontact = 1;
 	}
 
 	switch ($cdata['security_level']) {
@@ -316,11 +302,26 @@ EOS;
       case 202:
        $('#authelements #phase1,#phase2').css('display','none');
        details = JSON.parse(jqXHR.responseText);
-       ajaxresponse(details,'{$mod->Lang('completed')}',false);
+       ajaxresponse(details,'{$mod->Lang('title_completed')}',false);
+       var \$el = $('#authform');
+       \$el.prepend('<input type="hidden" name="{$id}success" value="'+details.success+'" />');
+       parms = {};
+       $('#authelements input[type!="password"]').each(function() {
+        var \$in = $(this),
+         n = \$in.attr('id');
+        parms[n] = \$in.val();
+       });
+       parms.loginnew = parms.login2;
+       delete parms.login2;
+       parms.password = 'RESTRICTED';
+       parms.passwordnew = 'RESTRICTED';
+       delete parms.recover;
+       parms.task = 'change';
+
+       var send = GibberAES.Base64.encode(JSON.stringify(parms));
+       \$el.prepend('<input type="hidden" name="{$id}authdata" value="'+send+'" />');
        setTimeout(function() {
-        var \$el = $('#authform');
         \$el.find(':input:not([type=hidden])').removeAttr('name');
-        \$el.prepend('<input type="hidden" name="{$id}success" value="'+details.success+'" />');
         \$el.trigger('submit');
         },1000);
        break;
