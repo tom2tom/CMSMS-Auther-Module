@@ -140,7 +140,7 @@ function transfers(\$inputs) {
   if (t == 'password') {
    v = \$el.val();
    if (v != '') {
-    n = \$el.attr('id'); //or this.id;
+    n = this.id;
     passes[n] = v;
     return;
    }
@@ -149,7 +149,7 @@ function transfers(\$inputs) {
   } else {
    v = \$el.val();
   }
-  n = \$el.attr('name'); //or this.name
+  n = this.name
   parms[n] = v;
  });
  v = JSON.stringify(passes);
@@ -162,6 +162,7 @@ function reports() {
   var n = this.id;
   parms[n] = $(this).val();
  });
+ return parms;
 }
 EOS;
 		break;
