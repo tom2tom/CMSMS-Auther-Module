@@ -7,13 +7,13 @@
 #----------------------------------------------------------------------
 
 if (0) {
-	$tplvars['intro'] = $mod->Lang('TODO');
+	$tplvars['intro'] = NULL; //$mod->Lang('TODO');
 }
 if (0) {
-	$tplvars['after'] = $mod->Lang('TODO');
+	$tplvars['after'] = NULL; //$mod->Lang('TODO');
 }
 
-switch ($cdata['security_level']) {
+switch ($lvl) {
  case self::NOBOT:
 	$one = new \stdClass();
 	$one->title = $mod->Lang('noauth');
@@ -35,6 +35,8 @@ EOS;
  case self::LOSEC:
  case self::MIDSEC:
  case self::CHALLENGED:
+	$hidden[] = $mod->CreateInputHidden($id, 'phase', 'who');
+
 	$one = new \stdClass();
 	if ($cdata['email_login']) {
 		$one->title = $mod->Lang('title_email');
@@ -62,7 +64,7 @@ EOS;
 	$one->input = $this->GetInputPasswd($id, 'passwd3', 'passwd3', $tabindex++, '', 20, 72);
 	$elements2[] = $one;
 
-	switch ($cdata['security_level']) {
+	switch ($lvl) {
 	 case self::LOSEC:
 		//TODO filter parms as appropriate
 		$jsfuncs[] = <<<EOS
@@ -97,32 +99,44 @@ EOS;
 		//function returns js object
 		$jsfuncs[] = <<<EOS
 function transfers(\$inputs) {
- var sent = JSON.stringify({
-  passwd: $('#passwd').val(),
-  passwd2: $('#passwd2').val()
- }),
-  far = "$far",
-  iv = GibberAES.a2s(GibberAES.randArr(16));
- var parms = {
-  {$id}jsworks: 'TRUE',
-  {$id}sent: GibberAES.encString(far+sent,far,iv)
- };
+ var far = "$far",
+  iv = GibberAES.a2s(GibberAES.randArr(16)),
+  parms = {
+   {$id}jsworks: 'TRUE',
+   {$id}sent: ''
+  },
+  passes = {},
+  v;
  $('#{$id}nearn').val(GibberAES.Base64.encode(iv));
  $('#authcontainer input:hidden').add(\$inputs).each(function() {
   var \$el = $(this),
    t = \$el.attr('type'),
-   n, v;
+   n;
   if (t == 'password') {
-   return;
+   v = \$el.val();
+   if (v != '') {
+    n = \$el.attr('id'); //or this.id;
+    passes[n] = v;
+    return;
+   }
   } else if (t == 'checkbox' && !\$el.is(':checked')) {
    v = '0';
   } else {
    v = \$el.val();
   }
-  n = \$el.attr('name');
+  n = \$el.attr('name'); //or this.name
   parms[n] = v;
  });
+ v = JSON.stringify(passes);
+ parms.{$id}sent = GibberAES.encString(far+v,far,iv);
  return parms;
+}
+function reports() {
+ var parms = {};
+ $('#authelements input[type!="password"]').each(function() {
+  var n = this.id;
+  parms[n] = $(this).val();
+ });
 }
 EOS;
 		break;
@@ -135,6 +149,9 @@ EOS;
 	$jsincs[] = <<<EOS
 <script type="text/javascript" src="{$baseurl}/lib/js/mailcheck.min.js"></script>
 <script type="text/javascript" src="{$baseurl}/lib/js/levenshtein.min.js"></script>
+EOS;
+	$jsfuncs[] = <<<EOS
+var phase2 = false;
 EOS;
 
 	$pref = $mod->GetPreference('email_topdomains');
@@ -200,12 +217,18 @@ EOS;
       type = '{$mod->Lang('current_typed',$mod->Lang('password'))}';
       break;
      case 'passwd2':
+      if (!phase2) {
+       return;
+      }
       type = '{$mod->Lang('new_typed',$mod->Lang('password'))}';
       break;
      case 'passwd3':
+      if (!phase2) {
+       return;
+      }
       type = '{$mod->Lang('title_passagain')}';
       break;
-     case 'captcha':
+     default:
       return;
     }
     var msg = '{$mod->Lang('missing_type','%s')}'.replace('%s',type);
@@ -213,14 +236,33 @@ EOS;
     valid = false;
     return false;
    } else {
-    if (id == 'login') {
-     if (!{$logtype}) {
-      if (val.search(/^.+@.+\..+$/) == -1) {
-       doerror(\$el,'{$mod->Lang('invalid_type',$mod->Lang('title_email'))}');
-      valid = false;
-      return false;
+    switch (id) {
+     case 'login':
+      if ($logtype == 0) {
+       if (val.search(/^.+@.+\..+$/) == -1) {
+        doerror(\$el,'{$mod->Lang('invalid_type',$mod->Lang('title_email'))}');
+        valid = false;
+        return false;
+       }
       }
-     }
+      break;
+     case 'passwd2':
+      var \$el2 = \$ins.filter('#passwd3');
+      if (\$el2.val() !== val) {
+       doerror(\$el2,'{$mod->Lang('newpassword_nomatch')}');
+       valid = false;
+       return false;
+      }
+      break;
+     case 'passwd3':
+      var val2 = \$ins.filter('#passwd2').val();
+      if (val2 !== val) {
+       doerror(\$el,'{$mod->Lang('newpassword_nomatch')}');
+       valid = false;
+       return false;
+      }
+     default:
+      break;
     }
    }
   });
@@ -241,25 +283,34 @@ EOS;
        $('#authelements #phase1,#phase2').css('display','none');
        details = JSON.parse(jqXHR.responseText);
        ajaxresponse(details,'{$mod->Lang('title_completed')}',false);
+       var \$el = $('#authform');
+       \$el.find(':input:not([type=hidden])').removeAttr('name');
+       \$el.prepend('<input type="hidden" name="{$id}success" value="'+details.success+'" />');
+       parms = reports();
+       parms.password = 'RECORDED';
+       parms.passwordnew = 'RECORDED';
+       parms.task = 'reset';
+       parms.success = 1;
+       var send = GibberAES.Base64.encode(JSON.stringify(parms));
+       \$el.prepend('<input type="hidden" name="{$id}authdata" value="'+send+'" />');
        setTimeout(function() {
-        var \$el = $('#authform');
-        \$el.find(':input:not([type=hidden])').removeAttr('name');
-        \$el.prepend('<input type="hidden" name="{$id}success" value="'+details.success+'" />');
         \$el.trigger('submit');
        },1000);
        break;
       case 200:
        clearresponse();
-//       document.body.style.cursor = 'auto';
+//     document.body.style.cursor = 'auto';
        $(btn).prop('disabled',false);
        $('#authelements #phase2').css('display','block');
-       $('#passwd2')[0].focus();
+       \$el = $('#authelements #passwd2');
+       \$el.val('');
+       \$el[0].focus();
        $('#{$id}phase').val('what');
+       phase2 = true;
        break;
       default:
        break;
      }
-     $(btn).prop('disabled',false);
     },
     error: function(jqXHR,status,errmsg) {
      details = JSON.parse(jqXHR.responseText);
@@ -269,9 +320,9 @@ EOS;
     }
    });
   } else {
-    setTimeout(function() {
-     $(btn).prop('disabled',false);
-    },10);
+   setTimeout(function() {
+    $(btn).prop('disabled',false);
+   },10);
   }
   return false;
  });

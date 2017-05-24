@@ -7,13 +7,13 @@
 #----------------------------------------------------------------------
 
 if (0) {
-	$tplvars['intro'] = $mod->Lang('TODO');
+	$tplvars['intro'] = NULL; //$mod->Lang('TODO');
 }
 if (0) {
-	$tplvars['after'] = $mod->Lang('TODO');
+	$tplvars['after'] = NULL; //$mod->Lang('TODO');
 }
 
-switch ($cdata['security_level']) {
+switch ($lvl) {
  case self::NOBOT:
 	$one = new \stdClass();
 	$one->title = $mod->Lang('noauth');
@@ -66,7 +66,7 @@ EOS;
 	$one->input = $this->GetInputPasswd($id, 'passwd3', 'passwd3', $tabindex++, '', 20, 72);
 	$elements2[] = $one;
 
-	switch ($cdata['security_level']) {
+	switch ($lvl) {
 	 case self::LOSEC:
 		//TODO filter parms as appropriate
 		$jsfuncs[] = <<<EOS
@@ -104,7 +104,7 @@ function transfers(\$inputs) {
  var far = "$far",
   iv = GibberAES.a2s(GibberAES.randArr(16)),
   parms = {
-  {$id}jsworks: 'TRUE',
+   {$id}jsworks: 'TRUE',
    {$id}sent: ''
   },
   passes = {},
@@ -119,7 +119,7 @@ function transfers(\$inputs) {
    if (v != '') {
     n = \$el.attr('id'); //or this.id;
     passes[n] = v;
-   return;
+    return;
    }
   } else if (t == 'checkbox' && !\$el.is(':checked')) {
    v = '0';
@@ -132,6 +132,13 @@ function transfers(\$inputs) {
  v = JSON.stringify(passes);
  parms.{$id}sent = GibberAES.encString(far+v,far,iv);
  return parms;
+}
+function reports() {
+ var parms = {};
+ $('#authelements input[type!="password"]').each(function() {
+  var n = this.id;
+  parms[n] = $(this).val();
+ });
 }
 EOS;
 		break;
@@ -281,10 +288,17 @@ EOS;
        $('#authelements #phase1,#phase2').css('display','none');
        details = JSON.parse(jqXHR.responseText);
        ajaxresponse(details,'{$mod->Lang('title_completed')}',false);
+       var \$el = $('#authform');
+       \$el.find(':input:not([type=hidden])').removeAttr('name');
+       \$el.prepend('<input type="hidden" name="{$id}success" value="'+details.success+'" />');
+       parms = reports();
+       parms.password = 'VALIDATED';
+       parms.passwordnew = 'RECORDED';
+       parms.task = 'recover';
+       parms.success = 1;
+       var send = GibberAES.Base64.encode(JSON.stringify(parms));
+       \$el.prepend('<input type="hidden" name="{$id}authdata" value="'+send+'" />');
        setTimeout(function() {
-        var \$el = $('#authform');
-        \$el.find(':input:not([type=hidden])').removeAttr('name');
-        \$el.prepend('<input type="hidden" name="{$id}success" value="'+details.success+'" />');
         \$el.trigger('submit');
        },1000);
        break;
@@ -305,15 +319,15 @@ EOS;
     },
     error: function(jqXHR,status,errmsg) {
      details = JSON.parse(jqXHR.responseText);
-     ajaxresponse (details,errmsg,true);
+     ajaxresponse(details,errmsg,true);
      $(btn).prop('disabled',false);
 //   document.body.style.cursor = 'auto';
     }
    });
   } else {
-    setTimeout(function() {
-     $(btn).prop('disabled',false);
-    },10);
+   setTimeout(function() {
+    $(btn).prop('disabled',false);
+   },10);
   }
   return false;
  });

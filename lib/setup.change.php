@@ -7,13 +7,13 @@
 #----------------------------------------------------------------------
 
 if (0) {
-	$tplvars['intro'] = $mod->Lang('TODO');
+	$tplvars['intro'] = NULL; //$mod->Lang('TODO');
 }
 if (0) {
-	$tplvars['after'] = $mod->Lang('TODO');
+	$tplvars['after'] = NULL; //$mod->Lang('TODO');
 }
 
-switch ($cdata['security_level']) {
+switch ($lvl) {
  case self::NOBOT:
 	$one = new \stdClass();
 	$one->title = $mod->Lang('noauth');
@@ -103,7 +103,7 @@ EOS;
 		$elements2[] = $one;
 	}
 
-	switch ($cdata['security_level']) {
+	switch ($lvl) {
 	 case self::LOSEC:
 		//TODO filter parms as appropriate
 		$jsfuncs[] = <<<EOS
@@ -169,6 +169,13 @@ function transfers(\$inputs) {
  v = JSON.stringify(passes);
  parms.{$id}sent = GibberAES.encString(far+v,far,iv);
  return parms;
+}
+function reports() {
+ var parms = {};
+ $('#authelements input[type!="password"]').each(function() {
+  var n = this.id;
+  parms[n] = $(this).val();
+ });
 }
 EOS;
 		break;
@@ -304,26 +311,21 @@ EOS;
        details = JSON.parse(jqXHR.responseText);
        ajaxresponse(details,'{$mod->Lang('title_completed')}',false);
        var \$el = $('#authform');
+       \$el.find(':input:not([type=hidden])').removeAttr('name');
        \$el.prepend('<input type="hidden" name="{$id}success" value="'+details.success+'" />');
-       parms = {};
-       $('#authelements input[type!="password"]').each(function() {
-        var \$in = $(this),
-         n = \$in.attr('id');
-        parms[n] = \$in.val();
-       });
+       parms = reports();
        parms.loginnew = parms.login2;
        delete parms.login2;
-       parms.password = 'RESTRICTED';
-       parms.passwordnew = 'RESTRICTED';
+       parms.password = 'VALIDATED';
+       parms.passwordnew = 'RECORDED';
        delete parms.recover;
        parms.task = 'change';
-
+       parms.success = 1;
        var send = GibberAES.Base64.encode(JSON.stringify(parms));
        \$el.prepend('<input type="hidden" name="{$id}authdata" value="'+send+'" />');
        setTimeout(function() {
-        \$el.find(':input:not([type=hidden])').removeAttr('name');
         \$el.trigger('submit');
-        },1000);
+       },1000);
        break;
       case 200:
        clearresponse();
@@ -337,7 +339,7 @@ EOS;
        break;
      }
     },
-    error: function(jqXHR, status, errmsg) {
+    error: function(jqXHR,status,errmsg) {
      details = JSON.parse(jqXHR.responseText);
      ajaxresponse(details,errmsg,true);
      $(btn).prop('disabled',false);
@@ -345,9 +347,9 @@ EOS;
     }
    });
   } else {
-    setTimeout(function() {
-     $(btn).prop('disabled',false);
-    },10);
+   setTimeout(function() {
+    $(btn).prop('disabled',false);
+   },10);
   }
   return false;
  });

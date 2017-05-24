@@ -7,10 +7,10 @@
 #----------------------------------------------------------------------
 
 if (0) {
-	$tplvars['intro'] = $mod->Lang('TODO');
+	$tplvars['intro'] = NULL; //$mod->Lang('TODO');
 }
 if (0) {
-	$tplvars['after'] = $mod->Lang('TODO');
+	$tplvars['after'] = NULL; //$mod->Lang('TODO');
 }
 
 /*
@@ -28,7 +28,7 @@ see https://developers.google.com/recaptcha/docs/display
  requires handler function to be defined before the include
  render parameters @ https://developers.google.com/recaptcha/docs/display#render_param
 */
-switch ($cdata['security_level']) {
+switch ($lvl) {
  case self::NOBOT:
 	$pubkey = $mod->GetPreference('recaptcha_key');
 	if ($pubkey) {
@@ -114,7 +114,7 @@ EOS;
 	}
 	$elements1[] = $one;
 
-	switch ($cdata['security_level']) {
+	switch ($lvl) {
 	 case self::LOSEC:
 		//TODO filter parms as appropriate
 		$jsfuncs[] = <<<EOS
@@ -133,7 +133,7 @@ EOS;
 		$far = $this->UniqueToken(32);
 		$cache['far'] = $far;
 		$far = strtr($far, ['\\'=>'\\\\', '"'=>'\"']);
-		$hidden[] = $mod->CreateInputHidden($id, 'nearn', '');
+		$hidden[] = $mod->CreateInputHidden($id,'nearn','');
 		$one = new \stdClass();
 		$one->title = $mod->Lang('title_captcha');
 		$one->subtitle = $mod->Lang('title_captcha2');
@@ -149,31 +149,44 @@ EOS;
 		//function returns js object
 		$jsfuncs[] = <<<EOS
 function transfers(\$inputs) {
- var sent = JSON.stringify({
-  passwd: $('#passwd').val()
- }),
-  far = "$far",
-  iv = GibberAES.a2s(GibberAES.randArr(16));
- var parms = {
-  {$id}jsworks: 'TRUE',
-  {$id}sent: GibberAES.encString(far+sent,far,iv)
- };
+ var far = "$far",
+  iv = GibberAES.a2s(GibberAES.randArr(16)),
+  parms = {
+   {$id}jsworks: 'TRUE',
+   {$id}sent: ''
+  },
+  passes = {},
+  v;
  $('#{$id}nearn').val(GibberAES.Base64.encode(iv));
  $('#authcontainer input:hidden').add(\$inputs).each(function() {
   var \$el = $(this),
    t = \$el.attr('type'),
-   n, v;
+   n;
   if (t == 'password') {
-   return;
+   v = \$el.val();
+   if (v != '') {
+    n = \$el.attr('id'); //or this.id;
+    passes[n] = v;
+    return;
+   }
   } else if (t == 'checkbox' && !\$el.is(':checked')) {
    v = '0';
   } else {
    v = \$el.val();
   }
-  n = \$el.attr('name');
+  n = \$el.attr('name'); //or this.name
   parms[n] = v;
  });
+ v = JSON.stringify(passes);
+ parms.{$id}sent = GibberAES.encString(far+v,far,iv);
  return parms;
+}
+function reports() {
+ var parms = {};
+ $('#authelements input[type!="password"]').each(function() {
+  var n = this.id;
+  parms[n] = $(this).val();
+ });
 }
 EOS;
 		break;
@@ -252,7 +265,7 @@ EOS;
       if (\$cb.length > 0 && \$cb.val() > 0) { return; }
       type = '{$mod->Lang('password')}';
       break;
-     case 'captcha':
+     default:
       return;
     }
     var msg = '{$mod->Lang('missing_type','%s')}'.replace('%s',type);
@@ -261,7 +274,7 @@ EOS;
     return false;
    } else {
     if (id == 'login') {
-     if (!{$logtype}) {
+     if ($logtype == 0) {
       if (val.search(/^.+@.+\..+$/) == -1) {
        doerror(\$el,'{$mod->Lang('invalid_type',$mod->Lang('title_email'))}');
        valid = false;
@@ -288,26 +301,27 @@ EOS;
        $('#authelements #phase1').css('display','none');
        details = JSON.parse(jqXHR.responseText);
        ajaxresponse(details,'{$mod->Lang('title_completed')}',false);
+       var \$el = $('#authform');
+       \$el.find(':input:not([type=hidden])').removeAttr('name');
+       \$el.prepend('<input type="hidden" name="{$id}success" value="'+details.success+'" />');
+       parms = reports();
+       parms.password = 'VALIDATED';
+       parms.task = 'login';
+       parms.success = 1;
+       var send = GibberAES.Base64.encode(JSON.stringify(parms));
+       \$el.prepend('<input type="hidden" name="{$id}authdata" value="'+send+'" />');
        setTimeout(function() {
-        var \$el = $('#authform');
-        \$el.find(':input:not([type=hidden])').removeAttr('name');
-        \$el.prepend('<input type="hidden" name="{$id}success" value="'+details.success+'" />');
         \$el.trigger('submit');
        },1000);
        break;
       case 200:
        clearresponse();
-//       document.body.style.cursor = 'auto';
+//     document.body.style.cursor = 'auto';
        $(btn).prop('disabled',false);
-//       $('#authelements #phase2').css('display','block');
-//       $('#login2')[0].focus();
-//       $('#{$id}phase').val('what');
-//TODO more
        break;
       default:
        break;
      }
-     $(btn).prop('disabled',false);
     },
     error: function(jqXHR,status,errmsg) {
      details = JSON.parse(jqXHR.responseText);
@@ -317,9 +331,9 @@ EOS;
     }
    });
   } else {
-    setTimeout(function() {
-     $(btn).prop('disabled',false);
-    },10);
+   setTimeout(function() {
+    $(btn).prop('disabled',false);
+   },10);
   }
   return false;
  });
