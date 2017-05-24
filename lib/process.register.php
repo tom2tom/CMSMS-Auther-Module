@@ -73,13 +73,13 @@ switch ($lvl) {
 				$focus = 'login';
 			}
 		} else {
-			$t = ($cdata['email_login']) ? 'title_email':'title_identifier';
+			$t = ($cdata['email_login']) ? 'title_email' : 'title_identifier';
 			$msgs[] = $mod->Lang('missing_type', $mod->Lang($t));
 			$focus = 'login';
 		}
 	} else {
 		$login = FALSE;
-		$t = ($cdata['email_login']) ? 'title_email':'title_identifier';
+		$t = ($cdata['email_login']) ? 'title_email' : 'title_identifier';
 		$msgs[] = $mod->Lang('invalid_type', $mod->Lang($t));
 		$focus = 'login';
 	}
@@ -95,16 +95,22 @@ switch ($lvl) {
 				}
 			} else {
 				$msgs[] = $res[1];
-				if (!$focus) { $focus = 'passwd'; }
+				if (!$focus) {
+					$focus = 'passwd';
+				}
 			}
 		} else {
 			$msgs[] = $mod->Lang('missing_type', $mod->Lang('password'));
-			if (!$focus) { $focus = 'passwd'; }
+			if (!$focus) {
+				$focus = 'passwd';
+			}
 		}
 	} else {
 		$pw = FALSE;
 		$msgs[] = $mod->Lang('invalid_type', $mod->Lang('password'));
-		if (!$focus) { $focus = 'passwd'; }
+		if (!$focus) {
+			$focus = 'passwd';
+		}
 	}
 
 	if (!$jax) { //i.e. passwords not matched in browser
@@ -113,11 +119,15 @@ switch ($lvl) {
 			if ($pw !== trim($t)) {
 				unset($flds['privhash']);
 				$msgs[] = $mod->Lang('password_nomatch');
-				if (!$focus) { $focus = 'passwd2'; }
+				if (!$focus) {
+					$focus = 'passwd2';
+				}
 			}
 		} else {
 			$msgs[] = $mod->Lang('invalid_type', $mod->Lang('password'));
-			if (!$focus) { $focus = 'passwd2'; }
+			if (!$focus) {
+				$focus = 'passwd2';
+			}
 		}
 	}
 
@@ -135,17 +145,23 @@ switch ($lvl) {
 				$flds['name'] = $t; //crypt later
 			} else {
 				$msgs[] = $res[1];
-				if (!$focus) { $focus = 'name'; }
+				if (!$focus) {
+					$focus = 'name';
+				}
 			}
 		} elseif ($cdata['name_required']) {
 			$msgs[] = $mod->Lang('missing_type', $mod->Lang('name'));
-			if (!$focus) { $focus = 'name'; }
+			if (!$focus) {
+				$focus = 'name';
+			}
 		} else {
 			$flds['name'] = NULL;
 		}
 	} else {
 		$msgs[] = $mod->Lang('invalid_type', $mod->Lang('name'));
-		if (!$focus) { $focus = 'name'; }
+		if (!$focus) {
+			$focus = 'name';
+		}
 	}
 
 	$t = $postvars[$id.'contact'];
@@ -157,24 +173,32 @@ switch ($lvl) {
 				$flds['address'] = $contact; //crypt if/when needed
 			} else {
 				$msgs[] = $res[1];
-				if (!$focus) { $focus = 'contact'; }
+				if (!$focus) {
+					$focus = 'contact';
+				}
 			}
 		} elseif ($cdata['address_required']) {
 			$msgs[] = $mod->Lang('missing_type', $mod->Lang('title_contact'));
-			if (!$focus) { $focus = 'contact'; }
+			if (!$focus) {
+				$focus = 'contact';
+			}
 		} else {
 			$flds['address'] = NULL;
 		}
 	} else {
 		$contact = FALSE;
 		$msgs[] = $mod->Lang('invalid_type', $mod->Lang('title_contact'));
-		if (!$focus) { $focus = 'contact'; }
+		if (!$focus) {
+			$focus = 'contact';
+		}
 	}
 
 	if ($cdata['email_required']) {
 		if (!(preg_match(Auth::PATNEMAIL, $login) || preg_match(Auth::PATNEMAIL, $contact))) {
 			$msgs[] = $mod->Lang('want_email');
-			if (!$focus) { $focus = 'contact'; }
+			if (!$focus) {
+				$focus = 'contact';
+			}
 		}
 	}
 
@@ -186,14 +210,20 @@ switch ($lvl) {
 			if ($vfuncs->FilteredPassword($t)) {
 				if (!$t) {
 					$msgs[] = $mod->Lang('missing_type', 'CAPTCHA');
-					if (!$focus) { $focus = 'captcha'; }
+					if (!$focus) {
+						$focus = 'captcha';
+					}
 				} elseif ($t != $params['captcha']) {
 					$msgs[] = $mod->Lang('err_captcha');
-					if (!$focus) { $focus = 'captcha'; }
+					if (!$focus) {
+						$focus = 'captcha';
+					}
 				}
 			} else {
 				$msgs[] = $mod->Lang('invalid_type', 'CAPTCHA');
-				if (!$focus) { $focus = 'captcha'; }
+				if (!$focus) {
+					$focus = 'captcha';
+				}
 			}
 		}
 		break;

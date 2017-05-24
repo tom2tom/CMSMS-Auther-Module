@@ -35,7 +35,7 @@ switch ($lvl) {
 		'passwd', //present if !$jax, or no token provided
 		'passwd2', //ditto for new password
 		'passwd3', //ditto
- 		'captcha'
+		'captcha'
 	] as $t) {
 		$key = $id.$t;
 		$postvars[$key] = isset($_POST[$key]) ? $_POST[$key] : NULL;
@@ -63,9 +63,10 @@ switch ($lvl) {
 				$n = $cdata['ban_count'];
 				$sdata = $res[1];
 				if ($sdata['attempts'] >= $n) {
-//TODO status 'blocked'
+					//TODO status 'blocked'
 					$vfuncs->SetForced(1, FALSE, $login, $cdata['id']);
-					$forcereset = TRUE;
+					$forcereset = TRUE; //CHECKME sensible during this (maybe voluntary) recover?
+					//TODO what is reset-token $sdata['token']? any other message?
 					$msgs[] = $mod->Lang('reregister2');
 				} else {
 					$n = $cdata['raise_count'];
@@ -78,13 +79,13 @@ switch ($lvl) {
 				}
 			}
 		} else {
-			$t = ($cdata['email_login']) ? 'title_email':'title_identifier';
+			$t = ($cdata['email_login']) ? 'title_email' : 'title_identifier';
 			$msgs[] = $mod->Lang('missing_type', $mod->Lang($t));
 			$focus = 'login';
 		}
 	} else {
 		$login = FALSE;
-		$t = ($cdata['email_login']) ? 'title_email':'title_identifier';
+		$t = ($cdata['email_login']) ? 'title_email' : 'title_identifier';
 		$msgs[] = $mod->Lang('invalid_type', $mod->Lang($t));
 		$focus = 'login';
 	}
@@ -95,7 +96,7 @@ switch ($lvl) {
 
 	if ($sdata == FALSE) {
 		$sdata = $TODO;
-$this->Crash();
+		$this->Crash();
 	}
 	$t = ($jax) ? $sent['passwd'] : $postvars[$id.'passwd'];
 	if ($vfuncs->FilteredPassword($t)) {
@@ -108,7 +109,9 @@ $this->Crash();
 	} else {
 		$pw = FALSE;
 		$msgs[] = $mod->Lang('invalid_type', $mod->Lang('password'));
-		if (!$focus) { $focus = 'passwd'; }
+		if (!$focus) {
+			$focus = 'passwd';
+		}
 	}
 
 	$t = ($jax) ? $sent['passwd2'] : $postvars[$id.'passwd2'];
@@ -121,12 +124,16 @@ $this->Crash();
 			}
 		} else {
 			$msgs[] = $res[1];
-			if (!$focus) { $focus = 'passwd2'; }
+			if (!$focus) {
+				$focus = 'passwd2';
+			}
 		}
 	} else {
 		$pw2 = FALSE;
 		$msgs[] = $mod->Lang('invalid_type', $mod->Lang('password'));
-		if (!$focus) { $focus = 'passwd2'; }
+		if (!$focus) {
+			$focus = 'passwd2';
+		}
 	}
 
 	if (!$jax) { //i.e. passwords not matched in browser
@@ -135,11 +142,15 @@ $this->Crash();
 			if ($pw2 !== trim($t)) {
 				unset($flds['privhash']);
 				$msgs[] = $mod->Lang('newpassword_nomatch');
-				if (!$focus) { $focus = 'passwd2'; }
+				if (!$focus) {
+					$focus = 'passwd2';
+				}
 			}
 		} else {
 			$msgs[] = $mod->Lang('invalid_type', $mod->Lang('password'));
-			if (!$focus) { $focus = 'passwd3'; }
+			if (!$focus) {
+				$focus = 'passwd3';
+			}
 		}
 	}
 
@@ -151,14 +162,20 @@ $this->Crash();
 			if ($vfuncs->FilteredPassword($t)) {
 				if (!$t) {
 					$msgs[] = $mod->Lang('missing_type', 'CAPTCHA');
-					if (!$focus) { $focus = 'captcha'; }
+					if (!$focus) {
+						$focus = 'captcha';
+					}
 				} elseif ($t != $params['captcha']) {
 					$msgs[] = $mod->Lang('err_captcha');
-					if (!$focus) { $focus = 'captcha'; }
+					if (!$focus) {
+						$focus = 'captcha';
+					}
 				}
 			} else {
 				$msgs[] = $mod->Lang('invalid_type', 'CAPTCHA');
-				if (!$focus) { $focus = 'captcha'; }
+				if (!$focus) {
+					$focus = 'captcha';
+				}
 			}
 		}
 		break;
@@ -183,7 +200,7 @@ if ($msgs || $fake) {
 			$res = $mfuncs->ChallengeMessage($sendto, 'recover', $pw);
 			if ($res[0]) {
 				$hash = password_hash($pw, PASSWORD_DEFAULT);
-				$data = json_encode(['temptoken'=>$hash]);
+				$data = json_encode(['temptoken' => $hash]);
 				$sql = 'UPDATE '.$pref.'module_auth_cache SET data=? WHERE token=?';
 				$db->Execute($sql, [$data, $token]);
 			} else {
@@ -193,7 +210,7 @@ if ($msgs || $fake) {
 			$msgs[] = $mod->Lang('not_contactable');
 		}
 		if (!$msgs) {
-			$t = ['focus'=>'passwd', 'message'=>$mod->Lang('temp_sent')];
+			$t = ['focus' => 'passwd', 'message' => $mod->Lang('temp_sent')];
 			if ($jax) {
 				header('HTTP/1.1 200 OK');
 				header('Content-Type: application/json; charset=UTF-8');
@@ -204,7 +221,7 @@ if ($msgs || $fake) {
 			}
 		}
 	} else {
-		$t = ['focus'=>'passwd', 'html'=>$pw];
+		$t = ['focus' => 'passwd', 'html' => $pw];
 		if ($jax) {
 			header('HTTP/1.1 200 OK');
 			header('Content-Type: application/json; charset=UTF-8');
@@ -226,8 +243,8 @@ if ($msgs || $fake) {
 		$uid = $afuncs->GetUserID($login);
 		$res = $afuncs->ChangePasswordReal($uid, $pw2);
 		if ($res[0]) {
-//TODO CHECK clear cached session ? what if login duration ?
-//		$sql = 'DELETE FROM '.$pref.'module_auth_cache WHERE token=?';
+		//TODO CHECK clear cached session ? what if login duration ?
+//			$sql = 'DELETE FROM '.$pref.'module_auth_cache WHERE token=?';
 			$sql = 'UPDATE '.$pref.'module_auth_cache SET attempts=0,data=NULL WHERE token=?';
 			$db->Execute($sql, [$token]);
 //			$afuncs->ResetAttempts();

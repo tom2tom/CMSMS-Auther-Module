@@ -57,13 +57,13 @@ switch ($lvl) {
 	if ($vfuncs->FilteredString($t)) {
 		$login = trim($t);
 		if (!$login) {
-			$t = ($cdata['email_login']) ? 'title_email':'title_identifier';
+			$t = ($cdata['email_login']) ? 'title_email' : 'title_identifier';
 			$msgs[] = $mod->Lang('missing_type', $mod->Lang($t));
 			$focus = 'login';
 		}
 	} else {
 		$login = FALSE;
-		$t = ($cdata['email_login']) ? 'title_email':'title_identifier';
+		$t = ($cdata['email_login']) ? 'title_email' : 'title_identifier';
 		$msgs[] = $mod->Lang('invalid_type', $mod->Lang($t));
 		$focus = 'login';
 	}
@@ -73,13 +73,16 @@ switch ($lvl) {
 		$pw = trim($t);
 		if (!$pw) {
 			$msgs[] = $mod->Lang('missing_type', $mod->Lang('password'));
-			if (!$focus) { $focus = 'passwd'; }
+			if (!$focus) {
+				$focus = 'passwd';
+			}
 		} elseif ($login) { //ok, already fail if no login
 			$res = $afuncs->IsRegistered($login, $pw, TRUE, FALSE, $params['token']);
 			if ($res[0]) {
 				$fake = FALSE;
 				if ($vfuncs->IsForced(FALSE, $login, $cdata['id'])) {
 					$forcereset = TRUE;
+					//TODO what is reset-token $sdata['token']? any message?
 					break;
 				}
 			} else {
@@ -87,9 +90,10 @@ switch ($lvl) {
 				$n = $cdata['ban_count'];
 				$sdata = $res[1];
 				if ($sdata['attempts'] >= $n) {
-	//TODO status 'blocked'
+					//TODO status 'blocked'
 					$vfuncs->SetForced(1, FALSE, $login, $cdata['id']);
 					$forcereset = TRUE;
+					//TODO what is reset-token $sdata['token']? any message?
 					$msgs[] = $mod->Lang('reregister2');
 				} else {
 					$n = $cdata['raise_count'];
@@ -104,7 +108,9 @@ switch ($lvl) {
 		}
 	} else {
 		$msgs[] = $mod->Lang('invalid_type', $mod->Lang('password'));
-		if (!$focus) { $focus = 'passwd'; }
+		if (!$focus) {
+			$focus = 'passwd';
+		}
 	}
 
 	if ($phase1) {
@@ -137,17 +143,23 @@ switch ($lvl) {
 						} else {
 							$msgs[] = $mod->Lang('retry'); //NOT the default 'invalid' message!
 						}
-						if (!$focus) { $focus = 'login2'; }
+						if (!$focus) {
+							$focus = 'login2';
+						}
 					}
 				} else {
 					$msgs[] = $res[1];
-					if (!$focus) { $focus = 'login2'; }
+					if (!$focus) {
+						$focus = 'login2';
+					}
 				}
 			}
 		} else {
-			$t = ($cdata['email_login']) ? 'title_email':'title_identifier'; //TODO 'replacement' into message
+			$t = ($cdata['email_login']) ? 'title_email' : 'title_identifier'; //TODO 'replacement' into message
 			$msgs[] = $mod->Lang('invalid_type', $mod->Lang($t));
-			if (!$focus) { $focus = 'login2'; }
+			if (!$focus) {
+				$focus = 'login2';
+			}
 		}
 //	} else { //no replacement login
 	}
@@ -164,12 +176,16 @@ switch ($lvl) {
 				$flds['privhash'] = $t; //crypt later
 			} else {
 				$msgs[] = $res[1];
-				if (!$focus) { $focus = 'passwd2'; }
+				if (!$focus) {
+					$focus = 'passwd2';
+				}
 			}
 		} else {
 			//invalid
 			$msgs[] = $mod->Lang('invalid_type', $mod->Lang('password')); //TODO 'replacement' into message
-			if (!$focus) { $focus = 'passwd2'; }
+			if (!$focus) {
+				$focus = 'passwd2';
+			}
 		}
 //	} else { //no replacement password
 	}
@@ -200,11 +216,15 @@ switch ($lvl) {
 				$flds['name'] = $t; //crypt later
 			} else {
 				$msgs[] = $res[1];
-				if (!$focus) { $focus = 'name'; }
+				if (!$focus) {
+					$focus = 'name';
+				}
 			}
 		} else {
 			$msgs[] = $mod->Lang('invalid_type', $mod->Lang('name'));
-			if (!$focus) { $focus = 'name'; }
+			if (!$focus) {
+				$focus = 'name';
+			}
 		}
 //	} else { //no replacement name
 	}
@@ -219,18 +239,22 @@ switch ($lvl) {
 					$flds['address'] = $t; //crypt later
 				} else {
 					$msgs[] = $res[1];
-					if (!$focus) { $focus = 'contact'; }
+					if (!$focus) {
+						$focus = 'contact';
+					}
 				}
 			}
 		} else {
 			$msgs[] = $mod->Lang('invalid_type', $mod->Lang('title_contact'));
-			if (!$focus) { $focus = 'contact'; }
+			if (!$focus) {
+				$focus = 'contact';
+			}
 		}
 //	} else { //no replacment contact
 	}
 
 	if ($cdata['email_required']) {
-/*TODO check current & new
+		/*TODO check current & new
 		if (!(preg_match(Auth::PATNEMAIL, $login) || preg_match(Auth::PATNEMAIL, $contact))) {
 			$msgs[] = $mod->Lang('want_email');
 			if (!$focus) { $focus = 'contact'; }
@@ -246,14 +270,20 @@ switch ($lvl) {
 			if ($vfuncs->FilteredPassword($t)) {
 				if (!$t) {
 					$msgs[] = $mod->Lang('missing_type', 'CAPTCHA');
-					if (!$focus) { $focus = 'captcha'; }
+					if (!$focus) {
+						$focus = 'captcha';
+					}
 				} elseif ($t != $params['captcha']) {
 					$msgs[] = $mod->Lang('err_captcha');
-					if (!$focus) { $focus = 'captcha'; }
+					if (!$focus) {
+						$focus = 'captcha';
+					}
 				}
 			} else {
 				$msgs[] = $mod->Lang('invalid_type', 'CAPTCHA');
-				if (!$focus) { $focus = 'captcha'; }
+				if (!$focus) {
+					$focus = 'captcha';
+				}
 			}
 		}
 		break;
@@ -279,7 +309,7 @@ if ($msgs || $fake) {
 			$res = $mfuncs->TellUser($sendto, 'change', $pw);
 			if ($res[0]) {
 				$hash = password_hash($pw, PASSWORD_DEFAULT);
-				$data = json_encode(['temptoken'=>$hash]);
+				$data = json_encode(['temptoken' => $hash]);
 				$sql = 'UPDATE '.$pref.'module_auth_cache SET data=? WHERE token=?';
 				$db->Execute($sql, [$data, $token]);
 			} else {
@@ -289,7 +319,7 @@ if ($msgs || $fake) {
 			$msgs[] = $mod->Lang('not_contactable');
 		}
 		if (!$msgs) {
-			$t = ['focus'=>'authfeedback', 'html'=>$mod->Lang('temp_sent')];
+			$t = ['focus' => 'authfeedback', 'html' => $mod->Lang('temp_sent')];
 			if ($jax) {
 				header('HTTP/1.1 200 OK');
 				header('Content-Type: application/json; charset=UTF-8');
@@ -300,7 +330,7 @@ if ($msgs || $fake) {
 			}
 		}
 	} else {
-		$t = ['focus'=>'login2', 'html'=>$pw];
+		$t = ['focus' => 'login2', 'html' => $pw];
 		if ($jax) {
 			header('HTTP/1.1 200 OK');
 			header('Content-Type: application/json; charset=UTF-8');
@@ -321,7 +351,7 @@ if ($msgs || $fake) {
 	} else {
 		$namers = [];
 		$args = [];
-		foreach ($flds as $field=>$val) {
+		foreach ($flds as $field => $val) {
 			$namers[] = $field.'=?';
 			switch ($field) {
 			 case 'publicid':
@@ -336,7 +366,7 @@ if ($msgs || $fake) {
 				break;
 			}
 		}
-		$fillers = implode(',',$namers);
+		$fillers = implode(',', $namers);
 		$sql = 'UPDATE '.$pref.'module_auth_users SET '.$fillers.' WHERE id=?';
 		$args[] = $afuncs->GetUserID($login);
 		$db->Execute($sql, [$args]);

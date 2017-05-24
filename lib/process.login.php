@@ -30,7 +30,7 @@ foreach ([
 switch ($lvl) {
  case Auther::NOBOT:
 	if ($jax) {
-	//check Google via API?
+		//check Google via API?
 		if (0) {
 			$msgs[] = $mod->Lang('invalid_type', 'CAPTCHA');
 			$focus = 'TODO';
@@ -59,13 +59,13 @@ switch ($lvl) {
 	if ($vfuncs->FilteredString($t)) {
 		$login = trim($t);
 		if (!$login) {
-			$t = ($cdata['email_login']) ? 'title_email':'title_identifier';
+			$t = ($cdata['email_login']) ? 'title_email' : 'title_identifier';
 			$msgs[] = $mod->Lang('missing_type', $mod->Lang($t));
 			$focus = 'login';
 		}
 	} else {
 		$login = FALSE;
-		$t = ($cdata['email_login']) ? 'title_email':'title_identifier';
+		$t = ($cdata['email_login']) ? 'title_email' : 'title_identifier';
 		$msgs[] = $mod->Lang('invalid_type', $mod->Lang($t));
 		$focus = 'login';
 	}
@@ -75,13 +75,16 @@ switch ($lvl) {
 		$pw = trim($t);
 		if (!$pw) {
 			$msgs[] = $mod->Lang('missing_type', $mod->Lang('password'));
-			if (!$focus) { $focus = 'passwd'; }
+			if (!$focus) {
+				$focus = 'passwd';
+			}
 		} elseif ($login) {
 			$res = $afuncs->IsRegistered($login, $pw, TRUE, FALSE, $params['token']);
 			if ($res[0]) {
 				$fake = FALSE;
 				if ($vfuncs->IsForced(FALSE, $login, $cdata['id'])) {
 					$forcereset = TRUE;
+					//TODO what is reset-token $sdata['token']? any message?
 					break;
 				}
 			} else {
@@ -89,9 +92,10 @@ switch ($lvl) {
 				$n = $cdata['ban_count'];
 				$sdata = $res[1];
 				if ($sdata['attempts'] >= $n) {
-//TODO status 'blocked'
+					//TODO status 'blocked'
 					$vfuncs->SetForced(1, FALSE, $login, $cdata['id']);
 					$forcereset = TRUE;
+					//TODO what is reset-token $sdata['token']? any message?
 					$msgs[] = $mod->Lang('reregister2');
 				} else {
 					$n = $cdata['raise_count'];
@@ -106,7 +110,9 @@ switch ($lvl) {
 		}
 	} else {
 		$msgs[] = $mod->Lang('invalid_type', $mod->Lang('password'));
-		if (!$focus) { $focus = 'passwd'; }
+		if (!$focus) {
+			$focus = 'passwd';
+		}
 	}
 
 	switch ($lvl) {
@@ -117,14 +123,20 @@ switch ($lvl) {
 			if ($vfuncs->FilteredPassword($t)) {
 				if (!$t) {
 					$msgs[] = $mod->Lang('missing_type', 'CAPTCHA');
-					if (!$focus) { $focus = 'captcha'; }
+					if (!$focus) {
+						$focus = 'captcha';
+					}
 				} elseif ($t != $params['captcha']) {
 					$msgs[] = $mod->Lang('err_captcha');
-					if (!$focus) { $focus = 'captcha'; }
+					if (!$focus) {
+						$focus = 'captcha';
+					}
 				}
 			} else {
 				$msgs[] = $mod->Lang('invalid_type', 'CAPTCHA');
-				if (!$focus) { $focus = 'captcha'; }
+				if (!$focus) {
+					$focus = 'captcha';
+				}
 			}
 		}
 		break;

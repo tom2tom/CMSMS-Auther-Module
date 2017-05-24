@@ -19,7 +19,6 @@ $sent array iff ajax-sourced
 [passwd2] => "someother" new, should be different
 */
 
-$lvl = $cdata['security_level'];
 switch ($lvl) {
  case Auther::NOBOT:
 	//nothing to do
@@ -44,13 +43,13 @@ switch ($lvl) {
 	if ($vfuncs->FilteredString($t)) {
 		$login = trim($t);
 		if (!$login) {
-			$t = ($cdata['email_login']) ? 'title_email':'title_identifier';
+			$t = ($cdata['email_login']) ? 'title_email' : 'title_identifier';
 			$msgs[] = $mod->Lang('missing_type', $mod->Lang($t));
 			$focus = 'login';
 		}
 	} else {
 		$login = FALSE;
-		$t = ($cdata['email_login']) ? 'title_email':'title_identifier';
+		$t = ($cdata['email_login']) ? 'title_email' : 'title_identifier';
 		$msgs[] = $mod->Lang('invalid_type', $mod->Lang($t));
 		$focus = 'login';
 	}
@@ -60,7 +59,9 @@ switch ($lvl) {
 		$pw = trim($t);
 		if (!$pw) {
 			$msgs[] = $mod->Lang('missing_type', $mod->Lang('password'));
-			if (!$focus) { $focus = 'passwd'; }
+			if (!$focus) {
+				$focus = 'passwd';
+			}
 		} elseif ($login) {
 			$res = $afuncs->IsRegistered($login, $pw, TRUE, FALSE, $params['token']);
 			$fake = !$res[0];
@@ -68,9 +69,10 @@ switch ($lvl) {
 				$n = $cdata['ban_count'];
 				$sdata = $res[1];
 				if ($sdata['attempts'] >= $n) {
-//TODO status 'blocked'
+					//TODO status 'blocked'
 					$vfuncs->SetForced(1, FALSE, $login, $cdata['id']);
-					$forcereset = TRUE;
+					$forcereset = TRUE; //CHECKME sensible during this (maybe voluntary) reset?
+					//TODO what is reset-token $sdata['token']?
 					$msgs[] = $mod->Lang('reregister2');
 				} else {
 					$n = $cdata['raise_count'];
@@ -86,7 +88,9 @@ switch ($lvl) {
 	} else {
 		$pw = FALSE;
 		$msgs[] = $mod->Lang('invalid_type', $mod->Lang('password'));
-		if (!$focus) { $focus = 'passwd'; }
+		if (!$focus) {
+			$focus = 'passwd';
+		}
 	}
 
 	$t = ($jax) ? $sent['passwd2'] : $postvars[$id.'passwd2'];
@@ -94,7 +98,9 @@ switch ($lvl) {
 		$pw2 = trim($t);
 		if ($pw === $pw2) {
 			$msgs[] = $mod->Lang('newpassword_match');
-			if (!$focus) { $focus = 'passwd2'; }
+			if (!$focus) {
+				$focus = 'passwd2';
+			}
 		} elseif ($pw2) {
 			$res = $afuncs->ValidatePassword($pw);
 			if ($res[0]) {
@@ -103,16 +109,22 @@ switch ($lvl) {
 				}
 			} else {
 				$msgs[] = $res[1];
-				if (!$focus) { $focus = 'passwd2'; }
+				if (!$focus) {
+					$focus = 'passwd2';
+				}
 			}
 		} else {
 			$msgs[] = $mod->Lang('missing_type', $mod->Lang('password'));
-			if (!$focus) { $focus = 'passwd2'; }
+			if (!$focus) {
+				$focus = 'passwd2';
+			}
 		}
 	} else {
 		$pw2 = FALSE;
 		$msgs[] = $mod->Lang('invalid_type', $mod->Lang('password'));
-		if (!$focus) { $focus = 'passwd2'; }
+		if (!$focus) {
+			$focus = 'passwd2';
+		}
 	}
 
 	if (!$jax) { //i.e. passwords not matched in browser
@@ -121,11 +133,15 @@ switch ($lvl) {
 			if ($pw2 !== trim($t)) {
 				unset($flds['privhash']);
 				$msgs[] = $mod->Lang('newpassword_nomatch');
-				if (!$focus) { $focus = 'passwd2'; }
+				if (!$focus) {
+					$focus = 'passwd2';
+				}
 			}
 		} else {
 			$msgs[] = $mod->Lang('invalid_type', $mod->Lang('password'));
-			if (!$focus) { $focus = 'passwd2'; }
+			if (!$focus) {
+				$focus = 'passwd2';
+			}
 		}
 	}
 
@@ -137,14 +153,20 @@ switch ($lvl) {
 			if ($vfuncs->FilteredPassword($t)) {
 				if (!$t) {
 					$msgs[] = $mod->Lang('missing_type', 'CAPTCHA');
-					if (!$focus) { $focus = 'captcha'; }
+					if (!$focus) {
+						$focus = 'captcha';
+					}
 				} elseif ($t != $params['captcha']) {
 					$msgs[] = $mod->Lang('err_captcha');
-					if (!$focus) { $focus = 'captcha'; }
+					if (!$focus) {
+						$focus = 'captcha';
+					}
 				}
 			} else {
 				$msgs[] = $mod->Lang('invalid_type', 'CAPTCHA');
-				if (!$focus) { $focus = 'captcha'; }
+				if (!$focus) {
+					$focus = 'captcha';
+				}
 			}
 		}
 		break;
