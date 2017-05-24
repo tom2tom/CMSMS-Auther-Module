@@ -312,6 +312,7 @@ EOS;
 		$pre = \cms_db_prefix();
 		$cdata = $db->GetRow('SELECT * FROM '.$pre.'module_auth_contexts WHERE id=?', [$cid]);
 $cdata['security_level'] = 3; //DEBUG
+		$lvl = $cdata['security_level'];
 
 		if ($token) {
 			$sdata = $db->GetRow('SELECT * FROM '.$pre.'module_auth_cache WHERE token=?', [$token]); //maybe empty
