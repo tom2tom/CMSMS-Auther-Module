@@ -26,7 +26,7 @@ class Auth extends Session
 	protected $nametrained = FALSE;
 	protected $phrasetrained = FALSE;
 
-	public function __construct(&$mod, $context=0)
+	public function __construct(&$mod, $context = 0)
 	{
 		parent::__construct($mod, $context);
 	}
@@ -84,7 +84,7 @@ class Auth extends Session
 	 * @explicit: optional boolean whether to report login-is-taken or just invalid, default = FALSE
 	 * Returns: array [0]=boolean for success, [1]=message or ''
 	 */
-	public function UniqueLogin($login, $except=FALSE, $explicit=FALSE)
+	public function UniqueLogin($login, $except = FALSE, $explicit = FALSE)
 	{
 		if ($login !== $except || $login == FALSE) {
 			$sql = 'SELECT id FROM '.$this->pref.'module_auth_users WHERE publicid=? AND context_id=?';
@@ -248,7 +248,7 @@ class Auth extends Session
 	 * Returns: array [0]=boolean for success, [1]=message
 	 *  (possibly multi-line with embedded newlines) or ''
 	 */
-	public function ValidateAll($params, $except=FALSE, $explicit=FALSE)
+	public function ValidateAll($params, $except = FALSE, $explicit = FALSE)
 	{
 		extract($params);
 		$errs = [];
@@ -257,7 +257,7 @@ class Auth extends Session
 			if (!$res[0]) {
 				$errs[] = $res[1];
 			}
-			$res = $this->UniqueLogin($publicid,$except,$explicit);
+			$res = $this->UniqueLogin($publicid, $except, $explicit);
 			if (!$res[0]) {
 				$errs[] = $res[1];
 			}
@@ -302,9 +302,10 @@ class Auth extends Session
 	 * Set new password for @uid
 	 * @uid: int user enumerator
 	 * @newpass: plaintext string
+	 * @raw: optional boolean, whether @newpass is already hashed, default FALSE
 	 * Returns: array [0]=boolean for success, [1]=message or ''
 	 */
-	public function ChangePasswordReal($uid, $newpass, $raw=FALSE)
+	public function ChangePasswordReal($uid, $newpass, $raw = FALSE)
 	{
 		if (!$raw) {
 			$newpass = password_hash($newpass, PASSWORD_DEFAULT);
@@ -321,10 +322,10 @@ class Auth extends Session
 	 * @password: plaintext string current password
 	 * @newpass: plaintext string
 	 * @repeatnewpass: plaintext string
-	 * @check: optional boolean whether to check action-status before proceeding default = TRUE
+	 * @check: optional boolean, whether to check action-status before proceeding, default = TRUE
 	 * Returns: array [0]=boolean for success, [1]=message or ''
 	 */
-	public function ChangePassword($uid, $password, $newpass, $repeatnewpass, $check=TRUE)
+	public function ChangePassword($uid, $password, $newpass, $repeatnewpass, $check = TRUE)
 	{
 		if ($check) {
 			switch ($this->GetStatus()) {
@@ -419,10 +420,10 @@ class Auth extends Session
 	 *
 	 * @password: string the password to verify
 	 * @hash: string the hash to verify against
-	 * @tries: no. of verification attempts, may be 0 in which case immediate return on mismatch
+	 * @tries: optional no. of verification attempts, may be 0 in which case immediate return on mismatch, default = 1
 	 * Returns: boolean
 	 */
-	public function DoPasswordCheck($password, $hash, $tries=1)
+	public function DoPasswordCheck($password, $hash, $tries = 1)
 	{
 		if (password_verify($password, $hash)) {
 			return TRUE;
@@ -444,7 +445,7 @@ class Auth extends Session
 	 * @remember: optional boolean whether to setup session-expiry-time in self::AddSession() default = FALSE
 	 * Returns: array, [0]=boolean for success, [1]=message or '', if [0] then also session-parameters: 'token','expire'
 	 */
-	public function Login($login, $password, $remember=FALSE)
+	public function Login($login, $password, $remember = FALSE)
 	{
 		//always check status
 		switch ($this->GetStatus()) {
@@ -541,8 +542,9 @@ class Auth extends Session
 	 * @fast: optional boolean whether to return immediately if not recognized, default = FALSE
 	 * @token: optional string 24-byte session-data key, default = FALSE
 	 * Returns: 2-member array [0]=boolean indicating success [1]=array of data from row of session table
+	 * TODO also return indication that password-reset is now forced  
 	 */
-	public function IsRegistered($login, $password=FALSE, $active=TRUE, $fast=FALSE, $token=FALSE)
+	public function IsRegistered($login, $password = FALSE, $active = TRUE, $fast = FALSE, $token = FALSE)
 	{
 		$sql = 'SELECT id,privhash,active FROM '.$this->pref.'module_auth_users WHERE publicid=? AND context_id=?';
 		$userdata = $this->db->GetRow($sql, [$login, $this->context]);
@@ -569,7 +571,7 @@ class Auth extends Session
 				$sql = 'SELECT * FROM '.$this->pref.'module_auth_cache WHERE token=?';
 				$sdata = $this->db->GetRow($sql, [$token]);
 			}
-			$tries = ($fast) ? 0:$sdata['attempts'];
+			$tries = ($fast) ? 0 : $sdata['attempts'];
 			$res = $this->DoPasswordCheck($password, $userdata['privhash'], $tries);
 			if (!$res) {
 				$this->AddAttempt($sdata['token']); //TODO update token WHERE token=sdata[token]
@@ -597,14 +599,15 @@ class Auth extends Session
 	/**
 	 * Checks whether @login is recorded for current context and (if @active = TRUE)
 	 *  active, and @password (if not FALSE) is valid. As distinct from IsRegistered(),
-	 *  no session is involved, and no delay.
+	 *  no session is involved, and no delay. Sorta 'IsRegisteredReal'
 	 *
 	 * @login: string user identifier
 	 * @password: optional plaintext string, or FALSE to skip password-validation, default = FALSE
 	 * @active: optional boolean whether to check for active user, default TRUE
 	 * Returns: boolean indicating success
+	 * TODO also return indication that password-reset is now forced  
 	 */
-	public function IsKnown($login, $password=FALSE, $active=TRUE)
+	public function IsKnown($login, $password = FALSE, $active = TRUE)
 	{
 		$uid = $this->GetUserID($login);
 		if ($uid) {
@@ -628,10 +631,10 @@ class Auth extends Session
 	 * @uid: int user enumerator
 	 * @login: string user identifier
 	 * @password: plaintext string
-	 * @check: optional boolean whether to check action-status before proceeding default = TRUE
+	 * @check: optional boolean, whether to check action-status before proceeding, default = TRUE
 	 * Returns: array [0]=boolean for success, [1]=message or ''
 	 */
-	public function ChangeLogin($uid, $login, $password, $check=TRUE)
+	public function ChangeLogin($uid, $login, $password, $check = TRUE)
 	{
 		if ($check) {
 			switch ($this->GetStatus()) {
@@ -709,15 +712,15 @@ class Auth extends Session
 					$suffs[] = (int)$s;
 				}
 			}
-			foreach ($suffs as $i=>$one) {
-				if (isset($suffs[$i+1])) {
-					if ($suffs[$i+1] - $one > 1) {
-						$s = $one+1;
+			foreach ($suffs as $i => $one) {
+				if (isset($suffs[$i + 1])) {
+					if ($suffs[$i + 1] - $one > 1) {
+						$s = $one + 1;
 						return $login.$s;
 					}
 				}
 			}
-			$s = count($suffs)+1;
+			$s = count($suffs) + 1;
 			return $login.$s;
 		}
 		return FALSE; //should never get here
@@ -727,10 +730,10 @@ class Auth extends Session
 	 * Gets all user-data except password for @uid
 	 *
 	 * @uid: int user enumerator
-	 * @raw: whether to decrypt relevant values, default = FALSE
+	 * @raw: optional boolean, whether to decrypt relevant values, default = FALSE
 	 * Returns: array with members uid,publicid,name,address,context_id,addwhen,lastuse,nameswap,active or else FALSE
 	 */
-	public function GetUser($uid, $raw=FALSE)
+	public function GetUser($uid, $raw = FALSE)
 	{
 		$sql = 'SELECT * FROM '.$this->pref.'module_auth_users WHERE id=?';
 		$data = $this->db->GetRow($sql, [$uid]);
@@ -760,10 +763,10 @@ class Auth extends Session
 	 * Gets password for @uid
 	 *
 	 * @uid: int user enumerator
-	 * @raw: whether to encode the value, default = FALSE
+	 * @raw: optional boolean, whether to encode the value, default = FALSE
 	 * Returns: string, raw or H-packed password, or else FALSE
 	 */
-	public function GetUserPassword($uid, $raw=FALSE)
+	public function GetUserPassword($uid, $raw = FALSE)
 	{
 		$sql = 'SELECT privhash FROM '.$this->pref.'module_auth_users WHERE id=?';
 		$data = $this->db->GetOne($sql, [$uid]);
@@ -811,10 +814,10 @@ class Auth extends Session
 	 * Gets publicly-accessible user-data for @login
 	 *
 	 * @login: string user identifier
-	 * @active: optional boolean whether the user is required to be active default = TRUE
+	 * @active: optional boolean, whether the user is required to be active, default = TRUE
 	 * Returns: array with members publicid,name,address,addwhen,lastuse[,active] or else FALSE
 	 */
-	public function GetUserPublic($login, $active=TRUE)
+	public function GetUserPublic($login, $active = TRUE)
 	{
 		$sql = 'SELECT name,address,addwhen,lastuse';
 		if (!$active) {
@@ -831,7 +834,7 @@ class Auth extends Session
 			$data['name'] = $cfuncs->decrypt_value($data['name']);
 			$data['address'] = $cfuncs->decrypt_value($data['address']);
 //TODO zone offset
-			$dt = new \DateTime('@0',NULL);
+			$dt = new \DateTime('@0', NULL);
 			$dt->setTimestamp($data['addwhen']);
 			$data['addwhen'] = $dt->format('Y-m-d H:i:s');
 			$dt->setTimestamp($data['lastuse']);
@@ -846,14 +849,14 @@ class Auth extends Session
 	 * Gets specified user-data for @login
 	 *
 	 * @login: string user identifier, or array of them
-	 * @props: optional string table field-name, or '*' or array of field names, default = '*'
-	 * @active: optional boolean whether the user(s) is/are required to be active, default = TRUE
+	 * @props: optional string, table field-name, or '*' or array of field names, default = '*'
+	 * @active: optional boolean, whether the user(s) is/are required to be active, default = TRUE
 	 * Returns: associative array or else FALSE
 	 */
-	public function GetUserProperties($login, $props='*', $active=TRUE)
+	public function GetUserProperties($login, $props = '*', $active = TRUE)
 	{
 		if (is_array($props)) {
-			$namers = implode(',',$props);
+			$namers = implode(',', $props);
 		} elseif ($props == '*') {
 			$namers = 'id,publicid,name,address,addwhen,lastuse,nameswap,active'; //exclude a few of the fields
 		} else {
@@ -865,7 +868,7 @@ class Auth extends Session
 		if (is_array($login)) {
 			$fillers = str_repeat('?,', count($login) - 1);
 			$sql .= ' AND publicid IN ('.$fillers.'?)';
-			$args = array_merge($args,$login);
+			$args = array_merge($args, $login);
 		} else {
 			$sql .= ' AND publicid=?';
 			$args[] = $login;
@@ -915,7 +918,7 @@ class Auth extends Session
 			$cfuncs = new Crypter($this->mod);
 			$dt = new \DateTime('@0', NULL);
 			foreach ($data as &$row) {
-				foreach ($row as $name=>&$one) {
+				foreach ($row as $name => &$one) {
 					switch ($name) {
 					 case 'name':
 					 case 'address':
@@ -940,7 +943,7 @@ class Auth extends Session
 		} else { //single row of data
 			$cfuncs = NULL;
 			$dt = NULL;
-			foreach ($data as $name=>&$one) {
+			foreach ($data as $name => &$one) {
 				switch ($name) {
 				 case 'name':
 				 case 'address':
@@ -987,7 +990,7 @@ class Auth extends Session
 	 * @raw: optional boolean, whether to return encrypted data as-is, default = FALSE
 	 * Returns: array, each member of which has user_id,publicid,name,address,nameswap or else FALSE
 	 */
-	public function GetPublicUsers($active=TRUE, $raw=FALSE)
+	public function GetPublicUsers($active = TRUE, $raw = FALSE)
 	{
 		$sql = 'SELECT id,publicid,name,address,nameswap FROM '.$this->pref.'module_auth_users WHERE context_id=?';
 		if ($active) {
@@ -1015,10 +1018,10 @@ class Auth extends Session
 	 * @name: string user name
 	 * @address: email or other type of address for messages, possibly empty
 	 * @active: optional integer (1/0) indicating user's active-state, default = 1
-	 * @params: optional array of additional params default = empty
+	 * @params: optional array of additional params, default = empty
 	 * Returns: array [0]=boolean for success, [1]=message or ''
 	 */
-	public function AddUserReal($login, $password, $name, $address, $active=1, $params=[])
+	public function AddUserReal($login, $password, $name, $address, $active = 1, $params = [])
 	{
 		$uid = $this->db->GenID($this->pref.'module_auth_users_seq');
 
@@ -1057,11 +1060,11 @@ class Auth extends Session
 	 * @password: plaintext string
 	 * @name: string user name
 	 * @address: email or other type of address for messages, possibly empty
-	 * @params: array of additional params default = empty
-	 * @check: optional boolean whether to check action-status before proceeding default = TRUE
+	 * @params: array of additional params, default = empty
+	 * @check: optional boolean, whether to check action-status before proceeding, default = TRUE
 	 * Returns: array [0]=boolean for success, [1]=message or ''
 	 */
-	public function AddUser($login, $password, $name, $address, $params=[], $check=TRUE)
+	public function AddUser($login, $password, $name, $address, $params = [], $check = TRUE)
 	{
 		if ($check) {
 			switch ($this->GetStatus()) {
@@ -1093,10 +1096,10 @@ class Auth extends Session
 	 * @repeatpass: plaintext string
 	 * @address: plaintext string
 	 * @params: optional array of extra user-parameters for self::addUser() default = empty
-	 * @check: optional boolean whether to check action-status before proceeding default = TRUE
+	 * @check: optional boolean, whether to check action-status before proceeding, default = TRUE
 	 * Returns: array [0]=boolean for success, [1]=message (possibly multi-line) or ''
 	 */
-	public function RegisterUser($login, $password, $repeatpass, $name, $address, $params=[], $check=TRUE)
+	public function RegisterUser($login, $password, $repeatpass, $name, $address, $params = [], $check = TRUE)
 	{
 		if ($password !== $repeatpass) {
 			return [FALSE, $this->mod->Lang('password_nomatch')];
@@ -1123,7 +1126,7 @@ class Auth extends Session
 	 * @params: optional array of additional params, default = empty
 	 * Returns: array [0]=boolean for success, [1]=message or ''
 	 */
-	public function ChangeUserReal($oldlogin, $login, $name, $address, $active=FALSE, $params=[])
+	public function ChangeUserReal($oldlogin, $login, $name, $address, $active = FALSE, $params = [])
 	{
 		$uid = $this->GetUserID($oldlogin);
 		if (!$uid) {
@@ -1152,7 +1155,7 @@ class Auth extends Session
 			$args[] = $active;
 		}
 		$args[] = $uid;
-		$sql = 'UPDATE '.$this->pref.'module_auth_users SET '.implode('=?,',$namers).'=? WHERE id=?';
+		$sql = 'UPDATE '.$this->pref.'module_auth_users SET '.implode('=?,', $namers).'=? WHERE id=?';
 
 		if (!$this->db->Execute($sql, $args)) {
 			return [FALSE, $this->mod->Lang('system_error', '#08')];
@@ -1176,10 +1179,10 @@ class Auth extends Session
 	 * @address: email or other type of address for messages, ignored if FALSE
 	 * @active: optional integer (0/1) or FALSE, default = FALSE
 	 * @params: optional array of additional parameters, default = empty
-	 * @check: optional boolean whether to check action-status before proceeding default = TRUE
+	 * @check: optional boolean, whether to check action-status before proceeding, default = TRUE
 	 * Returns: array [0]=boolean for success, [1]=message or ''
 	 */
-	public function ChangeUser($oldlogin, $password, $login, $name, $address, $active=FALSE, $params=[], $check=TRUE)
+	public function ChangeUser($oldlogin, $password, $login, $name, $address, $active = FALSE, $params = [], $check = TRUE)
 	{
 		if ($check) {
 			switch ($this->GetStatus()) {
@@ -1200,7 +1203,7 @@ class Auth extends Session
 		}
 		$data = FALSE;
 		if ($name === FALSE) {
-			$data = $this->GetUserProperties($oldlogin, ['name','address'], FALSE);
+			$data = $this->GetUserProperties($oldlogin, ['name', 'address'], FALSE);
 			$name = $data['name'];
 		}
 		if ($address === FALSE) {
@@ -1259,10 +1262,10 @@ class Auth extends Session
 	 *
 	 * @login: string user identifier
 	 * @password: string plaintext
-	 * @check: optional boolean whether to check action-status before proceeding default = TRUE
+	 * @check: optional boolean, whether to check action-status before proceeding, default = TRUE
 	 * Returns: array [0]=boolean for success, [1]=message
 	 */
-	public function DeleteUser($login, $password, $check=TRUE)
+	public function DeleteUser($login, $password, $check = TRUE)
 	{
 		if ($check) {
 			switch ($this->GetStatus()) {
