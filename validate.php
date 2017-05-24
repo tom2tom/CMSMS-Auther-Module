@@ -140,13 +140,15 @@ if (empty($params) || $params['identity'] !== substr($id, 2, 3)) {
 }
 
 if (!empty($_POST[$id.'cancel'])) {
-	notify_handler($params, ['cancel'=>1]);
+	$others = ['authdata' => base64_encode(json_encode((object)['cancel'=>1]))];
+	notify_handler($params, $others);
 	exit;
 }
 if (!empty($_POST[$id.'success'])) {
-	$others =  ['success'=>1];
 	if (!empty($_POST[$id.'authdata'])) {
-		$others['authdata'] = $_POST[$id.'authdata'];
+		$others = ['authdata' => $_POST[$id.'authdata']]; //CHECKME sanitize raw input?
+	} else {
+		$others = ['authdata' => base64_encode(json_encode((object)['success'=>1]))];
 	}
 	notify_handler($params, $others);
 	exit;
@@ -198,7 +200,12 @@ $forcereset = FALSE;
 $task = (empty($_POST[$id.'recover'])) ? $params['task'] : 'recover';
 require (__DIR__.DIRECTORY_SEPARATOR.'lib'.DIRECTORY_SEPARATOR.'process.'.$task.'.php');
 if ($forcereset) {
-	//TODO
+	//CHECKME also send 'message' => 'whatever' e.g. $msgs[] ? 'html' => 'whatever' ?
+	$others = ['authdata' => base64_encode(json_encode(
+	(object)['repeat'=>1, 'task'=>'reset', 'token'=>$sdata['token']]
+	))];
+	notify_handler($params, $others);
+	exit;
 }
 
 if ($msgs) { //error
@@ -223,6 +230,7 @@ if ($jax) {
 	header('Content-Type: application/json; charset=UTF-8');
 	die(json_encode($t));
 } else {
-	notify_handler($params, $t);
+	$others = ['authdata' => base64_encode(json_encode((object)$t))];
+	notify_handler($params, $others);
 	exit;
 }
