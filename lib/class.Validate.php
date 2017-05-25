@@ -149,7 +149,7 @@ class Validate
 	/**
 	 * Evaluates @string to check for some of the more egregious injections
 	 * This supports a fuck-off hint to crackers, the real protection is query-parameterisation
-	 * @string: string to be checked, maybe FALSE
+	 * @string: (un-quoted) string to be checked, maybe FALSE
 	 * Returns: boolean indicating @string passes the tests, TRUE if @string is FALSE
 	 */
 	public function FilteredString($string)
