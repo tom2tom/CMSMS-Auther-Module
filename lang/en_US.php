@@ -246,6 +246,7 @@ $lang['register_success'] = 'Account created successfully';
 $lang['rememberme'] = 'The remember me field';
 //$lang['reset_created'] = 'Password reset request has been created';
 $lang['reset_challenged'] = 'Password reset message sent to recorded address';
+$lang['reset_now'] = 'Your password must be reset now';
 $lang['reregister'] = 'After so many failed attempts, you might like to re-register.';
 $lang['reregister2'] = 'Too many failed attempts. You\'ll need to re-register.';
 $lang['reset'] = 'Reset';
