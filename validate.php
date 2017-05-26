@@ -12,17 +12,25 @@ function ajax_errreport($msg) {
 	die(json_encode(['message'=>$msg, 'focus'=>'']));
 }
 
+function ajax_abort() {
+	header('HTTP/1.1 204 No Content');
+	header('Content-Type: application/json; charset=UTF-8');
+	echo(json_encode(0));
+}
+
 // c.f. StripeGate::Payer
 function notify_handler($params, $others=FALSE)
 {
 /*TODO sanitize $others - handlers tolerate any of the following (prefixed):
 need explicit success / user_id / token /$id + the following:
-'success' + 'user_id'
-'repeat' + 'token'
+'success'
+'cancel'
 'message'
+'repeat'
+'task'
+'token'
 'focus'
 'html'
-'cancel'
 */
 	$newparms = $others; //TODO
 
@@ -66,6 +74,33 @@ need explicit success / user_id / token /$id + the following:
 		curl_close($ch);
 		break;
 	}
+	//TODO mimic javascript::location.reload(true);
+	exit;
+}
+
+//string variables are filtered by FILTER_UNSAFE_RAW, FILTER_FLAG_STRIP_LOW
+function collect_post($id, $keys)
+{
+	$postvars = [];
+	foreach ($keys as $k) {
+		$key = $id.$k;
+		if (isset($_POST[$key])) {
+			$t = $_POST[$key];
+			if (is_numeric($t)) {
+				$t += 0;
+			} elseif (is_string($t)) {
+				if ($t) {
+					$t = filter_var($t, FILTER_UNSAFE_RAW, FILTER_FLAG_STRIP_LOW);
+				}
+			} else {
+				$t = NULL;
+			}
+		} else {
+			$t = NULL;
+		}
+		$postvars[$k] = $t;
+	}
+	return $postvars;
 }
 
 //clear all page-content echoed before now
@@ -100,13 +135,13 @@ if (empty($_POST[$kn])) {
 	exit;
 }
 
-$jax = !empty($_POST[$id.'jsworks']);
 //grab stuff cuz' we've bypassed a normal session-start
 $fp = __DIR__;
 $c = strpos($fp, '/modules');
 $inc = substr($fp, 0, $c+1).'include.php';
 require $inc;
 
+$jax = !empty($_POST[$id.'jsworks']);
 $mod = cms_utils::get_module('Auther');
 $errmsg = $mod->Lang('err_ajax');
 
@@ -129,9 +164,9 @@ if (empty($params) || $params['identity'] !== substr($id, 2, 3)) {
 	if ($jax) {
 		ajax_errreport($errmsg);
 	} else {
-		//TODO signal something to handler
 		if ($params) {
-			notify_handler($params, $errmsg);
+			$others = ['authdata' => base64_encode(json_encode((object)['error'=>1,'message'=>$errmsg]))];
+			notify_handler($params, $others);
 		} else {
 			echo $errmsg;
 		}
@@ -139,50 +174,59 @@ if (empty($params) || $params['identity'] !== substr($id, 2, 3)) {
 	exit;
 }
 
-if (!empty($_POST[$id.'cancel'])) {
-	$others = ['authdata' => base64_encode(json_encode((object)['cancel'=>1]))];
-	notify_handler($params, $others);
-	exit;
-}
-if (!empty($_POST[$id.'success'])) {
-	if (!empty($_POST[$id.'authdata'])) {
-		$others = ['authdata' => $_POST[$id.'authdata']]; //CHECKME sanitize raw input?
+$afuncs = new Auther\Auth($mod, $params['context']);
+$vfuncs = new Auther\Validate($mod, $afuncs, $cfuncs);
+
+if (isset($_POST[$id.'success'])) {
+	$postvars = collect_post($id, ['authdata']);
+	if ($postvars['authdata']) {
+		$t = $vfuncs->FilteredString($postvars['authdata']);
+		if ($t == $postvars['authdata']) {
+			$others = ['authdata' => $postvars['authdata']];
+		} else {
+			ajax_errreport($this->Lang('err_parm'));
+		}
 	} else {
 		$others = ['authdata' => base64_encode(json_encode((object)['success'=>1]))];
 	}
 	notify_handler($params, $others);
 	exit;
+} elseif (isset($_POST[$id.'cancel'])) {
+	$others = ['authdata' => base64_encode(json_encode((object)['cancel'=>1]))];
+	notify_handler($params, $others);
+	exit;
 }
 
-$iv = base64_decode($_POST[$id.'nearn']);
-$iv = substr($iv, 0, 16); //force correct iv length
-$t = openssl_decrypt($_POST[$id.'sent'], 'AES-256-CBC', $params['far'], 0, $iv);
-if (!$t) {
-	if ($jax) {
-		ajax_errreport($errmsg);
-	} else {
-		notify_handler($params, $errmsg);
+if (isset($_POST[$id.'sent'])) {
+	$iv = base64_decode($_POST[$id.'nearn']);
+	$iv = substr($iv, 0, 16); //force correct iv length
+	$t = openssl_decrypt($_POST[$id.'sent'], 'AES-256-CBC', $params['far'], 0, $iv);
+	if (!$t) {
+		if ($jax) {
+			ajax_errreport($errmsg);
+		} else {
+			$others = ['authdata' => base64_encode(json_encode((object)['message'=>$errmsg]))];
+			notify_handler($params, $others);
+		}
+		exit;
 	}
-	exit;
-}
-$p = strpos($t, $params['far']) + strlen($params['far']);
-$ob = json_decode(substr($t, $p));
-if ($ob !== NULL) {
-	$sent = (array)$ob;
-} else {
-	if ($jax) {
-		ajax_errreport($errmsg);
+	$p = strpos($t, $params['far']) + strlen($params['far']);
+	$ob = json_decode(substr($t, $p));
+	if ($ob !== NULL) {
+		$sent = (array)$ob;
 	} else {
-		//TODO signal something to handler
-		notify_handler($params, $errmsg);
+		if ($jax) {
+			ajax_errreport($errmsg);
+		} else {
+			$others = ['authdata' => base64_encode(json_encode((object)['error'=>1,'message'=>$errmsg]))];
+			notify_handler($params, $others);
+		}
+		exit;
 	}
-	exit;
 }
 
 $db = $gCms->GetDb(); //var defined by inclusion
 $pref = cms_db_prefix();
-$cdata = $db->GetRow('SELECT * FROM '.$pref.'module_auth_contexts WHERE id=?', [$params['context']]);
-$lvl = $cdata['security_level'];
 if (!empty($params['token'])) {
 	$token = $params['token'];
 	$sdata = $db->GetRow('SELECT * FROM '.$pref.'module_auth_cache WHERE token=?', [$token]); //maybe FALSE
@@ -191,19 +235,47 @@ if (!empty($params['token'])) {
 	$sdata = FALSE;
 }
 
-$afuncs = new Auther\Auth($mod, $params['context']);
-$vfuncs = new Auther\Validate($mod, $afuncs, $cfuncs);
+if (!empty($_POST[$id.'recover'])) {
+	$token = !empty($sdata['token']) ? $sdata['token'] : '';
+	if ($jax) {
+		ajax_abort();
+		$others = ['TODO'];
+	} else {
+		$postvars = collect_post($id, ['authdata']);
+		$others = FALSE;
+		if ($postvars['authdata']) {
+			$t = $vfuncs->FilteredString($postvars['authdata']);
+			if ($t == $postvars['authdata']) {
+				$others = ['authdata' => $postvars['authdata']];
+			}
+		}
+		if (!$others) {
+			echo $this->Lang('err_parm');
+			exit;
+		}
+	}
+	notify_handler($params, $others);
+	exit;
+}
+
+$cdata = $db->GetRow('SELECT * FROM '.$pref.'module_auth_contexts WHERE id=?', [$params['context']]);
+$lvl = $cdata['security_level'];
 $msgs = [];
 $focus = '';
 $forcereset = FALSE;
 
-$task = (empty($_POST[$id.'recover'])) ? $params['task'] : 'recover';
+$task = $params['task'];
 require (__DIR__.DIRECTORY_SEPARATOR.'lib'.DIRECTORY_SEPARATOR.'process.'.$task.'.php');
 if ($forcereset) {
-	//CHECKME also send 'message' => 'whatever' e.g. $msgs[] ? 'html' => 'whatever' ?
-	$others = ['authdata' => base64_encode(json_encode(
-	(object)['repeat'=>1, 'task'=>'reset', 'token'=>$sdata['token']]
-	))];
+	if ($jax) {
+		//trigger another request
+		header('HTTP/1.1 206 Validation Renew');
+		header('Content-Type: application/json; charset=UTF-8');
+		die(json_encode(0));
+	}
+	//CHECKME also send 'message' => 'whatever' e.g. $msgs[] ? 'html' => 'whatever' ? 'focus' => whatever
+	$t = ['repeat'=>1, 'task'=>'reset', 'token'=>$sdata['token']];
+	$others = ['authdata' => base64_encode(json_encode((object)$t))];
 	notify_handler($params, $others);
 	exit;
 }
