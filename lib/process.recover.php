@@ -247,6 +247,7 @@ if ($msgs || $fake) {
 			$db->Execute($sql, [$token]);
 //			$afuncs->ResetAttempts();
 			$vfuncs->SetForced(0, FALSE, $login, $sdata['id']);
+			$forcereset = FALSE;
 			$msgtext = $mod->Lang('password_changed'); //feedback
 		} else {
 			$msgs[] = $res[1];
