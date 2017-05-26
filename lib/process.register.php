@@ -28,20 +28,16 @@ switch ($lvl) {
  case Auther::MIDSEC:
  case Auther::CHALLENGED:
 	//common stuff
-	$postvars = [];
-	foreach ([
+	$postvars = collect_post($id, [
 		'login',
 		'passwd', //present if !$jax, or no replacement password provided
 		'passwd2', //ditto
 		'name',
 		'contact',
 		'captcha'
-	] as $t) {
-		$key = $id.$t;
-		$postvars[$key] = isset($_POST[$key]) ? $_POST[$key] : NULL;
-	}
+	]);
 	$flds = [];
-	$t = $postvars[$id.'login'];
+	$t = $postvars['login'];
 	if ($vfuncs->FilteredString($t)) {
 		$login = trim($t);
 		if ($login) {
@@ -84,7 +80,7 @@ switch ($lvl) {
 		$focus = 'login';
 	}
 
-	$t = ($jax) ? $sent['passwd'] : $postvars[$id.'passwd'];
+	$t = ($jax) ? $sent['passwd'] : $postvars['passwd'];
 	if ($vfuncs->FilteredPassword($t)) {
 		$pw = trim($t);
 		if ($pw) {
@@ -114,7 +110,7 @@ switch ($lvl) {
 	}
 
 	if (!$jax) { //i.e. passwords not matched in browser
-		$t = $postvars[$id.'passwd2'];
+		$t = $postvars['passwd2'];
 		if ($vfuncs->FilteredPassword($t)) {
 			if ($pw !== trim($t)) {
 				unset($flds['privhash']);
@@ -131,7 +127,7 @@ switch ($lvl) {
 		}
 	}
 
-	$t = $postvars[$id.'name'];
+	$t = $postvars['name'];
 	if ($vfuncs->FilteredString($t)) {
 		$t = $vfuncs->SanitizeName($t);
 		if ($t) {
@@ -164,7 +160,7 @@ switch ($lvl) {
 		}
 	}
 
-	$t = $postvars[$id.'contact'];
+	$t = $postvars['contact'];
 	if ($vfuncs->FilteredString($t)) {
 		$contact = trim($t);
 		if ($contact) {
@@ -206,7 +202,7 @@ switch ($lvl) {
 	 case Auther::MIDSEC:
 	//check stuff
 		if (!$jax) {
-			$t = $postvars[$id.'captcha'];
+			$t = $postvars['captcha'];
 			if ($vfuncs->FilteredPassword($t)) {
 				if (!$t) {
 					$msgs[] = $mod->Lang('missing_type', 'CAPTCHA');

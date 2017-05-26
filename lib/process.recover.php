@@ -29,22 +29,18 @@ switch ($lvl) {
  case Auther::MIDSEC:
  case Auther::CHALLENGED:
 	//common stuff
-	$postvars = [];
-	foreach ([
+	$postvars = collect_post($id, [
 		'login',
 		'passwd', //present if !$jax, or no token provided
 		'passwd2', //ditto for new password
 		'passwd3', //ditto
 		'captcha'
-	] as $t) {
-		$key = $id.$t;
-		$postvars[$key] = isset($_POST[$key]) ? $_POST[$key] : NULL;
-	}
+	]);
 	$phase1 = empty($_POST[$id.'phase']) || $_POST[$id.'phase'] == 'who';
 	$mfuncs = new Auther\Challenge($mod, $params['context']);
 	$sendto = FALSE;
 	$flds = [];
-	$t = $postvars[$id.'login'];
+	$t = $postvars['login'];
 	if ($vfuncs->FilteredString($t)) {
 		$login = trim($t);
 		if ($login) {
@@ -98,7 +94,7 @@ switch ($lvl) {
 		$sdata = $TODO;
 		$this->Crash();
 	}
-	$t = ($jax) ? $sent['passwd'] : $postvars[$id.'passwd'];
+	$t = ($jax) ? $sent['passwd'] : $postvars['passwd'];
 	if ($vfuncs->FilteredPassword($t)) {
 		$pw = trim($t);
 		$data = (array)json_decode($sdata['data']);
@@ -114,7 +110,7 @@ switch ($lvl) {
 		}
 	}
 
-	$t = ($jax) ? $sent['passwd2'] : $postvars[$id.'passwd2'];
+	$t = ($jax) ? $sent['passwd2'] : $postvars['passwd2'];
 	if ($vfuncs->FilteredPassword($t)) {
 		$pw2 = trim($t);
 		$res = $afuncs->ValidatePassword($pw2);
@@ -137,7 +133,7 @@ switch ($lvl) {
 	}
 
 	if (!$jax) { //i.e. passwords not matched in browser
-		$t = $postvars[$id.'passwd3'];
+		$t = $postvars['passwd3'];
 		if ($vfuncs->FilteredPassword($t)) {
 			if ($pw2 !== trim($t)) {
 				unset($flds['privhash']);
@@ -158,7 +154,7 @@ switch ($lvl) {
 	 case Auther::MIDSEC:
 	//check stuff
 		if (!$jax) {
-			$t = $postvars[$id.'captcha'];
+			$t = $postvars['captcha'];
 			if ($vfuncs->FilteredPassword($t)) {
 				if (!$t) {
 					$msgs[] = $mod->Lang('missing_type', 'CAPTCHA');
@@ -216,7 +212,8 @@ if ($msgs || $fake) {
 				header('Content-Type: application/json; charset=UTF-8');
 				die(json_encode($t));
 			} else {
-				notify_handler($params, $t);
+				$others = ['authdata' => base64_encode(json_encode((object)$t))];
+				notify_handler($params, $others);
 				exit;
 			}
 		}
@@ -227,7 +224,8 @@ if ($msgs || $fake) {
 			header('Content-Type: application/json; charset=UTF-8');
 			die(json_encode($t));
 		} else {
-			notify_handler($params, $t);
+			$others = ['authdata' => base64_encode(json_encode((object)$t))];
+			notify_handler($params, $others);
 			exit;
 		}
 	}

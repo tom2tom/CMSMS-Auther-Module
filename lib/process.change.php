@@ -35,8 +35,7 @@ switch ($lvl) {
  case Auther::MIDSEC:
  case Auther::CHALLENGED:
 	//common stuff
-	$postvars = [];
-	foreach ([
+	$postvars = collect_post($id, [
 		'login',
 		'login2',
 		'passwd',
@@ -45,15 +44,12 @@ switch ($lvl) {
 		'name',
 		'contact',
 		'captcha'
-	] as $t) {
-		$key = $id.$t;
-		$postvars[$key] = isset($_POST[$key]) ? $_POST[$key] : NULL;
-	}
+	]);
 	$phase1 = empty($_POST[$id.'phase']) || $_POST[$id.'phase'] == 'who';
 	$mfuncs = new Auther\Challenge($mod, $params['context']);
 	$sendto = FALSE;
 	$flds = [];
-	$t = $postvars[$id.'login'];
+	$t = $postvars['login'];
 	if ($vfuncs->FilteredString($t)) {
 		$login = trim($t);
 		if (!$login) {
@@ -68,7 +64,7 @@ switch ($lvl) {
 		$focus = 'login';
 	}
 
-	$t = ($jax) ? $sent['passwd'] : $postvars[$id.'passwd'];
+	$t = ($jax) ? $sent['passwd'] : $postvars['passwd'];
 	if ($vfuncs->FilteredPassword($t)) {
 		$pw = trim($t);
 		if (!$pw) {
@@ -117,7 +113,7 @@ switch ($lvl) {
 		break;
 	}
 
-	$t = $postvars[$id.'login2'];
+	$t = $postvars['login2'];
 	if ($t) {
 		if ($vfuncs->FilteredString($t)) {
 			$t = trim($t);
@@ -167,7 +163,7 @@ switch ($lvl) {
 	if ($jax && !empty($sent['passwd2'])) {
 		$t = $sent['passwd2'];
 	} else {
-		$t = $postvars[$id.'passwd2'];
+		$t = $postvars['passwd2'];
 	}
 	if ($t) {
 		if ($vfuncs->FilteredString($t)) {
@@ -194,7 +190,7 @@ switch ($lvl) {
 		if ($jax && !empty($sent['passwd3'])) {
 			$t = $sent['passwd3'];
 		} else {
-			$t = $postvars[$id.'passwd3'];
+			$t = $postvars['passwd3'];
 		}
 		if ($t != $flds['privhash']) {
 			unset($flds['privhash']);
@@ -202,7 +198,7 @@ switch ($lvl) {
 		}
 	}
 
-	$t = $postvars[$id.'name'];
+	$t = $postvars['name'];
 	if ($t) {
 		if ($vfuncs->FilteredString($t)) {
 			$t = $vfuncs->SanitizeName($t);
@@ -229,7 +225,7 @@ switch ($lvl) {
 //	} else { //no replacement name
 	}
 
-	$t = $postvars[$id.'contact'];
+	$t = $postvars['contact'];
 	if ($t) {
 		if ($vfuncs->FilteredString($t)) {
 			$t = trim($t);
@@ -266,7 +262,7 @@ switch ($lvl) {
 	 case Auther::MIDSEC:
 	//check stuff
 		if (!$jax) {
-			$t = $postvars[$id.'captcha'];
+			$t = $postvars['captcha'];
 			if ($vfuncs->FilteredPassword($t)) {
 				if (!$t) {
 					$msgs[] = $mod->Lang('missing_type', 'CAPTCHA');
@@ -325,7 +321,8 @@ if ($msgs || $fake) {
 				header('Content-Type: application/json; charset=UTF-8');
 				die(json_encode($t));
 			} else {
-				notify_handler($params, $t);
+				$others = ['authdata' => base64_encode(json_encode((object)$t))];
+				notify_handler($params, $others);
 				exit;
 			}
 		}
@@ -336,7 +333,8 @@ if ($msgs || $fake) {
 			header('Content-Type: application/json; charset=UTF-8');
 			die(json_encode($t));
 		} else {
-			notify_handler($params, $t);
+			$others = ['authdata' => base64_encode(json_encode((object)$t))];
+			notify_handler($params, $others);
 			exit;
 		}
 	}

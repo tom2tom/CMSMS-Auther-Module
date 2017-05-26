@@ -17,15 +17,11 @@ $sent array iff ajax-sourced
 [passwd] => "passnow"
 */
 
-$postvars = [];
-foreach ([
+$postvars = collect_post($id, [
 	'login',
 	'passwd',
 	'captcha'
-] as $t) {
-	$key = $id.$t;
-	$postvars[$key] = isset($_POST[$key]) ? $_POST[$key] : NULL;
-}
+]);
 
 switch ($lvl) {
  case Auther::NOBOT:
@@ -36,7 +32,7 @@ switch ($lvl) {
 			$focus = 'TODO';
 		}
 	} else {
-		$t = $postvars[$id.'captcha'];
+		$t = $postvars['captcha'];
 		if ($vfuncs->FilteredPassword($t)) {
 			if (!$t) {
 				$msgs[] = $mod->Lang('missing_type', 'CAPTCHA');
@@ -55,7 +51,7 @@ switch ($lvl) {
  case Auther::MIDSEC:
  case Auther::CHALLENGED:
 	//common stuff
-	$t = $postvars[$id.'login'];
+	$t = $postvars['login'];
 	if ($vfuncs->FilteredString($t)) {
 		$login = trim($t);
 		if (!$login) {
@@ -70,7 +66,7 @@ switch ($lvl) {
 		$focus = 'login';
 	}
 
-	$t = ($jax) ? $sent['passwd'] : $postvars[$id.'passwd'];
+	$t = ($jax) ? $sent['passwd'] : $postvars['passwd'];
 	if ($vfuncs->FilteredPassword($t)) {
 		$pw = trim($t);
 		if (!$pw) {
@@ -119,7 +115,7 @@ switch ($lvl) {
 	 case Auther::MIDSEC:
 	//check stuff
 		if (!$jax) {
-			$t = $postvars[$id.'captcha'];
+			$t = $postvars['captcha'];
 			if ($vfuncs->FilteredPassword($t)) {
 				if (!$t) {
 					$msgs[] = $mod->Lang('missing_type', 'CAPTCHA');
