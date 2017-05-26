@@ -295,9 +295,22 @@ EOS;
    }
   });
   if (valid) {
+   var parms, details,
+    \$el = $('#recover');
+   if (\$el.length > 0 && \$el[0].checked) {
+    \$el = $('#authform');
+    \$el.find(':input:not([type=hidden])').removeAttr('name');
+    \$el.prepend('<input type="hidden" name="{$id}recover" value="1" />');
+    parms = reports();
+    delete parms.recover;
+    parms.task = 'recover';
+    parms.repeat = 1;
+    var send = GibberAES.Base64.encode(JSON.stringify(parms));
+    \$el.prepend('<input type="hidden" name="{$id}authdata" value="'+send+'" />');
+    return;
+   }
 // document.body.style.cursor = 'wait';
-   var details,
-    parms = transfers(\$ins);
+   parms = transfers(\$ins);
    $.ajax({
     type: 'POST',
     method: 'POST',
@@ -308,25 +321,38 @@ EOS;
     success: function(data,status,jqXHR) {
      switch (jqXHR.status) {
       case 202:
+      case 206:
        $('#authelements #phase1,#phase2').css('display','none');
-       details = JSON.parse(jqXHR.responseText);
-       ajaxresponse(details,'{$mod->Lang('title_completed')}',false);
        var \$el = $('#authform');
        \$el.find(':input:not([type=hidden])').removeAttr('name');
-       \$el.prepend('<input type="hidden" name="{$id}success" value="'+details.success+'" />');
-       parms = reports();
-       parms.loginnew = parms.login2;
-       delete parms.login2;
-       parms.password = 'VALIDATED';
-       parms.passwordnew = 'RECORDED';
-       delete parms.recover;
-       parms.task = 'change';
-       parms.success = 1;
+       details = JSON.parse(jqXHR.responseText);
+       if (jqXHR.status == 202) {
+        ajaxresponse(details,'{$mod->Lang('title_completed')}',false);
+        \$el.prepend('<input type="hidden" name="{$id}success" value="'+details.success+'" />');
+        parms = reports();
+        parms.loginnew = parms.login2;
+        delete parms.login2;
+        parms.password = 'VALIDATED';
+        parms.passwordnew = 'RECORDED';
+        delete parms.recover;
+        parms.task = 'change';
+        parms.success = 1;
+       } else {
+        ajaxresponse(details,'{$mod->Lang('reset_now')}',true);
+        \$el.prepend('<input type="hidden" name="{$id}success" value="0" />');
+        parms = {};
+        parms.task = 'reset';
+        parms.repeat = 1;
+       }
        var send = GibberAES.Base64.encode(JSON.stringify(parms));
        \$el.prepend('<input type="hidden" name="{$id}authdata" value="'+send+'" />');
        setTimeout(function() {
         \$el.trigger('submit');
        },1000);
+       break;
+      case 204:
+       clearresponse();
+       $('#authelements #phase1,#phase2').css('display','block');
        break;
       case 200:
        clearresponse();
