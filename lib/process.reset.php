@@ -34,6 +34,7 @@ switch ($lvl) {
 		'passwd3',
 		'captcha'
 	]);
+	$phase1 = empty($_POST[$id.'phase']) || $_POST[$id.'phase'] == 'who';
 	$flds = [];
 	$t = $postvars['login'];
 	if ($vfuncs->FilteredString($t)) {
@@ -87,6 +88,10 @@ switch ($lvl) {
 		if (!$focus) {
 			$focus = 'passwd';
 		}
+	}
+
+	if ($phase1) {
+		break;
 	}
 
 	$t = ($jax) ? $sent['passwd2'] : $postvars['passwd2'];
@@ -180,6 +185,22 @@ switch ($lvl) {
 
 if ($msgs || $fake) {
 	$afuncs->AddAttempt($params['token']);
+} elseif ($phase1) {
+	$afuncs->ResetAttempts();
+	if ($lvl == Auther::CHALLENGED) {
+//TODO
+	} else {
+		$t = ['focus' => 'passwd'];
+		if ($jax) {
+			header('HTTP/1.1 200 OK');
+			header('Content-Type: application/json; charset=UTF-8');
+			die(json_encode($t));
+		} else {
+			$others = ['authdata' => base64_encode(json_encode((object)$t))];
+			notify_handler($params, $others);
+			exit;
+		}
+	}
 } else {
 	if ($lvl == Auther::CHALLENGED) {
 		$flds['login'] = $login;
@@ -190,9 +211,18 @@ if ($msgs || $fake) {
 //TODO initiate challenge
 	} else {
 		$uid = $afuncs->GetUserID($login);
-		$afuncs->ChangePassword($uid, $pw, $pw2, $pw2); //TODO $check?
-		$afuncs->ResetAttempts();
-		$vfuncs->SetForced(0, $uid);
-		$msgtext = $mod->Lang('password_changed'); //feedback
+		$res = $afuncs->ChangePasswordReal($uid, $pw2);
+		if ($res[0]) {
+		//TODO CHECK clear cached session ? what if login duration ?
+//			$sql = 'DELETE FROM '.$pref.'module_auth_cache WHERE token=?';
+			$sql = 'UPDATE '.$pref.'module_auth_cache SET attempts=0,data=NULL WHERE token=?';
+			$db->Execute($sql, [$token]);
+//			$afuncs->ResetAttempts();
+			$vfuncs->SetForced(0, FALSE, $login, $sdata['id']);
+			$forcereset = FALSE;
+			$msgtext = $mod->Lang('password_changed'); //feedback
+		} else {
+			$msgs[] = $res[1];
+		}
 	}
 }
