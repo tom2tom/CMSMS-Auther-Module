@@ -8,8 +8,13 @@
 
 $pmod = $this->_CheckAccess('admin') || $this->_CheckAccess('user');
 $psee = $this->_CheckAccess('view');
+if (!($pmod || $psee)) {
+	exit;
+}
 
-$cid = $params['ctx_id'];
+if (isset($params['close'])) {
+	$this->Redirect($id, 'defaultadmin');
+}
 
 if (!function_exists('displaywhen')) {
  function displaywhen($dt, $stamp)
@@ -19,21 +24,41 @@ if (!function_exists('displaywhen')) {
  }
 }
 
-if (isset($params['close'])) {
-	$this->Redirect($id, 'defaultadmin');
-} elseif (isset($params['delete'])) {
-	if (!$pmod) exit;
-	if (!empty($params['sel'])) {
-		$utils = new Auther\Utils();
+$cid = (int)$params['ctx_id'];
+$utils = new Auther\Utils();
+
+if (isset($params['delete'])) {
+	if (!$pmod) {
+		exit;
+	}
+	if (empty($params['sel'])) {
+		$utils->DeleteUser($this, $params['usr_id']);
+	} else {
 		$utils->DeleteUser($this, $params['sel']);
+	}
+} elseif (isset($params['activate'])) {
+	if (!$pmod) {
+		exit;
+	}
+	if (empty($params['sel'])) {
+		$utils->ActivateUser($this, $params['usr_id'], $params['to_state']);
+	} else {
+		$utils->ActivateUser($this, $params['sel']);
+	}
+} elseif (isset($params['reset'])) {
+	if (!$pmod) {
+		exit;
+	}
+	if (empty($params['sel'])) {
+		$utils->ResetUser($this, $params['usr_id'], $params['to_state']);
+	} else {
+		$utils->ResetUser($this, $params['sel']);
 	}
 } elseif (isset($params['import'])) {
 	if (!$pmod) {
 		exit;
 	}
 	$this->Redirect($id, 'import', '', ['resume'=>'users', 'ctx_id'=>$cid]);
-} elseif (!($pmod || $psee)) {
-	exit;
 }
 
 $tplvars = [
@@ -41,9 +66,6 @@ $tplvars = [
 	'see' => $psee
 ];
 
-if (!isset($utils)) {
-	$utils = new Auther\Utils();
-}
 
 $tplvars['pagenav'] = $utils->BuildNav($this,$id,$returnid,$params);
 $hidden = ['ctx_id' => $cid]; //TODO etc
@@ -129,15 +151,36 @@ if ($data) {
 			$oneset->last = $this->Lang('none');
 		}
 		$oneset->addr = ($one['address']) ? $icon_yes : $icon_no;
-		$oneset->reset = ($one['privreset']) ? $icon_yes : $icon_no;
-		$oneset->active = ($one['active'] > 0) ? $icon_yes : $icon_no;
+		if ($pmod) {
+			if ($one['privreset']) {
+				$icon = $icon_yes;
+				$to = 0;
+			} else {
+				$icon = $icon_no;
+				$to = 1;
+			}
+			$oneset->reset = $this->CreateLink($id,'users','',$icon,
+				['ctx_id'=>$cid,'reset'=>1,'usr_id'=>$uid,'to_state'=>$to]);
+			if ($one['active']) {
+				$icon = $icon_yes;
+				$to = 0;
+			} else {
+				$icon = $icon_no;
+				$to = 1;
+			}
+			$oneset->active = $this->CreateLink($id,'users','',$icon,
+				['ctx_id'=>$cid,'activate'=>1,'usr_id'=>$uid,'to_state'=>$to]);
+		} else {
+			$oneset->reset = ($one['privreset']) ? $icon_yes : $icon_no;
+			$oneset->active = ($one['active'] > 0) ? $icon_yes : $icon_no;
+		}
 		$oneset->see = $this->CreateLink($id,'openuser','',$icon_see,
 			['ctx_id'=>$cid,'usr_id'=>$uid,'edit'=>0]);
 		if ($pmod) {
 			$oneset->edit = $this->CreateLink($id,'openuser','',$icon_edit,
 				['ctx_id'=>$cid,'usr_id'=>$uid,'edit'=>1]);
-			$oneset->del = $this->CreateLink($id,'deleteuser','',$icon_delete,
-				['ctx_id'=>$cid,'usr_id'=>$uid]);
+			$oneset->del = $this->CreateLink($id,'users','',$icon_delete,
+				['ctx_id'=>$cid,'delete'=>1,'usr_id'=>$uid]);
 			$oneset->sel = $this->CreateInputCheckbox($id,'sel[]',$uid,-1);
 		}
 		$rows[] = $oneset;
@@ -206,6 +249,9 @@ EOS;
   countid: 'tpage'
 ";
 		} else { //no rows-paging
+			$jsfuncs[] = <<<EOS
+var pagedtable;
+EOS;
 			$xjs = '';
 		}
 
@@ -240,6 +286,52 @@ EOS;
 	}
 
 	if ($pmod) {
+		if ($uc > 1) {
+			$tplvars['header_checkbox'] =
+				$this->CreateInputCheckbox($id,'selectall',TRUE,FALSE,'onclick="select_all(this);"');
+
+			$jsfuncs[] = <<<EOS
+function select_all(cb) {
+ $('#userstable > tbody').find('input[type="checkbox"]').attr('checked',cb.checked);
+}
+EOS;
+			$jsloads[] = <<<EOS
+ var shiftKeyDown = false;
+ $(document).keydown(function(e) {
+  if (e.keyCode == 16) {
+   shiftKeyDown = true;
+  }
+ });
+ $(document).keyup(function(e) {
+  if (e.keyCode == 16) {
+   shiftKeyDown = false;
+  }
+ });
+ var lastSelected = null;
+ var checkBoxes = $('#userstable > tbody').find('input[type="checkbox"]');
+ checkBoxes.each(function() {
+  $(this).click(function(ev) {
+   if (shiftKeyDown) {
+    if (!lastSelected) {
+     lastSelected = this;
+     return true;
+    }
+    var first = checkBoxes.index(this),
+     last = checkBoxes.index(lastSelected);
+    if (first != last) {
+     var start = (first <= last) ? first:last,
+      end = (start == first) ? last:first,
+      chk = lastSelected.checked;
+     for (var i = start; i <= end; i++) {
+      checkBoxes[i].checked = chk;
+     }
+    }
+   }
+   lastSelected = this;
+  })
+ });
+EOS;
+		}
 		$tplvars['delete'] = $this->CreateInputSubmit($id,'delete',$this->Lang('delete'),
 			'title="'.$this->Lang('tip_deluser').'"');
 
