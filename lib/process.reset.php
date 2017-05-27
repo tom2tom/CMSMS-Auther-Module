@@ -218,7 +218,7 @@ if ($msgs || $fake) {
 			$sql = 'UPDATE '.$pref.'module_auth_cache SET attempts=0,data=NULL WHERE token=?';
 			$db->Execute($sql, [$token]);
 //			$afuncs->ResetAttempts();
-			$vfuncs->SetForced(0, FALSE, $login, $sdata['id']);
+			$vfuncs->SetForced(0, FALSE, $login, $cdata['id']);
 			$forcereset = FALSE;
 			$msgtext = $mod->Lang('password_changed'); //feedback
 		} else {

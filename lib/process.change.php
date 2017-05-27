@@ -370,7 +370,7 @@ if ($msgs || $fake) {
 		$db->Execute($sql, [$args]);
 
 		if (isset($flds['privhash'])) {
-			$vfuncs->SetForced(0, FALSE, $login, $sdata['id']);
+			$vfuncs->SetForced(0, FALSE, $login, $cdata['id']);
 			$forcereset = FALSE;
 		}
 		$afuncs->ResetAttempts();
