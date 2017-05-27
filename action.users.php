@@ -66,7 +66,6 @@ $tplvars = [
 	'see' => $psee
 ];
 
-
 $tplvars['pagenav'] = $utils->BuildNav($this,$id,$returnid,$params);
 $hidden = ['ctx_id' => $cid]; //TODO etc
 $tplvars['startform'] = $this->CreateFormStart($id,'users',$returnid,'POST',
