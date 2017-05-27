@@ -241,6 +241,9 @@ function pagerows(cb) {
  $.SSsort.setCurrent(pagedtable,'pagesize',parseInt(cb.value));
 }
 EOS;
+			$jsloads[] = <<<'EOS'
+ pagedtable = document.getElementById('userstable');
+EOS;
 			$xjs = ",
   paginate: true,
   pagesize: $pagerows,
@@ -248,9 +251,6 @@ EOS;
   countid: 'tpage'
 ";
 		} else { //no rows-paging
-			$jsfuncs[] = <<<EOS
-var pagedtable;
-EOS;
 			$xjs = '';
 		}
 
@@ -268,11 +268,7 @@ EOS;
   watch: false,
   type: 'text'
  });
-
- var \$tbl = $('#userstable');
- pagedtable = \$tbl[0];
-
- \$tbl.SSsort({
+ $('#userstable').SSsort({
   sortClass: 'SortAble',
   ascClass: 'SortUp',
   descClass: 'SortDown',
@@ -295,39 +291,36 @@ function select_all(cb) {
 }
 EOS;
 			$jsloads[] = <<<EOS
- var shiftKeyDown = false;
+ var shifted = false,
+  firstClicked = null,
+  \$checks;
  $(document).keydown(function(e) {
   if (e.keyCode == 16) {
-   shiftKeyDown = true;
+   shifted = true;
   }
- });
- $(document).keyup(function(e) {
+ }).keyup(function(e) {
   if (e.keyCode == 16) {
-   shiftKeyDown = false;
+   shifted = false;
   }
  });
- var lastSelected = null;
- var checkBoxes = $('#userstable > tbody').find('input[type="checkbox"]');
- checkBoxes.each(function() {
-  $(this).click(function(ev) {
-   if (shiftKeyDown) {
-    if (!lastSelected) {
-     lastSelected = this;
-     return true;
+ \$checks = $('#userstable > tbody').find('input[type="checkbox"]');
+ \$checks.click(function() {
+  if (shifted && firstClicked) {
+   var i,
+    first = \$checks.index(firstClicked),
+    last = \$checks.index(this),
+    chk = firstClicked.checked;
+   if (first < last) {
+    for (i = first; i <= last; i++) {
+     \$checks[i].checked = chk;
     }
-    var first = checkBoxes.index(this),
-     last = checkBoxes.index(lastSelected);
-    if (first != last) {
-     var start = (first <= last) ? first:last,
-      end = (start == first) ? last:first,
-      chk = lastSelected.checked;
-     for (var i = start; i <= end; i++) {
-      checkBoxes[i].checked = chk;
-     }
+   } else if (first > last) {
+    for (i = first; i >= last; i--) {
+     \$checks[i].checked = chk;
     }
    }
-   lastSelected = this;
-  })
+  }
+  firstClicked = this;
  });
 EOS;
 		}
