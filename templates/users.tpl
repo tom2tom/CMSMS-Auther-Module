@@ -14,7 +14,7 @@
    <th class="pageicon {ldelim}sss:false{rdelim}"></th>
 {if $mod} <th class="pageicon {ldelim}sss:false{rdelim}"></th>
    <th class="pageicon {ldelim}sss:false{rdelim}"></th>
-   <th class="checkbox {ldelim}sss:false{rdelim}"></th>{/if}
+   <th class="checkbox {ldelim}sss:false{rdelim}" style="padding-left:6px;">{if !empty($header_checkbox)}{$header_checkbox}{/if}</th>{/if}
   </tr></thead>
   <tbody>
  {foreach from=$users item=entry} {cycle values='row1,row2' assign='rowclass'}
