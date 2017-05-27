@@ -127,6 +127,60 @@ class Utils
 	}
 
 	/**
+	ActivateUser:
+	@mod: reference to current Auther-module object
+	@user: numeric user identifier, or array of them
+	@state: optional boolean, the state to set a single user, default TRUE
+	*/
+	public function ActivateUser(&$mod, $user, $state=TRUE)
+	{
+		$pre = \cms_db_prefix();
+		$db = \cmsms()->GetDB();
+		if (is_array($user)) {
+			$fillers = str_repeat('?,', count($user)-1);
+			$args = $user;
+			$sql = 'SELECT active FROM '.$pre.'module_auth_users WHERE id IN ('.$fillers.'?)';
+			$current = array_count_values($db->GetCol($sql, $args));
+			$cm = array_search(max($current), $current);
+			$val = ($cm == 0) ? 1 : 0;
+			$sql = 'UPDATE '.$pre.'module_auth_users SET active=? WHERE id IN ('.$fillers.'?)';
+			array_unshift($args, $val);
+		} else {
+			$sql = 'UPDATE '.$pre.'module_auth_users SET active=? WHERE id=?';
+			$val = ($state) ? 1 : 0;
+			$args = [$val, $user];
+		}
+		$db->Execute($sql, $args);
+	}
+
+	/**
+	ResetUser:
+	@mod: reference to current Auther-module object
+	@user: numeric user identifier, or array of them
+	@state: optional boolean, the state to set a single user, default TRUE
+	*/
+	public function ResetUser(&$mod, $user, $state=TRUE)
+	{
+		$pre = \cms_db_prefix();
+		$db = \cmsms()->GetDB();
+		if (is_array($user)) {
+			$args = $user;
+			$fillers = str_repeat('?,', count($user)-1);
+			$sql = 'SELECT privreset FROM '.$pre.'module_auth_users WHERE id IN ('.$fillers.'?)';
+			$current = array_count_values($db->GetCol($sql, $args));
+			$cm = array_search(max($current), $current);
+			$val = ($cm == 0) ? 1 : 0;
+			$sql = 'UPDATE '.$pre.'module_auth_users SET privreset=? WHERE id IN ('.$fillers.'?)';
+			array_unshift($args, $val);
+		} else {
+			$sql = 'UPDATE '.$pre.'module_auth_users SET privreset=? WHERE id=?';
+			$val = ($state) ? 1 : 0;
+			$args = [$val, $user];
+		}
+		$db->Execute($sql, $args);
+	}
+
+	/**
 	Tokenise:
 	@$num: integer
 	Returns: 3-byte token derived from @num
