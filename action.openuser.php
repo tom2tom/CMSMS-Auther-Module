@@ -28,10 +28,17 @@ if (!function_exists('GetUserProperties')) {
  }
 }
 
+if (empty($params['ctx_id'])) {
+	$params['ctx_id'] = 0;
+} elseif (!is_numeric($params['ctx_id'])) {
+	$params['ctx_id'] = $utils->ContextID($params['ctx_id']);
+}
+$cid = $params['ctx_id'] + 0;
+
 if (isset($params['cancel'])) {
-	$this->Redirect($id, 'users', '', ['ctx_id'=>$params['ctx_id']]); //TODO parms
+	$this->Redirect($id, 'users', '', ['ctx_id' => $cid]); //TODO CHECKME other parms
 } elseif (isset($params['submit'])) {
-	$afuncs = new Auther\Auth($this, $params['ctx_id']);
+	$afuncs = new Auther\Auth($this, $cid);
 	$cfuncs = new Auther\Crypter($this);
 	$t = $cfuncs->decrypt_preference('masterpass');
 	$msg = FALSE;
@@ -114,7 +121,7 @@ if (isset($params['cancel'])) {
 		if ($uid == -1) {
 			$uid = $db->GenID($pre.'module_auth_users_seq');
 			array_unshift($args, $uid);
-			array_push($args, (int)$params['ctx_id'], time());
+			array_push($args, $cid, time());
 			array_unshift($keys, 'id');
 			array_push($keys, 'context_id', 'addwhen');
 
@@ -128,15 +135,11 @@ if (isset($params['cancel'])) {
 		}
 		$ares = $db->Execute($sql, $args);
 
-		$this->Redirect($id, 'users', '', ['ctx_id'=>$params['ctx_id']]);
+		$this->Redirect($id, 'users', '', ['ctx_id'=>$cid]); //TODO CHECKME other parms
 	}
 }
 
 $utils = new Auther\Utils();
-
-if (!is_numeric($params['ctx_id'])) {
-	$params['ctx_id'] = $utils->ContextID($params['ctx_id']);
-}
 
 $cfuncs = new Auther\Crypter($this);
 $pre = cms_db_prefix();
@@ -153,7 +156,7 @@ if (empty($msg)) {
 		'nameswap' => 0,
 		'address' => '',
 		'publicid' => $this->Lang('missing_name'),
-		'context_id' => $params['ctx_id'],
+		'context_id' => $cid,
 		'privhash' => '',
 		'privreset' => 0,
 		'active' => 1,
@@ -170,12 +173,12 @@ if (empty($msg)) {
 	}
 }
 
-$cdata = $db->GetRow('SELECT name,password_min_length,password_min_score,address_required,email_login,email_required,name_required FROM '.$pre.'module_auth_contexts WHERE id=?', [$params['ctx_id']]);
+$cdata = $db->GetRow('SELECT name,password_min_length,password_min_score,address_required,email_login,email_required,name_required FROM '.$pre.'module_auth_contexts WHERE id=?', [$cid]);
 
 $tplvars = ['mod' => $pmod];
 $tplvars['pagenav'] = $utils->BuildNav($this,$id,$returnid,$params);
 $hidden = [
-	'ctx_id'=>$params['ctx_id'],
+	'ctx_id'=>$cid,
 	'usr_id'=>$params['usr_id'],
 	'edit'=>!empty($params['edit'])
 ]; //TODO etc
