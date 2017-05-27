@@ -301,6 +301,21 @@ final class Setup
 
 		$tplvars['wantjs'] = $mod->Lang('wantjs');
 
+		if (0) {
+			$t = htmlspecialchars_decode('TODO', ENT_XHTML);
+			if (!preg_match('/\/[a-z]*>/i', $t)) {
+				$t = '<p>'.$t.'</p>';
+			}
+			$tplvars['before'] = $t;
+		}
+		if (0) {
+			$t = htmlspecialchars_decode('TODO', ENT_XHTML);
+			if (!preg_match('/\/[a-z]*>/i', $t)) {
+				$t = '<p>'.$t.'</p>';
+			}
+			$tplvars['after'] = $t;
+		}
+
 		$jsloads[] = <<<EOS
  $('.hidejs').css('display','none');
  var \$el = $('#focus');
@@ -442,7 +457,9 @@ EOS;
  <div class="hidejs">
   <p class="authtitle error">{$wantjs}</p>
  </div>
-{if (!empty($intro))}<p class="authtext">{$intro}</p><br />{/if}
+{if !empty($before)}<div id="custombefore" class="authtext" style="margin:1em 0;">
+{$before}
+</div>{/if}
 <p id="feedback" class="authtext" style="display:none;"></p>
  <form id="authform" action="{$url}" method="POST" enctype="multipart/form-data">
   <div style="display:none;">
@@ -483,7 +500,9 @@ EOS;
  {$submitbtn}{if !empty($cancelbtn)} {$cancelbtn}{/if}
   </div>
  </form>
-{if (!empty($after))}<br /><p class="authtext">{$after}</p>{/if}
+{if !empty($after)}<div id="customafter" class="authtext" style="margin:1em 0;">
+{$after}
+</div>{/if}
 </div>
 EOS;
 		$out = $utils->ProcessTemplateFromData($mod,$tplstr,$tplvars);

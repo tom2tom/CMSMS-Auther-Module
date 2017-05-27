@@ -6,13 +6,6 @@
 # More info at http://dev.cmsmadesimple.org/projects/auther
 #----------------------------------------------------------------------
 
-if (0) {
-	$tplvars['intro'] = NULL; //$mod->Lang('TODO');
-}
-if (0) {
-	$tplvars['after'] = NULL; //$mod->Lang('TODO');
-}
-
 switch ($lvl) {
  case self::NOBOT:
 	$one = new \stdClass();

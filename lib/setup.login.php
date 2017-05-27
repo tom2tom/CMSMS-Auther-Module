@@ -6,13 +6,6 @@
 # More info at http://dev.cmsmadesimple.org/projects/auther
 #----------------------------------------------------------------------
 
-if (0) {
-	$tplvars['intro'] = NULL; //$mod->Lang('TODO');
-}
-if (0) {
-	$tplvars['after'] = NULL; //$mod->Lang('TODO');
-}
-
 /*
 parameters @ https://developers.google.com/recaptcha/docs/display#render_param
  When the form is submitted, part of the payload will be a string with the name
