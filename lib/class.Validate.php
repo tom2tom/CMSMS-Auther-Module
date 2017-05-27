@@ -176,7 +176,7 @@ class Validate
 	 * Must supply valid @uid, or @login and @cid
 	 * @uid: user identifier or FALSE
 	 * @login: optional alternative user identifier or FALSE
-	 * @cid: optional numeric context indentifier for use with @login
+	 * @cid: optional numeric context indentifier for use with @login, when @uid === FALSE
 	 * Returns: boolean
 	 */
 	public function IsForced($uid, $login=FALSE, $cid=FALSE)
