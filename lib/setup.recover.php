@@ -50,7 +50,7 @@ EOS;
 	$elements1[] = $one;
 
 	$one = new \stdClass();
-	$one->title = $mod->Lang('title_password_token');
+	$one->title = $mod->Lang('token');
 //	$one->extra = $mod->Lang('help_password_token');
 	$one->input = $this->GetInputPasswd($id, 'passwd', 'passwd', $tabindex++, '', 12, 20);
 	$one->extra = $mod->Lang('help_password_recover');
