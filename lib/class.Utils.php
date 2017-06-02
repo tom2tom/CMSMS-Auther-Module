@@ -76,6 +76,30 @@ class Utils
 	}
 
 	/**
+	MoveContextUsers:
+	@user: numeric user identifier, or array of them
+	@oldcontext: numeric context identifier
+	@newcontext: numeric context identifier
+	*/
+	public function MoveContextUsers($user, $oldcontext, $newcontext)
+	{
+		if ($oldcontext != $newcontext) {
+			$pre = \cms_db_prefix();
+			if (is_array($user)) {
+				$fillers = str_repeat('?,', count($user)-1);
+				$sql = 'UPDATE '.$pre.'module_auth_users SET context_id=? WHERE context_id=? AND id IN ('.$fillers.'?)';
+				$args = $user;
+				array_unshift($args,$newcontext, $oldcontext);
+			} else {
+				$sql = 'UPDATE '.$pre.'module_auth_users SET context_id=? WHERE context_id=? AND id=?';
+				$args = [$newcontext, $oldcontext, $user];
+			}
+			$db = \cmsms()->GetDB();
+			$db->Execute($sql, $args);
+		}
+	}
+
+	/**
 	DeleteContextUsers:
 	@mod: reference to current Auther-module object
 	@context: numeric context identifier, or array of them
@@ -128,11 +152,10 @@ class Utils
 
 	/**
 	ActivateUser:
-	@mod: reference to current Auther-module object
 	@user: numeric user identifier, or array of them
 	@state: optional boolean, the state to set a single user, default TRUE
 	*/
-	public function ActivateUser(&$mod, $user, $state=TRUE)
+	public function ActivateUser($user, $state=TRUE)
 	{
 		$pre = \cms_db_prefix();
 		$db = \cmsms()->GetDB();
@@ -155,11 +178,10 @@ class Utils
 
 	/**
 	ResetUser:
-	@mod: reference to current Auther-module object
 	@user: numeric user identifier, or array of them
 	@state: optional boolean, the state to set a single user, default TRUE
 	*/
-	public function ResetUser(&$mod, $user, $state=TRUE)
+	public function ResetUser($user, $state=TRUE)
 	{
 		$pre = \cms_db_prefix();
 		$db = \cmsms()->GetDB();
