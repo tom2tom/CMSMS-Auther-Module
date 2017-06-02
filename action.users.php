@@ -41,18 +41,18 @@ if (isset($params['delete'])) {
 		exit;
 	}
 	if (empty($params['sel'])) {
-		$utils->ActivateUser($this, $params['usr_id'], $params['to_state']);
+		$utils->ActivateUser($params['usr_id'], $params['to_state']);
 	} else {
-		$utils->ActivateUser($this, $params['sel']);
+		$utils->ActivateUser($params['sel']);
 	}
 } elseif (isset($params['reset'])) {
 	if (!$pmod) {
 		exit;
 	}
 	if (empty($params['sel'])) {
-		$utils->ResetUser($this, $params['usr_id'], $params['to_state']);
+		$utils->ResetUser($params['usr_id'], $params['to_state']);
 	} else {
-		$utils->ResetUser($this, $params['sel']);
+		$utils->ResetUser($params['sel']);
 	}
 } elseif (isset($params['import'])) {
 	if (!$pmod) {
