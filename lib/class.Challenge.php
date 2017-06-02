@@ -214,8 +214,8 @@ class Challenge extends Session
 		$expiretime = $dt->getTimestamp();
 
 		$sql = 'INSERT INTO '.$this->pref.'module_auth_cache (token,user_id,expire,lastmode,data) VALUES (?,?,?,?,?)';
-
-		if (!$this->db->Execute($sql, [$token, $uid, $expiretime, $itype, $data])) {
+		$this->db->Execute($sql, [$token, $uid, $expiretime, $itype, $data]);
+		if ($this->db->Affected_Rows() == 0) {
 			return [FALSE, $this->mod->Lang('system_error', '#54')];
 		}
 

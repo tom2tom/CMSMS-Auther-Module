@@ -290,7 +290,8 @@ class Import
 								$sql = 'UPDATE '.$pref.'module_auth_users SET '.$namers.'=? WHERE id=?';
 								$args = array_values($data);
 								$args[] = $uid;
-								if ($db->Execute($sql,$args)) {
+								$db->Execute($sql,$args);
+								if ($db->Affected_Rows() > 0) {
 									$icount++;
 									$done = TRUE;
 								}
@@ -304,7 +305,8 @@ class Import
 							$uid = $db->GenID($pref.'module_auth_users_seq');
 							array_unshift($args,$uid);
 							$args[] = $st;
-							if ($db->Execute($sql,$args)) {
+							$db->Execute($sql,$args);
+							if ($db->Affected_Rows() > 0) {
 								$icount++;
 							} else {
 								return [FALSE, $mod->Lang('err_system')];

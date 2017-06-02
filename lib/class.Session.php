@@ -173,8 +173,8 @@ class Session
 		$sql = 'INSERT INTO '.$this->pref.
 'module_auth_cache (token,ip,user_id,context_id,expire,lastmode,attempts,cookie_hash,agent) VALUES (?,?,?,?,?,?,?,?,?)';
 		$args = [$token, $ip, $uid, $this->context, $data['expire'], $stat, 0, $data['cookie_token'], $agent];
-
-		if (!$this->db->Execute($sql, $args)) {
+		$this->db->Execute($sql, $args);
+		if ($this->db->Affected_Rows() == 0) {
 			return FALSE;
 		}
 

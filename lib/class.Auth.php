@@ -542,7 +542,7 @@ class Auth extends Session
 	 * @fast: optional boolean whether to return immediately if not recognized, default = FALSE
 	 * @token: optional string 24-byte session-data key, default = FALSE
 	 * Returns: 2-member array [0]=boolean indicating success [1]=array of data from row of session table
-	 * TODO also return indication that password-reset is now forced  
+	 * TODO also return indication that password-reset is now forced
 	 */
 	public function IsRegistered($login, $password = FALSE, $active = TRUE, $fast = FALSE, $token = FALSE)
 	{
@@ -605,7 +605,7 @@ class Auth extends Session
 	 * @password: optional plaintext string, or FALSE to skip password-validation, default = FALSE
 	 * @active: optional boolean whether to check for active user, default TRUE
 	 * Returns: boolean indicating success
-	 * TODO also return indication that password-reset is now forced  
+	 * TODO also return indication that password-reset is now forced
 	 */
 	public function IsKnown($login, $password = FALSE, $active = TRUE)
 	{
@@ -1040,8 +1040,8 @@ class Auth extends Session
 		}
 		//TODO any others?
 		$sql = 'INSERT INTO '.$this->pref.'module_auth_users (id,publicid,privhash,name,address,context_id,addwhen,active) VALUES (?,?,?,?,?,?,?,?)';
-
-		if (!$this->db->Execute($sql, [$uid, $login, $password, $name, $address, $this->context, time(), $active])) {
+		$this->db->Execute($sql, [$uid, $login, $password, $name, $address, $this->context, time(), $active]);
+		if ($this->db->Affected_Rows() == 0) {
 			return [FALSE, $this->mod->Lang('system_error', '#08')]; //probably a duplicate
 		}
 
@@ -1156,8 +1156,8 @@ class Auth extends Session
 		}
 		$args[] = $uid;
 		$sql = 'UPDATE '.$this->pref.'module_auth_users SET '.implode('=?,', $namers).'=? WHERE id=?';
-
-		if (!$this->db->Execute($sql, $args)) {
+		$this->db->Execute($sql, $args);
+		if ($this->db->Affected_Rows() == 0) {
 			return [FALSE, $this->mod->Lang('system_error', '#08')];
 		}
 
@@ -1240,14 +1240,14 @@ class Auth extends Session
 		}
 
 		$sql = 'DELETE FROM '.$this->pref.'module_auth_users WHERE id=?';
-
-		if (!$this->db->Execute($sql, [$uid])) {
+		$this->db->Execute($sql, [$uid]);
+		if ($this->db->Affected_Rows() == 0) {
 			return [FALSE, $this->mod->Lang('system_error', '#09')];
 		}
 
 		$sql = 'DELETE FROM '.$this->pref.'module_auth_cache WHERE user_id=?';
-
-		if (!$this->db->Execute($sql, [$uid])) { //TODO ok if no such record(s)
+		$this->db->Execute($sql, [$uid]);
+		if ($this->db->Affected_Rows() == 0) { //TODO make it ok if no such record(s)
 			return [FALSE, $this->mod->Lang('system_error', '#10')];
 		}
 
