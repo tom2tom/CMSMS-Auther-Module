@@ -364,7 +364,8 @@ class Auth extends Session
 			return [FALSE, $this->mod->Lang('system_error', '#14')];
 		}
 
-		if (!$this->DoPasswordCheck($password, $userdata['password']/*, $tries TODO*/)) {
+		$tries = 1; //TODO
+		if (!$this->DoPasswordCheck($password, $userdata['password'], $tries)) { //no $uid/update yet
 			$this->AddAttempt($token);
 			return [FALSE, $this->mod->Lang('incorrect_type', $this->mod->Lang('password'))];
 		}
@@ -389,7 +390,7 @@ class Auth extends Session
 		$sql = 'SELECT privhash FROM '.$this->pref.'module_auth_users WHERE id=?';
 		$hash = $this->db->GetOne($sql, [$uid]);
 		if ($hash) {
-			return $this->DoPasswordCheck($password, $hash, 0);
+			return $this->DoPasswordCheck($password, $hash, 0, $uid);
 		}
 		return FALSE;
 	}
@@ -409,7 +410,8 @@ class Auth extends Session
 			return [FALSE, $this->mod->Lang('system_error', '#15')];
 		}
 
-		if (!$this->DoPasswordCheck($password, $hash/*, $tries TODO*/)) {
+		$tries = 1; //TODO
+		if (!$this->DoPasswordCheck($password, $hash, $tries, $uid)) {
 			return [FALSE, $this->mod->Lang('invalid_type', $this->mod->Lang('password'))];
 		}
 		return [TRUE, ''];
@@ -421,11 +423,17 @@ class Auth extends Session
 	 * @password: string the password to verify
 	 * @hash: string the hash to verify against
 	 * @tries: optional no. of verification attempts, may be 0 in which case immediate return on mismatch, default = 1
+	 * @uid: optional user-identifier > 0 for password re-hash if needed, default 0
 	 * Returns: boolean
 	 */
-	public function DoPasswordCheck($password, $hash, $tries = 1)
+	public function DoPasswordCheck($password, $hash, $tries = 1, $uid = 0)
 	{
 		if (password_verify($password, $hash)) {
+			if ($uid > 0 && password_needs_rehash($hash, PASSWORD_DEFAULT)) {
+				$newhash = password_hash($password, PASSWORD_DEFAULT);
+				$sql = 'UPDATE '.$this->pref.'module_auth_users SET privhash=? WHERE id=?';
+				$this->db->Execute($sql, [$newhash, $uid]);
+			}
 			return TRUE;
 		}
 		$t = min(2000, $tries * 500);
@@ -572,7 +580,7 @@ class Auth extends Session
 				$sdata = $this->db->GetRow($sql, [$token]);
 			}
 			$tries = ($fast) ? 0 : $sdata['attempts'];
-			$res = $this->DoPasswordCheck($password, $userdata['privhash'], $tries);
+			$res = $this->DoPasswordCheck($password, $userdata['privhash'], $tries, $uid);
 			if (!$res) {
 				$this->AddAttempt($sdata['token']); //TODO update token WHERE token=sdata[token]
 				$sdata['attempts']++;
@@ -670,7 +678,8 @@ class Auth extends Session
 			return [FALSE, $this->mod->Lang('system_error', '#05')];
 		}
 
-		if (!$this->DoPasswordCheck($password, $userdata['password']/*, $tries TODO*/)) {
+		$tries = 1; //TODO
+		if (!$this->DoPasswordCheck($password, $userdata['password'], $tries, $uid)) {
 			$this->AddAttempt($token);
 			return [FALSE, $this->mod->Lang('incorrect_type', $this->mod->Lang('password'))];
 		}
