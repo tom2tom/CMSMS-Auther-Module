@@ -221,7 +221,7 @@ class Utils
 
 	/**
 	RandomString:
-	Generate a pseudo-random ASCII string of the specified length
+	Generate a pseudo-random ASCII string of the specified length (c.f. Setup::RandomAscii())
 	@length: int wanted byte-count
 	@alnum: optional boolean, whether to limit the string to numbers and (english) lettters, default TRUE
 	@letterfirst: optional boolean, whether to force the first char to be a letter, default FALSE
@@ -235,9 +235,21 @@ class Utils
 		}
 		$cl = strlen($chars) - 1;
 
+		try {
+			include __DIR__.DIRECTORY_SEPARATOR.'random'.DIRECTORY_SEPARATOR.'random.php';
+			$o = random_int(0, $cl); //tester
+			$strong = TRUE;
+		} catch (\Error $e) {
+			//required, if you do not need to do anything just rethrow
+			throw $e;
+		} catch (\Exception $e) {
+			$strong = FALSE;
+		}
+
 		$ret = str_repeat('0', $length);
 		for ($i = 0; $i < $length; $i++) {
-			$ret[$i] = $chars[mt_rand(0, $cl)];
+			$o = ($strong) ? random_int(0, $cl) : mt_rand(0, $cl);
+			$ret[$i] = $chars[$o];
 			if ($i == 0 && $letterfirst) {
 				if (!preg_match('/[A-Za-z]/',$ret[$i])) {
 					$i--; //start again

@@ -80,9 +80,19 @@ final class Setup
 		return [$res['code'], '<img src="'.$fp.'" '.$attr.' alt="CAPTCHA" />'];
 	}
 
+	//c.f. Utils::RandomString()
 	private function RandomAscii($length)
 	{
-		$ret = openssl_random_pseudo_bytes($length);
+		try {
+			include __DIR__.DIRECTORY_SEPARATOR.'random'.DIRECTORY_SEPARATOR.'random.php';
+			$ret = random_bytes($length);
+		} catch (\Error $e) {
+			//required, if you do not need to do anything just rethrow
+			throw $e;
+		} catch (\Exception $e) {
+			$strong = TRUE;
+			$ret = openssl_random_pseudo_bytes($length, $strong);
+		}
 		for ($i = 0; $i < $length; $i++) {
 			$ch = ord($ret[$i]);
 			if ($ch < 33) {
@@ -421,7 +431,16 @@ EOS;
 
 		$cfuncs = new Crypter($mod);
 		$pw = $cfuncs->decrypt_preference('masterpass');
-		$iv = openssl_random_pseudo_bytes(8); //sized for Blowfish in openssl
+		try {
+			require __DIR__.DIRECTORY_SEPARATOR.'random'.DIRECTORY_SEPARATOR.'random.php';
+			$iv = random_bytes(8); //sized for Blowfish in openssl
+		} catch (\Error $e) {
+			//required, if you do not need to do anything just rethrow
+			throw $e;
+		} catch (\Exception $e) {
+			$strong = TRUE;
+			$iv = openssl_random_pseudo_bytes(8, $strong);
+		}
 		//serialize $cache cuz' random-bytes in far-nonce BUT RAW DATA ALWAYS FAILS! DITTO FOR JSON
 		$t = openssl_encrypt(serialize($cache), 'BF-CBC', $pw, 0, $iv); //low security
 		$hidden[] = $mod->CreateInputHidden($id, 'data', $t);
