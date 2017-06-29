@@ -116,7 +116,8 @@ class Challenge extends Session
 			return [FALSE, $this->mod->Lang('system_error', '#12')];
 		}
 
-		if ($this->DoPasswordCheck($newpass, $userdata['password']/*, $tries TODO*/)) {
+		$tries = 1; //TODO
+		if ($this->DoPasswordCheck($newpass, $userdata['password'], $tries, $data['uid'])) {
 			$this->AddAttempt($token);
 			return [FALSE, $this->mod->Lang('newpassword_match')];
 		}

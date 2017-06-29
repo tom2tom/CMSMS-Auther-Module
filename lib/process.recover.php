@@ -98,7 +98,8 @@ switch ($lvl) {
 	if ($vfuncs->FilteredPassword($t)) {
 		$pw = trim($t);
 		$data = (array)json_decode($sdata['data']);
-		if (!$afuncs->DoPasswordCheck($pw, $data['temptoken'], $sdata['attempts'])) {
+		$uid = $afuncs->GetUserID($login);
+		if (!$afuncs->DoPasswordCheck($pw, $data['temptoken'], $sdata['attempts'], $uid)) {
 			$msgs[] = $mod->Lang('incorrect_resetkey');
 			break;
 		}
