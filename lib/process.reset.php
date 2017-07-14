@@ -106,7 +106,7 @@ switch ($lvl) {
 			$res = $afuncs->ValidatePassword($pw);
 			if ($res[0]) {
 				if (!$msgs) {
-					$flds['privhash'] = $pw2; //hash when required
+					$flds['passhash'] = $pw2; //hash when required
 				}
 			} else {
 				$msgs[] = $res[1];
@@ -132,7 +132,7 @@ switch ($lvl) {
 		$t = $postvars['passwd3'];
 		if ($vfuncs->FilteredPassword($t)) {
 			if ($pw2 !== trim($t)) {
-				unset($flds['privhash']);
+				unset($flds['passhash']);
 				$msgs[] = $mod->Lang('newpassword_nomatch');
 				if (!$focus) {
 					$focus = 'passwd2';

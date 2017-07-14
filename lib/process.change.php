@@ -127,7 +127,7 @@ switch ($lvl) {
 				if ($res[0]) {
 					$res = $afuncs->UniqueLogin($t, $login);
 					if ($res[0]) {
-						$flds['publicid'] = $t;
+						$flds['account'] = $t;
 					} else {
 						if (!$cdata['email_login']) {
 							$alt = $afuncs->NumberedLogin($login);
@@ -169,7 +169,7 @@ switch ($lvl) {
 		if ($vfuncs->FilteredString($t)) {
 			$res = $afuncs->ValidatePassword($t);
 			if ($res[0]) {
-				$flds['privhash'] = $t; //crypt later
+				$flds['passhash'] = $t; //crypt later
 			} else {
 				$msgs[] = $res[1];
 				if (!$focus) {
@@ -186,14 +186,14 @@ switch ($lvl) {
 //	} else { //no replacement password
 	}
 
-	if (!empty($flds['privhash'])) {
+	if (!empty($flds['passhash'])) {
 		if ($jax && !empty($sent['passwd3'])) {
 			$t = $sent['passwd3'];
 		} else {
 			$t = $postvars['passwd3'];
 		}
-		if ($t != $flds['privhash']) {
-			unset($flds['privhash']);
+		if ($t != $flds['passhash']) {
+			unset($flds['passhash']);
 			$msgs[] = $mod->Lang('newpassword_nomatch');
 		}
 	}
@@ -304,10 +304,10 @@ if ($msgs || $fake) {
 		if ($sendto) {
 			$res = $mfuncs->TellUser($sendto, 'change', $pw);
 			if ($res[0]) {
-				$hash = password_hash($pw, PASSWORD_DEFAULT);
-				$data = json_encode(['temptoken' => $hash]);
+				$flds = ['temptoken' => password_hash($pw, PASSWORD_DEFAULT)];
+				$enc = $cfuncs->encrypt_value(json_encode($flds));
 				$sql = 'UPDATE '.$pref.'module_auth_cache SET data=? WHERE token=?';
-				$db->Execute($sql, [$data, $token]);
+				$db->Execute($sql, [$enc, $token]);
 			} else {
 				$msgs[] = $res[1];
 			}
@@ -352,10 +352,10 @@ if ($msgs || $fake) {
 		foreach ($flds as $field => $val) {
 			$namers[] = $field.'=?';
 			switch ($field) {
-			 case 'publicid':
+			 case 'account':
 				$args[] = $val;
 				break;
-			 case 'privhash':
+			 case 'passhash':
 				$args[] = password_hash($val, PASSWORD_DEFAULT);
 				break;
 			 case 'name':
@@ -369,7 +369,7 @@ if ($msgs || $fake) {
 		$args[] = $afuncs->GetUserID($login);
 		$db->Execute($sql, [$args]);
 
-		if (isset($flds['privhash'])) {
+		if (isset($flds['passhash'])) {
 			$vfuncs->SetForced(0, FALSE, $login, $cdata['id']);
 			$forcereset = FALSE;
 		}

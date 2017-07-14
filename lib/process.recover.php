@@ -117,7 +117,7 @@ switch ($lvl) {
 		$res = $afuncs->ValidatePassword($pw2);
 		if ($res[0]) {
 			if (!$msgs) {
-				$flds['privhash'] = $pw2; //hash when required
+				$flds['passhash'] = $pw2; //hash when required
 			}
 		} else {
 			$msgs[] = $res[1];
@@ -137,7 +137,7 @@ switch ($lvl) {
 		$t = $postvars['passwd3'];
 		if ($vfuncs->FilteredPassword($t)) {
 			if ($pw2 !== trim($t)) {
-				unset($flds['privhash']);
+				unset($flds['passhash']);
 				$msgs[] = $mod->Lang('newpassword_nomatch');
 				if (!$focus) {
 					$focus = 'passwd2';
@@ -196,10 +196,10 @@ if ($msgs || $fake) {
 		if ($sendto) {
 			$res = $mfuncs->ChallengeMessage($sendto, 'recover', $pw);
 			if ($res[0]) {
-				$hash = password_hash($pw, PASSWORD_DEFAULT);
-				$data = json_encode(['temptoken' => $hash]);
+				$flds = ['temptoken' => password_hash($pw, PASSWORD_DEFAULT)];
+				$enc = $cfuncs->encrypt_value(json_encode($flds));
 				$sql = 'UPDATE '.$pref.'module_auth_cache SET data=? WHERE token=?';
-				$db->Execute($sql, [$data, $token]);
+				$db->Execute($sql, [$enc, $token]);
 			} else {
 				$msgs[] = $res[1];
 			}

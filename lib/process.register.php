@@ -50,7 +50,7 @@ switch ($lvl) {
 			if ($res[0]) {
 				$res = $afuncs->UniqueLogin($login);
 				if ($res[0]) {
-					$flds['publicid'] = $login;
+					$flds['account'] = $login; //crypt later
 				} else {
 					if (!$cdata['email_login']) {
 						$alt = $afuncs->NumberedLogin($login);
@@ -87,7 +87,7 @@ switch ($lvl) {
 			$res = $afuncs->ValidatePassword($pw);
 			if ($res[0]) {
 				if (!$msgs) {
-					$flds['privhash'] = $pw; //hash later
+					$flds['passhash'] = $pw;
 				}
 			} else {
 				$msgs[] = $res[1];
@@ -113,7 +113,7 @@ switch ($lvl) {
 		$t = $postvars['passwd2'];
 		if ($vfuncs->FilteredPassword($t)) {
 			if ($pw !== trim($t)) {
-				unset($flds['privhash']);
+				unset($flds['passhash']);
 				$msgs[] = $mod->Lang('password_nomatch');
 				if (!$focus) {
 					$focus = 'passwd2';
@@ -242,7 +242,7 @@ if (!$msgs) {
 		$db->Execute($sql, [$enc, $token]);
 //TODO initiate challenge
 	} else {
-		$res = $afuncs->AddUser($flds['publicid'], $pw, $flds['name'], $flds['address'], []);  //TODO $check?
+		$res = $afuncs->AddUser($flds['account'], $pw, $flds['name'], $flds['address'], []);  //TODO $check?
 		if ($res[0]) {
 			$uidnew = $res[1]; //for use by includer
 			$afuncs->ResetAttempts();
