@@ -132,25 +132,44 @@ if (isset($params['submit'])) {
 				 case 'masterpass':
 					$oldpw = $cfuncs->decrypt_preference($kn);
 					if ($oldpw != $val) {
-/* TODO re-hash all relevant data
+						//re-hash relevant data
 						$pref = cms_db_prefix();
-						$sql = 'SELECT , FROM '.$pref.'module_';
+						$sql = 'SELECT id,account,name,address FROM '.$pref.'module_auth_users';
 						$rst = $db->Execute($sql);
 						if ($rst) {
-							$sql = 'UPDATE '.$pref.'module_ SET =? WHERE =?';
+							$sql = 'UPDATE '.$pref.'module_auth_users SET account=?,name=?,address=? WHERE id=?';
 							while (!$rst->EOF) {
-								$t = $cfuncs->decrypt_value($rst->fields[''], $oldpw);
-								if ($newpw) {
-									$t = $cfuncs->encrypt_value($t, $newpw);
+								$login = $cfuncs->decrypt_value($rst->fields['account'], $oldpw);
+								$name = $cfuncs->decrypt_value($rst->fields['name'], $oldpw);
+								$address = $cfuncs->decrypt_value($rst->fields['address'], $oldpw);
+								if ($val) {
+									$login = $cfuncs->encrypt_value($login, $val);
+									$name = $cfuncs->encrypt_value($name, $val);
+									$address = $cfuncs->encrypt_value($address, $val);
 								}
-								$db->Execute($sql, [$t, $rst->fields['']]);
+								$db->Execute($sql, [$login, $name, $address, $rst->fields['id']]);
 								if (!$rst->MoveNext()) {
 									break;
 								}
 							}
 							$rst->Close();
 						}
-*/
+						$sql = 'SELECT id,data FROM '.$pref.'module_auth_cache';
+						$rst = $db->Execute($sql);
+						if ($rst) {
+							$sql = 'UPDATE '.$pref.'module_auth_cache SET data=? WHERE id=?';
+							while (!$rst->EOF) {
+								$data = $cfuncs->decrypt_value($rst->fields['data'], $oldpw);
+								if ($val) {
+									$data = $cfuncs->encrypt_value($data, $val);
+								}
+								$db->Execute($sql, [$data, $rst->fields['id']]);
+								if (!$rst->MoveNext()) {
+									break;
+								}
+							}
+							$rst->Close();
+						}
 					}
 					$cfuncs->encrypt_preference($kn, $val);
 					continue 2;
