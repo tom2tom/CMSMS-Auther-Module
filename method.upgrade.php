@@ -6,5 +6,28 @@
 # More info at http://dev.cmsmadesimple.org/projects/auther
 #----------------------------------------------------------------------
 
+$dict = NewDataDictionary($db);
+$pref = \cms_db_prefix();
+
 switch ($oldversion) {
+/*
+case :
+$sqlarray = $dict->AlterColumnSQL($pref.'module_auth_users', 'account B');
+$dict->ExecuteSqlArray($sqlarray);
+$sql = 'SELECT id,account FROM '.$pref.'module_auth_users';
+$rst = $db->Execute($sql);
+if ($rst) {
+	$cfuncs = new Auther\Crypter($this);
+	$pw = $cfuncs->decrypt_preference('masterpass');
+	$sql = 'UPDATE '.$pref.'module_auth_users SET account=? WHERE id=?';
+	while (!$rst->EOF) {
+		$login = $cfuncs->encrypt_value($rst->fields['account'], $pw);
+		$db->Execute($sql, [$login, $rst->fields['id']]);
+		if (!$rst->MoveNext()) {
+			break;
+		}
+	}
+	$rst->Close();
+}
+*/
 }
