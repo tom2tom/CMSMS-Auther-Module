@@ -123,10 +123,10 @@ class Challenge extends Session
 		}
 
 		$newpass = password_hash($newpass, PASSWORD_DEFAULT);
-		$sql = 'UPDATE '.$this->pref.'module_auth_users SET privhash=? WHERE id=?';
-		$res = $this->db->Execute($sql, [$newpass, $data['uid']]);
+		$sql = 'UPDATE '.$this->pref.'module_auth_users SET passhash=? WHERE id=?';
+		$this->db->Execute($sql, [$newpass, $data['uid']]);
 
-		if ($res) {
+		if ($this->db->Affected_Rows() > 0) {
 			$this->DeleteChallenge($token); //TODO no challenges here
 			return [TRUE, $this->mod->Lang('password_reset')];
 		}
@@ -140,11 +140,11 @@ class Challenge extends Session
 	*
 	* @login: string user identifier
 	* @type: string one of 'activate','change','delete','reset','recover'
-	* @data: optional string, context-specific data to be cached, default = NULL
+	* @sdata: optional string, context-specific data to be cached, default = NULL
 	* @check: optional boolean whether to check action-status before proceeding default = TRUE
 	* Returns: 2-member array, [0]=boolean for success, [1]=message or '' or challenge-token
 	*/
-	protected function AddChallenge($login, $type, $data=NULL, $check=TRUE)
+	protected function AddChallenge($login, $type, $sdata=NULL, $check=TRUE)
 	{
 		if ($check) {
 			switch ($this->GetStatus()) {
@@ -172,22 +172,36 @@ class Challenge extends Session
 			return [FALSE, $this->mod->Lang('system_error', '#52')];
 		}
 
-		$sql = 'SELECT id,address,active FROM '.$this->pref.'module_auth_users WHERE publicid=? AND context_id=?';
-		$row = $this->db->GetRow($sql, [$login, $this->context]);
-		if ($row) {
-			$uid = (int)$row['id'];
-			$t = $row['address'];
-			if ($t && preg_match(self::PATNEMAIL, $t)) {
-				$email = $t;
-			} else {
-				$t = $login;
-				if ($t && preg_match(self::PATNEMAIL, $t)) {
-					$email = $t;
-				} else {
-					return [FALSE, $this->mod->Lang('temp_notsent')];
+		$val = FALSE;
+		$sql = 'SELECT id,account,address,active FROM '.$this->pref.'module_auth_users WHERE context_id=?';
+		$data = $this->db->GetArray($sql, [$this->context]);
+		if ($data) {
+			$cfuncs = new Crypter($this->mod);
+			$pw = $cfuncs->decrypt_preference('masterpass');
+			foreach ($data as &$row) {
+				if ($cfuncs->decrypt_value($row['account'], $pw) == $login) {
+					$uid = (int)$row['id'];
+					$t = $row['address'];
+					if ($t) {
+						$t = $cfuncs->decrypt_value($t);
+					}
+					if ($t && preg_match(self::PATNEMAIL, $t)) {
+						$email = $t;
+					} else {
+						$t = $login;
+						if ($t && preg_match(self::PATNEMAIL, $t)) {
+							$email = $t;
+						} else {
+							return [FALSE, $this->mod->Lang('temp_notsent')];
+						}
+					}
+					$val = TRUE;
+					break;
 				}
 			}
-		} else {
+			unset($row);
+		}
+		if (!$val) {
 			return [FALSE, $this->mod->Lang('system_error', '#53')];
 		}
 
@@ -213,14 +227,14 @@ class Challenge extends Session
 		$val = $this->GetConfig('request_key_expiration');
 		$dt->modify('+'.$val);
 		$expiretime = $dt->getTimestamp();
+		$enc = $cfuncs->encrypt_value($sdata);
 
 		$sql = 'INSERT INTO '.$this->pref.'module_auth_cache (token,user_id,expire,lastmode,data) VALUES (?,?,?,?,?)';
-		$this->db->Execute($sql, [$token, $uid, $expiretime, $itype, $data]);
-		if ($this->db->Affected_Rows() == 0) {
-			return [FALSE, $this->mod->Lang('system_error', '#54')];
+		$this->db->Execute($sql, [$token, $uid, $expiretime, $itype, $enc]);
+		if ($this->db->Affected_Rows() > 0) {
+			return [TRUE, $token];
 		}
-
-		return [TRUE, $token];
+		return [FALSE, $this->mod->Lang('system_error', '#54')];
 	}
 
 	/**
@@ -380,7 +394,7 @@ class Challenge extends Session
 	/**
 	* Checks whether a message can be sent to the user represented by @login
 	*
-	* @login: user identifier
+	* @login: plaintext user identifier
 	* @failkey: optional lang-key for failure-message, default 'not_contactable'
 	* Returns: 2-member array,
 	*	[0] = enum indicating success {1/email|2/text|FALSE},
@@ -389,26 +403,40 @@ class Challenge extends Session
 	public function IsTellable($login, $failkey='not_contactable')
 	{
 		$pref = \cms_db_prefix();
-		$sql = 'SELECT address FROM '.$pref.'module_auth_users WHERE publicid=? AND context_id=?';
-		$contact = \cmsms()->GetDb()->GetOne($sql, [$login, $this->context]);
-		if ($this->GetConfig('email_login')) {
-			$tests = [$login, $contact];
-		} else {
-			$tests = [$contact, $login];
-		}
-		foreach ($tests as $to) {
-			if ($to && $to == $contact) {
-				$cfuncs = new Crypter($this->mod);
-				$to = $cfuncs->decrypt_value($contact);
-			}
-			if ($to) {
-				if ($this->mod->sendMail && preg_match(Auth::PATNEMAIL, $to)) {
-					return [1, $to];
+		//TODO find match for encrypted 'account'
+		$sql = 'SELECT id,account,address FROM '.$pref.'module_auth_users WHERE context_id=?';
+		$data = \cmsms()->GetDb()->GetArray($sql, [$this->context]);
+		if ($data) {
+			$cfuncs = new Crypter($this->mod);
+			$pw = $cfuncs->decrypt_preference('masterpass');
+			foreach ($data as &$row) {
+				if ($cfuncs->decrypt_value($row['account']) == $login) {
+					if ($row['address']) {
+						$contact = $cfuncs->decrypt_value($row['address']);
+						if ($this->GetConfig('email_login')) {
+							$tests = [$login, $contact];
+						} else {
+							$tests = [$contact, $login];
+						}
+						foreach ($tests as $t) {
+							if ($t) {
+								if ($this->mod->sendMail && preg_match(Auth::PATNEMAIL, $t)) {
+									unset($row);
+									return [1, $t];
+								}
+								if ($this->mod->sendSMS && preg_match(Auth::PATNPHONE, $t)) {
+									unset($row);
+									return [2, $t];
+								}
+							}
+						}
+					} elseif ($this->mod->sendMail && preg_match(Auth::PATNEMAIL, $login)) {
+						unset($row);
+						return [1, $login];
+					}
 				}
-				if ($this->mod->sendSMS && preg_match(Auth::PATNPHONE, $to)) {
-					return [2, $to];
-				}
 			}
+			unset($row);
 		}
 		return [FALSE, $this->mod->Lang($failkey)];
 	}
