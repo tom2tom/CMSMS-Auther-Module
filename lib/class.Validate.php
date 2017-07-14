@@ -176,17 +176,17 @@ class Validate
 	 * Must supply valid @uid, or @login and @cid
 	 * @uid: user identifier or FALSE
 	 * @login: optional alternative user identifier or FALSE
-	 * @cid: optional numeric context indentifier for use with @login, when @uid === FALSE
+	 * @cid: optional numeric context indentifier for use with @login, otherwise ignored
 	 * Returns: boolean
 	 */
 	public function IsForced($uid, $login=FALSE, $cid=FALSE)
 	{
 		$pref = \cms_db_prefix();
 		if ($uid) {
-			$sql = 'SELECT id FROM '.$pref.'module_auth_users WHERE id=? AND privreset>0';
+			$sql = 'SELECT id FROM '.$pref.'module_auth_users WHERE id=? AND passreset>0';
 			return \cmsms()->GetDb()->GetOne($sql, [$uid]);
 		} else {
-			$sql = 'SELECT account FROM '.$pref.'module_auth_users WHERE context_id=? AND privreset>0';
+			$sql = 'SELECT account FROM '.$pref.'module_auth_users WHERE context_id=? AND passreset>0';
 			$data = \cmsms()->GetDb()->GetCol($sql, [$cid]);
 			if ($data) {
 				$pw = $this->cfuncs->decrypt_preference('masterpass');
@@ -205,7 +205,7 @@ class Validate
 	 * @state: int 0 or 1, the new setting
 	 * @uid: user identifier or FALSE
 	 * @login: optional alternative user identifier or FALSE
-	 * @cid: optional numeric context indentifier for use with @login
+	 * @cid: optional numeric context indentifier for use with @login, otherwise ignored
 	 * Returns: nothing
 	 */
 	public function SetForced($state, $uid, $login=FALSE, $cid=FALSE)
@@ -226,12 +226,11 @@ class Validate
 				}
 			}
 		} else {
-			$uid = FALSE;
+			return;
 		}
 		if ($uid) {
-			$sql = 'UPDATE '.$pref.'module_auth_users SET privreset=? WHERE id=?';
-			$args = [$state, $uid];
-			\cmsms()->GetDb()->Execute($sql, $args);
+			$sql = 'UPDATE '.$pref.'module_auth_users SET passreset=? WHERE id=?';
+			\cmsms()->GetDb()->Execute($sql, [$state, $uid]);
 		}
 	}
 }

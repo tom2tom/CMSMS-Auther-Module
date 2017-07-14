@@ -93,7 +93,7 @@ $theme = ($this->before20) ? cmsms()->get_variable('admintheme'):
 	cms_utils::get_theme_object();
 
 $pre = cms_db_prefix();
-$sql = 'SELECT id,account,name,address,addwhen,lastuse,privreset,active FROM '.$pre.'module_auth_users WHERE context_id=?';
+$sql = 'SELECT id,account,name,address,addwhen,lastuse,passreset,active FROM '.$pre.'module_auth_users WHERE context_id=?';
 $data = $db->GetArray($sql, [$cid]);
 if ($data) {
 	$tplvars['title_name'] = $this->Lang('title_name');
@@ -152,7 +152,7 @@ if ($data) {
 		}
 		$oneset->addr = ($one['address']) ? $icon_yes : $icon_no;
 		if ($pmod) {
-			if ($one['privreset']) {
+			if ($one['passreset']) {
 				$icon = $icon_yes;
 				$to = 0;
 			} else {
@@ -171,7 +171,7 @@ if ($data) {
 			$oneset->active = $this->CreateLink($id,'users','',$icon,
 				['ctx_id'=>$cid,'activate'=>1,'usr_id'=>$uid,'to_state'=>$to]);
 		} else {
-			$oneset->reset = ($one['privreset']) ? $icon_yes : $icon_no;
+			$oneset->reset = ($one['passreset']) ? $icon_yes : $icon_no;
 			$oneset->active = ($one['active'] > 0) ? $icon_yes : $icon_no;
 		}
 		$oneset->see = $this->CreateLink($id,'openuser','',$icon_see,

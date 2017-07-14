@@ -188,14 +188,14 @@ class Utils
 		if (is_array($user)) {
 			$args = $user;
 			$fillers = str_repeat('?,', count($user)-1);
-			$sql = 'SELECT privreset FROM '.$pre.'module_auth_users WHERE id IN ('.$fillers.'?)';
+			$sql = 'SELECT passreset FROM '.$pre.'module_auth_users WHERE id IN ('.$fillers.'?)';
 			$current = array_count_values($db->GetCol($sql, $args));
 			$cm = array_search(max($current), $current);
 			$val = ($cm == 0) ? 1 : 0;
-			$sql = 'UPDATE '.$pre.'module_auth_users SET privreset=? WHERE id IN ('.$fillers.'?)';
+			$sql = 'UPDATE '.$pre.'module_auth_users SET passreset=? WHERE id IN ('.$fillers.'?)';
 			array_unshift($args, $val);
 		} else {
-			$sql = 'UPDATE '.$pre.'module_auth_users SET privreset=? WHERE id=?';
+			$sql = 'UPDATE '.$pre.'module_auth_users SET passreset=? WHERE id=?';
 			$val = ($state) ? 1 : 0;
 			$args = [$val, $user];
 		}
