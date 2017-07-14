@@ -12,15 +12,15 @@ if ($pmod && !($this->_CheckAccess('admin') || $this->_CheckAccess('user'))) {
 	exit;
 }
 
-if (!function_exists('GetUserProperties')) {
- function GetUserProperties () {
+if (!function_exists('GetUProps')) {
+ function GetUProps () {
  	//each: tablefield, langsuffix, type, textlen, maxtextlen, compulsory
 	return [
 	'name',		'name',		2, 40, 48, 0,
 	'nameswap',	'nameswap',	0, 0,  0,  0,
 	'address',	'contact',	2, 40, 96, 0,
-	'publicid',	'identifier',	1, 40, 96, 1,
-	'privhash',	'password_new', 2, 40, 72, 0, //fake
+	'account',	'identifier',	2, 40, 96, 1,
+	'passhash',	'password_new', 2, 40, 72, 0, //fake
 	'privreset','password_reset', 0, 0,  0,  0,
 	'active',	'active',	0, 0,  0,  0,
 	];
@@ -43,7 +43,7 @@ if (isset($params['cancel'])) {
 	$t = $cfuncs->decrypt_preference('masterpass');
 	$msg = FALSE;
 
-	$props = GetUserProperties ();
+	$props = GetUProps();
 	$c = count($props);
 	for ($i = 0; $i < $c; $i += 6) {
 		$kf = $props[$i];
@@ -83,14 +83,16 @@ if (isset($params['cancel'])) {
 						break 2;
 					}
 					break;
-				 case 'publicid':
+				 case 'account':
 					$status = $afuncs->validateLogin($val);
-					if (!$status[0]) {
+					if ($status[0]) {
+						$val = $cfuncs->encrypt_value($val, $t);
+					} else {
 						$msg = $status[1];
 						break 2;
 					}
 					break;
-				 case 'privhash':
+				 case 'passhash':
 					if (!$val) {
 						//no replacement password
 						continue 2;
@@ -133,7 +135,8 @@ if (isset($params['cancel'])) {
 			$args[] = $uid;
 			$sql = 'UPDATE '.$pre.'module_auth_users SET '.$flds.'=? WHERE id=?';
 		}
-		$ares = $db->Execute($sql, $args);
+		$db->Execute($sql, $args);
+//		$ares = ($db->Affected_Rows() > 0);
 
 		$this->Redirect($id, 'users', '', ['ctx_id'=>$cid]); //TODO CHECKME other parms
 	}
@@ -155,9 +158,9 @@ if (empty($msg)) {
 		'name' => '',
 		'nameswap' => 0,
 		'address' => '',
-		'publicid' => $this->Lang('missing_name'),
+		'account' => $this->Lang('missing_name'),
 		'context_id' => $cid,
-		'privhash' => '',
+		'passhash' => '',
 		'privreset' => 0,
 		'active' => 1,
 		];
@@ -165,7 +168,7 @@ if (empty($msg)) {
 } else {
 	//after an error, retain supplied values
 	$data = [];
-	$props = GetUserProperties ();
+	$props = GetUProps();
 	$c = count($props);
 	for ($i = 0; $i < $c; $i += 6) {
 		$kf = $props[$i];
@@ -209,7 +212,7 @@ if (!$pmod) {
 
 $options = [];
 
-$props = getUserProperties();
+$props = GetUProps();
 $c = count($props);
 for ($i = 0; $i < $c; $i += 6) {
 	$kf = $props[$i];
@@ -242,6 +245,7 @@ for ($i = 0; $i < $c; $i += 6) {
 		switch ($kf) {
 		 case 'name':
 		 case 'address':
+		 case 'account':
 			$val = $cfuncs->decrypt_value($val);
 			if ($pmod) {
 				$one->input = $this->CreateInputText($id, $kf, $val, $props[$i+3], $props[$i+4]);
@@ -249,7 +253,7 @@ for ($i = 0; $i < $c; $i += 6) {
 				$one->input = $val;
 			}
 			break;
-		 case 'privhash':
+		 case 'passhash':
 			if ($uid == -1) {
 				$one->title = $this->Lang('password');
 				$one->must = 1;
@@ -280,7 +284,7 @@ for ($i = 0; $i < $c; $i += 6) {
 }
 
 $options['name']->must = ($cdata['name_required'] > 0);
-$options['publicid']->must = ($cdata['address_required'] > 0 || $cdata['email_login'] > 0);
+$options['account']->must = ($cdata['address_required'] > 0 || $cdata['email_login'] > 0);
 
 if ($pmod) {
 	$jsincs[] = <<<EOS
@@ -331,7 +335,7 @@ EOS;
 	}
 
 	$jsloads[] = <<<EOS
- $('#{$id}address,#{$id}publicid').blur(function() {
+ $('#{$id}address,#{$id}account').blur(function() {
   $(this).mailcheck({{$domains}{$l2domains}{$topdomains}
    distanceFunction: function(string1,string2) {
     var lv = Levenshtein;
@@ -384,7 +388,7 @@ strengthify unused opts
 EOS;
 
 	$jsloads[] = <<<EOS
- $('#{$id}privhash').strengthify({
+ $('#{$id}passhash').strengthify({
   zxcvbn: '{$baseurl}/lib/js/zxcvbn/zxcvbn.js'
  });
 EOS;
