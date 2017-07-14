@@ -144,7 +144,7 @@ context_id I(2),
 addwhen I(8),
 lastuse I(8),
 nameswap I(1) DEFAULT 0,
-privreset I(1) DEFAULT 0,
+passreset I(1) DEFAULT 0,
 active I(1) DEFAULT 1
 ';
 $tblname = $pref.'module_auth_users';
