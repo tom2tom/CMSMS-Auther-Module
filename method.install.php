@@ -136,8 +136,8 @@ NB name,address,addwhen (at least) NULL if unused, to enable COALESCE
 */
 $flds = '
 id I(4) KEY,
-publicid C(48),
-privhash B,
+account B,
+passhash B,
 name B,
 address B,
 context_id I(2),
