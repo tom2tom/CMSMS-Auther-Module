@@ -78,7 +78,7 @@ class Validate
 		$res = $this->afuncs->GetUserBase($uid);
 		if ($res && $res['active']) {
 			$tries = 1; //TODO get from session
-			if ($this->afuncs->DoPasswordCheck($val, $res['privhash'], $tries, $uid)) {
+			if ($this->afuncs->DoPasswordCheck($val, $res['passhash'], $tries, $uid)) {
 				return [TRUE, ''];
 			}
 		}
@@ -184,12 +184,20 @@ class Validate
 		$pref = \cms_db_prefix();
 		if ($uid) {
 			$sql = 'SELECT id FROM '.$pref.'module_auth_users WHERE id=? AND privreset>0';
-			$args = [$uid];
+			return \cmsms()->GetDb()->GetOne($sql, [$uid]);
 		} else {
-			$sql = 'SELECT id FROM '.$pref.'module_auth_users WHERE publicid=? AND context_id=? AND privreset>0';
-			$args = [$login, $cid];
+			$sql = 'SELECT account FROM '.$pref.'module_auth_users WHERE context_id=? AND privreset>0';
+			$data = \cmsms()->GetDb()->GetCol($sql, [$cid]);
+			if ($data) {
+				$pw = $this->cfuncs->decrypt_preference('masterpass');
+				foreach ($data as $row) {
+					if ($this->cfuncs->decrypt_value($row, $pw) == $login) {
+						return TRUE;
+					}
+				}
+			}
+			return FALSE;
 		}
-		return \cmsms()->GetDb()->GetOne($sql, $args);
 	}
 
 	/**
@@ -204,12 +212,26 @@ class Validate
 	{
 		$pref = \cms_db_prefix();
 		if ($uid) {
+		} elseif ($login) {
+			$uid = FALSE;
+			$sql = 'SELECT id,account FROM '.$pref.'module_auth_users WHERE context_id=?';
+			$data = \cmsms()->GetDb()->GetArray($sql, [$cid]);
+			if ($data) {
+				$pw = $this->cfuncs->decrypt_preference('masterpass');
+				foreach ($data as $row) {
+					if ($this->cfuncs->decrypt_value($row['account'], $pw) == $login) {
+						$uid = $row['id'];
+						break;
+					}
+				}
+			}
+		} else {
+			$uid = FALSE;
+		}
+		if ($uid) {
 			$sql = 'UPDATE '.$pref.'module_auth_users SET privreset=? WHERE id=?';
 			$args = [$state, $uid];
-		} else {
-			$sql = 'UPDATE '.$pref.'module_auth_users SET privreset=? WHERE publicid=? AND context_id=?';
-			$args = [$state, $login, $cid];
+			\cmsms()->GetDb()->Execute($sql, $args);
 		}
-		\cmsms()->GetDb()->Execute($sql, $args);
 	}
 }

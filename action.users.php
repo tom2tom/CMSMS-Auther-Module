@@ -93,7 +93,7 @@ $theme = ($this->before20) ? cmsms()->get_variable('admintheme'):
 	cms_utils::get_theme_object();
 
 $pre = cms_db_prefix();
-$sql = 'SELECT id,publicid,name,address,addwhen,lastuse,privreset,active FROM '.$pre.'module_auth_users WHERE context_id=? ORDER BY publicid';
+$sql = 'SELECT id,account,name,address,addwhen,lastuse,privreset,active FROM '.$pre.'module_auth_users WHERE context_id=?';
 $data = $db->GetArray($sql, [$cid]);
 if ($data) {
 	$tplvars['title_name'] = $this->Lang('title_name');
@@ -123,15 +123,16 @@ if ($data) {
 	$dt = new DateTime('@0', NULL);
 
 	$cfuncs = new Auther\Crypter($this);
+	$pw = $cfuncs->decrypt_preference('masterpass');
 
 	$rows = [];
 	foreach ($data as &$one) {
 		$uid = (int)$one['id'];
 		$oneset = new stdClass();
 		if ($one['name']) {
-			$t = $cfuncs->decrypt_value($one['name']);
+			$t = $cfuncs->decrypt_value($one['name'], $pw);
 		} else {
-			$t = $one['publicid'];
+			$t = $cfuncs->decrypt_value($one['account'], $pw);
 		}
 		if ($pmod) {
 			$oneset->name = $this->CreateLink($id, 'openuser', '', $t,
@@ -185,6 +186,7 @@ if ($data) {
 		$rows[] = $oneset;
 	}
 	unset($one);
+	usort($rows, function ($a, $b) { return strcmp($a->name, $b->name); });
 
 	$tplvars['users'] = $rows;
 	$uc = count($rows);
