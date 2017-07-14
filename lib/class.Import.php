@@ -1,7 +1,7 @@
 <?php
 #----------------------------------------------------------------------
 # Module: Booker - a resource booking module
-# Library file: CSV - functions for import/export of module data
+# Library file: Import - functions for import of module data
 #----------------------------------------------------------------------
 # See file Booker.module.php for full details of copyright, licence, etc.
 #----------------------------------------------------------------------
@@ -13,8 +13,8 @@ class Import
 
 	private function ToChr($match)
 	{
-		$st = ($match[0][0] == '&') ? 2:1;
-		return chr(substr($match[0],$st,2));
+		$st = ($match[0][0] == '&') ? 2 : 1;
+		return chr(substr($match[0], $st, 2));
 	}
 
 	/*
@@ -26,9 +26,10 @@ class Import
 	private function GetSplitLine(&$fh)
 	{
 		do {
-			$fields = fgetcsv($fh,4096);
-			if (is_null($fields) || $fields == FALSE)
+			$fields = fgetcsv($fh, 4096);
+			if (is_null($fields) || $fields == FALSE) {
 				return FALSE;
+			}
 		} while (!isset($fields[1]) && is_null($fields[0])); //blank line
 		$some = FALSE;
 		//convert any separator supported by exporter
@@ -36,12 +37,13 @@ class Import
 			if ($one) {
 				$some = TRUE;
 				$one = trim(preg_replace_callback(
-					['/&#\d\d;/','/%\d\d%/'], [$this,'ToChr'], $one));
+					['/&#\d\d;/', '/%\d\d%/'], [$this, 'ToChr'], $one));
 			}
 		}
 		unset($one);
-		if ($some)
+		if ($some) {
 			return $fields;
+		}
 		return FALSE; //ignore lines with all fields empty
 	}
 
@@ -93,7 +95,7 @@ class Import
 		$filekey = $id.'csvfile';
 		if (isset($_FILES) && isset($_FILES[$filekey])) {
 			$file_data = $_FILES[$filekey];
-			$parts = explode('.',$file_data['name']);
+			$parts = explode('.', $file_data['name']);
 			$ext = end($parts);
 			if ($file_data['type'] != 'text/csv'
 			 || !($ext == 'csv' || $ext == 'CSV')
@@ -101,7 +103,7 @@ class Import
 				 || $file_data['error'] != 0) {
 				return [FALSE, $mod->Lang('err_file')];
 			}
-			$fh = fopen($file_data['tmp_name'],'r');
+			$fh = fopen($file_data['tmp_name'], 'r');
 			if (!$fh) {
 				return [FALSE, $mod->Lang('err_perm')];
 			}
@@ -112,13 +114,14 @@ class Import
 			}
 			//file-column-name to fieldname translation
 			$translates = [
-			 '#Context'=>'context_id', //interpreted
-			 '#Login'=>'publicid',
-			 'Password'=>'password', //interpreted
-			 'Passhash'=>'passhash', //ditto
-			 'Name'=>'name',
-			 'MessageTo'=>'address',
-			 'Update'=>'update' //not a real field, numeric user-id or some boolean
+			 '#Context' => 'context_id', //interpreted
+			 '#Login' => 'account',
+			 'Password' => 'password', //interpreted
+			 'Passhash' => 'passhash', //ditto
+			 'PassReset' => 'passreset',
+			 'Name' => 'name',
+			 'MessageTo' => 'address',
+			 'Update' => 'update' //not a real field, numeric user-id or some boolean
 			];
 			/* non-public
 				=>addwhen
@@ -132,11 +135,11 @@ class Import
 			}
 			//setup for interpretation
 			$offers = []; //column-index to fieldname translator
-			foreach ($translates as $pub=>$priv) {
-				$col = array_search($pub,$firstline);
-				if ($col !== FALSE)
+			foreach ($translates as $pub => $priv) {
+				$col = array_search($pub, $firstline);
+				if ($col !== FALSE) {
 					$offers[$col] = $priv;
-				elseif ($pub[0] == '#') {
+				} elseif ($pub[0] == '#') {
 					//name of compulsory fields has '#' prefix
 					return [FALSE, $mod->Lang('err_file')];
 				}
@@ -144,8 +147,9 @@ class Import
 
 			$pref = \cms_db_prefix();
 			$db = \cmsms()->GetDb();
-			//for update checks
-			$exist = $db->GetArray('SELECT id,publicid FROM '.$pref.'module_auth_users ORDER BY id'); //TODO use this for dup-check
+			//CHECKME cache for update-checks, dup-checks BUT should be no dup's in data here
+//			$exist = $db->GetArray('SELECT id,account FROM '.$pref.'module_auth_users ORDER BY id');
+//			$exist = [];
 
 			$utils = new Utils();
 			$afuncs = new Auth($mod); //context [re]set in loop
@@ -168,32 +172,35 @@ class Import
 					$password = FALSE; //if set, store via password_hash($password);
 					$passhash = FALSE; //if set, store raw via unpack('H*',$passhash);
 					$update = FALSE;
-					foreach ($imports as $i=>$one) {
+					foreach ($imports as $i => $one) {
 						$k = $offers[$i];
-						if ($one) {
+						$t = trim($one);
+						if ($t) {
 							switch ($k) {
 							 case 'context_id':
-							 	if (is_numeric($one)) {
-									$data[$k] = (int)$one;
+								if (is_numeric($t)) {
+									$data[$k] = (int)$t;
 								} else {
-	 								$data[$k] = trim($one);
+									$data[$k] = $t;
 								}
 								break;
 							 case 'name':
-//								$one = c.f. Validate->SanitizeName($one); TODO cleanup whitespace etc
-							 case 'publicid':
+							 case 'account':
 							 case 'address':
- 								$data[$k] = trim($one);
+								$data[$k] = $t;
 								break;
 							 case 'passhash':
 							 case 'password':
- 								$$k = trim($one); //park pending further processing
+								$$k = $t; //park pending further processing
+								break;
+							case 'passreset':
+								$data[$k] = !($t == 'no' || $t == 'NO');
 								break;
 							 case 'update':
-							 	if (is_numeric($one)) {
-									$update = (int)$one;
+								if (is_numeric($t)) {
+									$update = (int)$t;
 								} else {
-									$update = !($one == 'no' || $one == 'NO');
+									$update = !($t == 'no' || $t == 'NO');
 								}
 								break;
 							default:
@@ -212,10 +219,11 @@ class Import
 								}
 								break;
 							 case 'passhash': //ignore these
+							 case 'passreset':
 							 case 'update':
 								break;
 							 default:
- 								$data[$k] = NULL;
+								$data[$k] = NULL;
 								break;
 							}
 						}
@@ -255,17 +263,19 @@ class Import
 						}
 					}
 					$res = $afuncs->ValidateAll([
-						'publicid'=>$data['publicid'],
-						'password'=>$password, //temp random value if raw password is to be installed
-						'name'=>$data['name'],
-						'address'=>$data['address'],
+						'account' => $data['account'],
+						'password' => $password, //temp random value if raw password is to be installed
+						'name' => $data['name'],
+						'address' => $data['address'],
 					], FALSE, TRUE);  //NO $except BUT $explicit
-
+					//CHECKME also string-sanitization as relevant
 					if ($res[0]) {
 						$data['context_id'] = $cid;
-						$data['privhash'] = $passhash ?
+						$data['passhash'] = $passhash ?
 							pack('H*', $passhash) :
 							password_hash($password, PASSWORD_DEFAULT);
+						$t = $data['account']; //preserve this
+						$data['account'] = $cfuncs->encrypt_value($data['account'], $masterkey);
 						$data['name'] = $cfuncs->encrypt_value($data['name'], $masterkey);
 						$data['address'] = $cfuncs->encrypt_value($data['address'], $masterkey);
 
@@ -273,24 +283,29 @@ class Import
 						if ($update) { //TODO robust UPSERT
 							if (is_numeric($update)) {
 								$sql = 'SELECT id FROM '.$pref.'module_auth_users WHERE id=?';
-								$uid = $db->GetOne($sql,[$update]);
+								$uid = $db->GetOne($sql, [$update]);
 							} else {
 								$uid = FALSE;
 							}
-							if (!$uid) {
-								if ($data['publicid']) {
-									$sql = 'SELECT id FROM '.$pref.'module_auth_users WHERE publicid=?';
-									$uid = $db->GetOne($sql,[$data['publicid']]);
-								} else {
-									$uid = FALSE;
+							if (!$uid && $t) {
+								//TODO cache this data
+								$sql = 'SELECT id,account FROM '.$pref.'module_auth_users WHERE context_id=?';
+								$rows = $this->db->GetArray($sql, [$data['context_id']]);
+								if ($rows) {
+									foreach ($rows as $row) {
+										if ($cfuncs->decrypt_value($row['account'], $masterkey) == $t) {
+											$uid = $row['id'];
+											break;
+										}
+									}
 								}
 							}
 							if ($uid) {
-								$namers = implode('=?,',array_keys($data));
+								$namers = implode('=?,', array_keys($data));
 								$sql = 'UPDATE '.$pref.'module_auth_users SET '.$namers.'=? WHERE id=?';
 								$args = array_values($data);
 								$args[] = $uid;
-								$db->Execute($sql,$args);
+								$db->Execute($sql, $args);
 								if ($db->Affected_Rows() > 0) {
 									$icount++;
 									$done = TRUE;
@@ -298,14 +313,14 @@ class Import
 							}
 						}
 						if (!$done) {
-							$namers = implode(',',array_keys($data));
-							$fillers = str_repeat('?,',count($data)-1);
+							$namers = implode(',', array_keys($data));
+							$fillers = str_repeat('?,', count($data) - 1);
 							$sql = 'INSERT INTO '.$pref.'module_auth_users (id,'.$namers.',addwhen) VALUES (?,'.$fillers.'?,?)';
 							$args = array_values($data);
 							$uid = $db->GenID($pref.'module_auth_users_seq');
-							array_unshift($args,$uid);
+							array_unshift($args, $uid);
 							$args[] = $st;
-							$db->Execute($sql,$args);
+							$db->Execute($sql, $args);
 							if ($db->Affected_Rows() > 0) {
 								$icount++;
 							} else {
@@ -319,10 +334,12 @@ class Import
 			}
 			fclose($fh);
 
-			if ($skips)
+			if ($skips) {
 				return [FALSE, $mod->Lang('import_fails', $skips)];
-			if ($icount)
+			}
+			if ($icount) {
 				return [TRUE, $mod->Lang('import_count', $icount)];
+			}
 			return [FALSE, $mod->Lang('import_count', 0)];
 		}
 		return [FALSE, $mod->Lang('err_system')];
