@@ -21,7 +21,7 @@ if (!function_exists('GetUProps')) {
 	'address',	'contact',	2, 40, 96, 0,
 	'account',	'identifier',	2, 40, 96, 1,
 	'passhash',	'password_new', 2, 40, 72, 0, //fake
-	'privreset','password_reset', 0, 0,  0,  0,
+	'passreset','password_reset', 0, 0,  0,  0,
 	'active',	'active',	0, 0,  0,  0,
 	];
 	//unused: id, context, addwhen, lastuse
@@ -161,7 +161,7 @@ if (empty($msg)) {
 		'account' => $this->Lang('missing_name'),
 		'context_id' => $cid,
 		'passhash' => '',
-		'privreset' => 0,
+		'passreset' => 0,
 		'active' => 1,
 		];
 	}
