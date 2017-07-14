@@ -168,7 +168,8 @@ if (isset($params['cancel'])) {
 			$args[] = $cid;
 			$sql = 'UPDATE '.$pre.'module_auth_contexts SET '.$flds.'=? WHERE id=?';
 		}
-		$ares = $db->Execute($sql, $args);
+		$db->Execute($sql, $args);
+//		$ares = ($db->Affected_Rows() > 0);
 
 		$this->Redirect($id, 'defaultadmin');
 	}
