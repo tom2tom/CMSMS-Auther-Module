@@ -55,10 +55,11 @@ class Crypter Extends Encryption
 	@value: string to encrypted, may be empty
 	@pw: optional password string, default FALSE (meaning use the module-default)
 	@based: optional boolean, whether to base64_encode the encrypted value, default FALSE
-	Returns: encrypted @value, or just @value if it's empty
+	Returns: encrypted @value, or just @value if it's empty or if password is empty
 	*/
 	public function encrypt_value($value, $pw=FALSE, $based=FALSE)
 	{
+		$value .= '';
 		if ($value) {
 			if (!$pw) {
 				$pw = self::decrypt_preference('masterpass');
@@ -67,6 +68,8 @@ class Crypter Extends Encryption
 				$value = parent::encrypt($value, $pw);
 				if ($based) {
 					$value = base64_encode($value);
+				} else {
+					$value = str_replace('\'', '\\\'', $value); //facilitate db-field storage
 				}
 			}
 		}
@@ -78,7 +81,7 @@ class Crypter Extends Encryption
 	@value: string to decrypted, may be empty
 	@pw: optional password string, default FALSE (meaning use the module-default)
 	@based: optional boolean, whether @value is base64_encoded, default FALSE
-	Returns: decrypted @value, or just @value if it's empty
+	Returns: decrypted @value, or just @value if it's empty or if password is empty
 	*/
 	public function decrypt_value($value, $pw=FALSE, $based=FALSE)
 	{
@@ -89,6 +92,8 @@ class Crypter Extends Encryption
 			if ($pw) {
 				if ($based) {
 					$value = base64_decode($value);
+				} else {
+					$value = str_replace('\\\'', '\'', $value);
 				}
 				$value = parent::decrypt($value, $pw);
 			}
