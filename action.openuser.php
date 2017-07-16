@@ -24,7 +24,7 @@ if (!function_exists('GetUProps')) {
 	'passreset','password_reset', 0, 0,  0,  0,
 	'active',	'active',	0, 0,  0,  0,
 	];
-	//unused: id, context, addwhen, lastuse
+	//unused: id, acchash, context, addwhen, lastuse
  }
 }
 
@@ -42,6 +42,7 @@ if (isset($params['cancel'])) {
 	$cfuncs = new Auther\Crypter($this);
 	$t = $cfuncs->decrypt_preference('masterpass');
 	$msg = FALSE;
+	$accset = FALSE;
 
 	$props = GetUProps();
 	$c = count($props);
@@ -86,6 +87,7 @@ if (isset($params['cancel'])) {
 				 case 'account':
 					$status = $afuncs->validateLogin($val);
 					if ($status[0]) {
+						$accset = $t;
 						$val = $cfuncs->encrypt_value($val, $t);
 					} else {
 						$msg = $status[1];
@@ -97,7 +99,7 @@ if (isset($params['cancel'])) {
 						//no replacement password
 						continue 2;
 					} else {
-						$status = $afuncs->validatePassword($val);
+						$status = $afuncs->ValidatePassword($val);
 						if ($status[0]) {
 							$val = password_hash($val, PASSWORD_DEFAULT);
 						} else {
@@ -119,6 +121,10 @@ if (isset($params['cancel'])) {
 	}
 
 	if (!$msg) {
+		if ($accset) {
+			$keys[] = 'acchash';
+			$args[] = password_hash($accset, PASSWORD_DEFAULT);
+		}
 		$pre = cms_db_prefix();
 		if ($uid == -1) {
 			$uid = $db->GenID($pre.'module_auth_users_seq');
@@ -243,9 +249,9 @@ for ($i = 0; $i < $c; $i += 6) {
 		break;
 	 case 2:
 		switch ($kf) {
+		 case 'account':
 		 case 'name':
 		 case 'address':
-		 case 'account':
 			$val = $cfuncs->decrypt_value($val);
 			if ($pmod) {
 				$one->input = $this->CreateInputText($id, $kf, $val, $props[$i+3], $props[$i+4]);
