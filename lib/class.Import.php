@@ -184,8 +184,8 @@ class Import
 									$data[$k] = $t;
 								}
 								break;
-							 case 'name':
 							 case 'account':
+							 case 'name':
 							 case 'address':
 								$data[$k] = $t;
 								break;
@@ -274,8 +274,9 @@ class Import
 						$data['passhash'] = $passhash ?
 							pack('H*', $passhash) :
 							password_hash($password, PASSWORD_DEFAULT);
-						$t = $data['account']; //preserve this
-						$data['account'] = $cfuncs->encrypt_value($data['account'], $masterkey);
+						$login = $data['account'];
+						$data['account'] = $cfuncs->encrypt_value($login, $masterkey);
+						$data['acchash'] = password_hash($login, PASSWORD_DEFAULT);
 						$data['name'] = $cfuncs->encrypt_value($data['name'], $masterkey);
 						$data['address'] = $cfuncs->encrypt_value($data['address'], $masterkey);
 
@@ -287,18 +288,9 @@ class Import
 							} else {
 								$uid = FALSE;
 							}
-							if (!$uid && $t) {
-								//TODO cache this data
-								$sql = 'SELECT id,account FROM '.$pref.'module_auth_users WHERE context_id=?';
-								$rows = $this->db->GetArray($sql, [$data['context_id']]);
-								if ($rows) {
-									foreach ($rows as $row) {
-										if ($cfuncs->decrypt_value($row['account'], $masterkey) == $t) {
-											$uid = $row['id'];
-											break;
-										}
-									}
-								}
+							if (!$uid && $login) {
+								$sql = 'SELECT id FROM '.$pref.'module_auth_users WHERE acchash=?';
+								$uid = $db->GetOne($sql, [$data['acchash']]);
 							}
 							if ($uid) {
 								$namers = implode('=?,', array_keys($data));
