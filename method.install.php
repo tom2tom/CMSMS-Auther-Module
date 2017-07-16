@@ -137,6 +137,7 @@ NB name,address,addwhen (at least) NULL if unused, to enable COALESCE
 $flds = '
 id I(4) KEY,
 account B,
+acchash B,
 passhash B,
 name B,
 address B,
