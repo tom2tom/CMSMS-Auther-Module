@@ -123,16 +123,16 @@ if ($data) {
 	$dt = new DateTime('@0', NULL);
 
 	$cfuncs = new Auther\Crypter($this);
-	$pw = $cfuncs->decrypt_preference('masterpass');
+	$mpw = $cfuncs->decrypt_preference('masterpass');
 
 	$rows = [];
 	foreach ($data as &$one) {
 		$uid = (int)$one['id'];
 		$oneset = new stdClass();
 		if ($one['name']) {
-			$t = $cfuncs->decrypt_value($one['name'], $pw);
+			$t = $cfuncs->decrypt_value($one['name'], $mpw);
 		} else {
-			$t = $cfuncs->decrypt_value($one['account'], $pw);
+			$t = $cfuncs->decrypt_value($one['account'], $mpw);
 		}
 		if ($pmod) {
 			$oneset->name = $this->CreateLink($id, 'openuser', '', $t,

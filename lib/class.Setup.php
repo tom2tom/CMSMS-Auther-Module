@@ -430,7 +430,7 @@ EOS;
 		require __DIR__.DIRECTORY_SEPARATOR.'setup.'.$task.'.php';
 
 		$cfuncs = new Crypter($mod);
-		$pw = $cfuncs->decrypt_preference('masterpass');
+		$mpw = $cfuncs->decrypt_preference('masterpass');
 		try {
 			require __DIR__.DIRECTORY_SEPARATOR.'random'.DIRECTORY_SEPARATOR.'random.php';
 			$iv = random_bytes(8); //sized for Blowfish in openssl
@@ -442,7 +442,7 @@ EOS;
 			$iv = openssl_random_pseudo_bytes(8, $strong);
 		}
 		//serialize $cache cuz' random-bytes in far-nonce BUT RAW DATA ALWAYS FAILS! DITTO FOR JSON
-		$t = openssl_encrypt(serialize($cache), 'BF-CBC', $pw, 0, $iv); //low security
+		$t = openssl_encrypt(serialize($cache), 'BF-CBC', $mpw, 0, $iv); //low security
 		$hidden[] = $mod->CreateInputHidden($id, 'data', $t);
 		$hidden[] = $mod->CreateInputHidden($id, 'IV', base64_encode($iv));
 

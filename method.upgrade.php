@@ -21,11 +21,11 @@ if ($rst) {
 		include __DIR__.DIRECTORY_SEPARATOR.'lib'.DIRECTORY_SEPARATOR.'password.php';
 	}
 	$cfuncs = new Auther\Crypter($this);
-	$pw = $cfuncs->decrypt_preference('masterpass');
+	$mpw = $cfuncs->decrypt_preference('masterpass');
 	$sql = 'UPDATE '.$pref.'module_auth_users SET account=?,acchash=? WHERE id=?';
 	while (!$rst->EOF) {
-		$login = $cfuncs->encrypt_value($rst->fields['account'], $pw);
-		$hash = password_hash($login, PASSWOR_DEFAULT);
+		$login = $cfuncs->encrypt_value($rst->fields['account'], $mpw);
+		$hash = password_hash($login, PASSWORD_DEFAULT);
 		$db->Execute($sql, [$login, $hash, $rst->fields['id']]);
 		if (!$rst->MoveNext()) {
 			break;
@@ -36,6 +36,7 @@ if ($rst) {
 */
 }
 /*
+$pref = cms_db_prefix();
 $sql = 'SELECT id,account FROM '.$pref.'module_auth_users';
 $rst = $db->Execute($sql);
 if ($rst) {
@@ -43,11 +44,11 @@ if ($rst) {
 		include __DIR__.DIRECTORY_SEPARATOR.'lib'.DIRECTORY_SEPARATOR.'password.php';
 	}
 	$cfuncs = new Auther\Crypter($this);
-	$pw = $cfuncs->decrypt_preference('masterpass');
+	$mpw = $cfuncs->decrypt_preference('masterpass');
 	$sql = 'UPDATE '.$pref.'module_auth_users SET acchash=? WHERE id=?';
 	while (!$rst->EOF) {
-		$login = $cfuncs->decrypt_value($rst->fields['account'], $pw);
-		$hash = password_hash($login, PASSWOR_DEFAULT);
+		$login = $cfuncs->decrypt_value($rst->fields['account'], $mpw);
+		$hash = password_hash($login, PASSWORD_DEFAULT);
 		$db->Execute($sql, [$hash, $rst->fields['id']]);
 		if (!$rst->MoveNext()) {
 			break;
