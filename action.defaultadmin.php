@@ -92,7 +92,7 @@ if (isset($params['submit'])) {
 					$val = trim($val);
 				    if (!$val && $props[$i+3] > 0) {
 						$msg = $this->Lang('missing_type',$this->Lang('title_'.$kn));
-						break 2;
+						break;
 					}
 				}
 				switch ($kn) {
