@@ -183,20 +183,15 @@ class Validate
 	{
 		$pref = \cms_db_prefix();
 		if ($uid) {
-			$sql = 'SELECT id FROM '.$pref.'module_auth_users WHERE id=? AND passreset>0';
+			$sql = 'SELECT 1 FROM '.$pref.'module_auth_users WHERE id=? AND passreset>0';
 			return \cmsms()->GetDb()->GetOne($sql, [$uid]);
-		} else {
-			$sql = 'SELECT account FROM '.$pref.'module_auth_users WHERE context_id=? AND passreset>0';
-			$data = \cmsms()->GetDb()->GetCol($sql, [$cid]);
-			if ($data) {
-				$pw = $this->cfuncs->decrypt_preference('masterpass');
-				foreach ($data as $row) {
-					if ($this->cfuncs->decrypt_value($row, $pw) == $login) {
-						return TRUE;
-					}
-				}
+		} elseif ($login) {
+			if (!function_exists('password_hash')) {
+				include __DIR__.DIRECTORY_SEPARATOR.'password.php';
 			}
-			return FALSE;
+			$hash = password_hash($login, PASSWORD_DEFAULT);
+			$sql = 'SELECT 1 FROM '.$pref.'module_auth_users WHERE acchash=? AND context_id=? AND passreset>0';
+			return \cmsms()->GetDb()->GetOne($sql, [$hash, $cid]);
 		}
 	}
 
@@ -212,25 +207,15 @@ class Validate
 	{
 		$pref = \cms_db_prefix();
 		if ($uid) {
-		} elseif ($login) {
-			$uid = FALSE;
-			$sql = 'SELECT id,account FROM '.$pref.'module_auth_users WHERE context_id=?';
-			$data = \cmsms()->GetDb()->GetArray($sql, [$cid]);
-			if ($data) {
-				$pw = $this->cfuncs->decrypt_preference('masterpass');
-				foreach ($data as $row) {
-					if ($this->cfuncs->decrypt_value($row['account'], $pw) == $login) {
-						$uid = $row['id'];
-						break;
-					}
-				}
-			}
-		} else {
-			return;
-		}
-		if ($uid) {
 			$sql = 'UPDATE '.$pref.'module_auth_users SET passreset=? WHERE id=?';
 			\cmsms()->GetDb()->Execute($sql, [$state, $uid]);
+		} elseif ($login) {
+			if (!function_exists('password_hash')) {
+				include __DIR__.DIRECTORY_SEPARATOR.'password.php';
+			}
+			$hash = password_hash($login, PASSWORD_DEFAULT);
+			$sql = 'UPDATE '.$pref.'module_auth_users SET passreset=? WHERE acchash=? AND context_id=?';
+			\cmsms()->GetDb()->Execute($sql, [$state, $hash, $cid]);
 		}
 	}
 }

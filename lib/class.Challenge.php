@@ -172,36 +172,27 @@ class Challenge extends Session
 			return [FALSE, $this->mod->Lang('system_error', '#52')];
 		}
 
-		$val = FALSE;
-		$sql = 'SELECT id,account,address,active FROM '.$this->pref.'module_auth_users WHERE context_id=?';
-		$data = $this->db->GetArray($sql, [$this->context]);
-		if ($data) {
-			$cfuncs = new Crypter($this->mod);
-			$pw = $cfuncs->decrypt_preference('masterpass');
-			foreach ($data as &$row) {
-				if ($cfuncs->decrypt_value($row['account'], $pw) == $login) {
-					$uid = (int)$row['id'];
-					$t = $row['address'];
-					if ($t) {
-						$t = $cfuncs->decrypt_value($t);
-					}
-					if ($t && preg_match(self::PATNEMAIL, $t)) {
-						$email = $t;
-					} else {
-						$t = $login;
-						if ($t && preg_match(self::PATNEMAIL, $t)) {
-							$email = $t;
-						} else {
-							return [FALSE, $this->mod->Lang('temp_notsent')];
-						}
-					}
-					$val = TRUE;
-					break;
-				}
-			}
-			unset($row);
+		if (!function_exists('password_hash')) {
+			include __DIR__.DIRECTORY_SEPARATOR.'password.php';
 		}
-		if (!$val) {
+		$hash = password_hash($login, PASSWORD_DEFAULT);
+		$sql = 'SELECT id,address,active FROM '.$this->pref.'module_auth_users WHERE acchash=? AND context_id=?';
+		$row = $this->db->GetRow($sql, [$hash, $this->context]);
+		if ($row) {
+			$t = $row['address'];
+			if ($t) {
+				$cfuncs = new Crypter($this->mod);
+				$t = $cfuncs->decrypt_value($t);
+			}
+			if ($t && preg_match(self::PATNEMAIL, $t)) {
+				$email = $t;
+			} elseif ($login && preg_match(self::PATNEMAIL, $login)) {
+				$email = $login;
+			} else {
+				return [FALSE, $this->mod->Lang('temp_notsent')];
+			}
+			$uid = (int)$row['id'];
+		} else {
 			return [FALSE, $this->mod->Lang('system_error', '#53')];
 		}
 
@@ -402,41 +393,31 @@ class Challenge extends Session
 	*/
 	public function IsTellable($login, $failkey='not_contactable')
 	{
+		if (!function_exists('password_hash')) {
+			include __DIR__.DIRECTORY_SEPARATOR.'password.php';
+		}
+		$hash = password_hash($login, PASSWORD_DEFAULT);
 		$pref = \cms_db_prefix();
-		//TODO find match for encrypted 'account'
-		$sql = 'SELECT id,account,address FROM '.$pref.'module_auth_users WHERE context_id=?';
-		$data = \cmsms()->GetDb()->GetArray($sql, [$this->context]);
-		if ($data) {
-			$cfuncs = new Crypter($this->mod);
-			$pw = $cfuncs->decrypt_preference('masterpass');
-			foreach ($data as &$row) {
-				if ($cfuncs->decrypt_value($row['account']) == $login) {
-					if ($row['address']) {
-						$contact = $cfuncs->decrypt_value($row['address']);
-						if ($this->GetConfig('email_login')) {
-							$tests = [$login, $contact];
-						} else {
-							$tests = [$contact, $login];
-						}
-						foreach ($tests as $t) {
-							if ($t) {
-								if ($this->mod->sendMail && preg_match(Auth::PATNEMAIL, $t)) {
-									unset($row);
-									return [1, $t];
-								}
-								if ($this->mod->sendSMS && preg_match(Auth::PATNPHONE, $t)) {
-									unset($row);
-									return [2, $t];
-								}
-							}
-						}
-					} elseif ($this->mod->sendMail && preg_match(Auth::PATNEMAIL, $login)) {
-						unset($row);
-						return [1, $login];
-					}
+		$sql = 'SELECT address FROM '.$pref.'module_auth_users WHERE acchash=? AND context_id=?';
+		$contact = \cmsms()->GetDb()->GetOne($sql, [$hash, $this->context]);
+		if ($this->GetConfig('email_login')) {
+			$tests = [$login, $contact];
+		} else {
+			$tests = [$contact, $login];
+		}
+		foreach ($tests as $t) {
+			if ($t) {
+				if ($t == $contact) {
+					$cfuncs = new Crypter($this->mod);
+					$t = $cfuncs->decrypt_value($t);
+				}
+				if ($this->mod->sendMail && preg_match(Auth::PATNEMAIL, $t)) {
+					return [1, $t];
+				}
+				if ($this->mod->sendSMS && preg_match(Auth::PATNPHONE, $t)) {
+					return [2, $t];
 				}
 			}
-			unset($row);
 		}
 		return [FALSE, $this->mod->Lang($failkey)];
 	}
