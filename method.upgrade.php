@@ -10,22 +10,45 @@ $dict = NewDataDictionary($db);
 $pref = \cms_db_prefix();
 
 switch ($oldversion) {
+//case :
+}
 /*
-case :
-$sqlarray = $dict->AlterColumnSQL($pref.'module_auth_users', 'account B');
-$dict->ExecuteSqlArray($sqlarray);
+$dict = NewDataDictionary($db);
+$pref = cms_db_prefix();
+$sqlarray = $dict->RenameColumnSQL($pref.'module_auth_users','publicid','account','account B');
+$ares = $dict->ExecuteSqlArray($sqlarray,FALSE);
+//$sqlarray = $dict->AlterColumnSQL($pref.'module_auth_users','account B');
+//$ares = $dict->ExecuteSqlArray($sqlarray,FALSE);
+$sqlarray = $dict->AddColumnSQL($pref.'module_auth_users','acchash B');
+$ares = $dict->ExecuteSqlArray($sqlarray,FALSE);
+$sqlarray = ['ALTER TABLE '.$pref.'module_auth_users CHANGE acchash acchash longblob NULL AFTER account'];
+$ares = $dict->ExecuteSqlArray($sqlarray,FALSE);
+$sqlarray = $dict->RenameColumnSQL($pref.'module_auth_users','privreset','passreset','passreset I(1) DEFAULT 0');
+$ares = $dict->ExecuteSqlArray($sqlarray,FALSE);
+$sqlarray = $dict->RenameColumnSQL($pref.'module_auth_users','privhash','passhash','passhash B');
+$ares = $dict->ExecuteSqlArray($sqlarray,FALSE);
+
+$cfuncs = new Auther\Crypter($this);
+$mpw = $this->GetPreference('masterpass');
+if ($mpw) {
+	$mpw = $cfuncs->olddecrypt_preference('masterpass');
+	$cfuncs->encrypt_preference('masterpass',$mpw);
+	$this->RemovePreference('masterpass');
+} else {
+	$mpw = $cfuncs->decrypt_preference('masterpass');
+	if (!$mpw) {
+		$mpw = 'Crack V4bNsgj1ws if you can!';
+		$cfuncs->encrypt_preference('masterpass',$mpw);
+	}
+}
+
 $sql = 'SELECT id,account FROM '.$pref.'module_auth_users';
 $rst = $db->Execute($sql);
 if ($rst) {
-	if (!function_exists('password_hash')) {
-		include __DIR__.DIRECTORY_SEPARATOR.'lib'.DIRECTORY_SEPARATOR.'password.php';
-	}
-	$cfuncs = new Auther\Crypter($this);
-	$mpw = $cfuncs->decrypt_preference('masterpass');
 	$sql = 'UPDATE '.$pref.'module_auth_users SET account=?,acchash=? WHERE id=?';
 	while (!$rst->EOF) {
 		$login = $cfuncs->encrypt_value($rst->fields['account'], $mpw);
-		$hash = password_hash($login, PASSWORD_DEFAULT);
+		$hash = $cfuncs->hash_value($rst->fields['account'], $mpw);
 		$db->Execute($sql, [$login, $hash, $rst->fields['id']]);
 		if (!$rst->MoveNext()) {
 			break;
@@ -33,22 +56,17 @@ if ($rst) {
 	}
 	$rst->Close();
 }
-*/
-}
-/*
+//~~~~~~~~
+$cfuncs = new Auther\Crypter($this);
+$mpw = $cfuncs->decrypt_preference('masterpass');
 $pref = cms_db_prefix();
 $sql = 'SELECT id,account FROM '.$pref.'module_auth_users';
 $rst = $db->Execute($sql);
 if ($rst) {
-	if (!function_exists('password_hash')) {
-		include __DIR__.DIRECTORY_SEPARATOR.'lib'.DIRECTORY_SEPARATOR.'password.php';
-	}
-	$cfuncs = new Auther\Crypter($this);
-	$mpw = $cfuncs->decrypt_preference('masterpass');
 	$sql = 'UPDATE '.$pref.'module_auth_users SET acchash=? WHERE id=?';
 	while (!$rst->EOF) {
 		$login = $cfuncs->decrypt_value($rst->fields['account'], $mpw);
-		$hash = password_hash($login, PASSWORD_DEFAULT);
+		$hash = $cfuncs->hash_value($login, $mpw);
 		$db->Execute($sql, [$hash, $rst->fields['id']]);
 		if (!$rst->MoveNext()) {
 			break;
