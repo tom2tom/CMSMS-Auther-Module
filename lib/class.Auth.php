@@ -9,8 +9,6 @@
 #----------------------------------------------------------------------
 namespace Auther;
 
-include __DIR__.DIRECTORY_SEPARATOR.'password.php';
-
 class Auth extends Session
 {
 	const PATNEMAIL = '/^\S+@[^\s.]+\.\S+$/';
@@ -28,6 +26,9 @@ class Auth extends Session
 
 	public function __construct(&$mod, $context = 0)
 	{
+		if (!function_exists('password_hash')) {
+			include __DIR__.DIRECTORY_SEPARATOR.'password.php';
+		}
 		parent::__construct($mod, $context);
 	}
 
@@ -36,7 +37,7 @@ class Auth extends Session
 	/**
 	 * Verifies that @login is an acceptable login identifier (format and not duplicated)
 	 *
-	 * @login: string user identifier
+	 * @login: string plaintext user identifier
 	 * Returns: array [0]=boolean for success, [1]=message or ''
 	 */
 	public function ValidateLogin($login)
@@ -78,7 +79,7 @@ class Auth extends Session
 	/**
 	 * Verifies that @login is not duplicated
 	 *
-	 * @login: string user identifier
+	 * @login: string plaintext user identifier
 	 * @except optional string identifier to exclude from the check (normally
 	 *  a current login still being used, default = FALSE
 	 * @explicit: optional boolean whether to report login-is-taken or just invalid, default = FALSE
@@ -87,8 +88,10 @@ class Auth extends Session
 	public function UniqueLogin($login, $except = FALSE, $explicit = FALSE)
 	{
 		if ($login !== $except || $login == FALSE) {
-			$sql = 'SELECT id FROM '.$this->pref.'module_auth_users WHERE publicid=? AND context_id=?';
-			if ($this->db->GetOne($sql, [$login, $this->context])) {
+			$sql = 'SELECT 1 FROM '.$this->pref.'module_auth_users WHERE acchash=? AND context_id=?';
+			$cfuncs = new Crypter($this->mod);
+			$hash = $cfuncs->hash_value($login);
+			if ($this->db->GetOne($sql, [$hash, $this->context])) {
 				$msg = ($explicit) ?
 					$this->mod->Lang('login_taken') :
 					$this->mod->Lang('invalid_type', $this->mod->Lang('title_login'));
@@ -99,9 +102,9 @@ class Auth extends Session
 	}
 
 	/**
-	 * Verifies (somewhat slowly) that @login is not 'gibberish'
+	 * Verifies (somewhat slowly) that (english-language) @login is not 'gibberish'
 	 *
-	 * @login: string user identifier
+	 * @login: string plaintext user identifier
 	 * Returns: array [0]=boolean for success, [1]=message or ''
 	 */
 	public function SensibleLogin($login)
@@ -170,7 +173,7 @@ class Auth extends Session
 	}
 
 	/**
-	 * Verifies (somewhat slowly) that @name is not 'gibberish'
+	 * Verifies (somewhat slowly) that (english-language) @name is not 'gibberish'
 	 *
 	 * @name: string
 	 * Returns: array [0]=boolean for success, [1]=message or ''
@@ -242,7 +245,7 @@ class Auth extends Session
 	/**
 	 * Verifies that all @params are acceptable
 	 *
-	 * @params: associative array with members 'publicid','password' and optionally 'name' and/or 'address'
+	 * @params: associative array with members 'account','password' and optionally 'name' and/or 'address'
 	 * @except optional string identifier passed to UniqueLogin(), default = FALSE
 	 * @explicit: optional boolean passed to UniqueLogin(), default = FALSE
 	 * Returns: array [0]=boolean for success, [1]=message
@@ -252,12 +255,12 @@ class Auth extends Session
 	{
 		extract($params);
 		$errs = [];
-		if (isset($publicid)) {
-			$res = $this->ValidateLogin($publicid);
+		if (isset($account)) {
+			$res = $this->ValidateLogin($account);
 			if (!$res[0]) {
 				$errs[] = $res[1];
 			}
-			$res = $this->UniqueLogin($publicid, $except, $explicit);
+			$res = $this->UniqueLogin($account, $except, $explicit);
 			if (!$res[0]) {
 				$errs[] = $res[1];
 			}
@@ -303,16 +306,19 @@ class Auth extends Session
 	 * @uid: int user enumerator
 	 * @newpass: plaintext string
 	 * @raw: optional boolean, whether @newpass is already hashed, default FALSE
-	 * Returns: array [0]=boolean for success, [1]=message or ''
+	 * Returns: 2-member array, [0]=boolean indicating success, [1]=message
 	 */
 	public function ChangePasswordReal($uid, $newpass, $raw = FALSE)
 	{
 		if (!$raw) {
 			$newpass = password_hash($newpass, PASSWORD_DEFAULT);
 		}
-		$sql = 'UPDATE '.$this->pref.'module_auth_users SET privhash=? WHERE id=?';
+		$sql = 'UPDATE '.$this->pref.'module_auth_users SET passhash=? WHERE id=?';
 		$this->db->Execute($sql, [$newpass, $uid]);
-		return [TRUE, $this->mod->Lang('password_changed')];
+		if ($this->db->Affected_Rows() > 0) {
+			return [TRUE, $this->mod->Lang('password_changed')];
+		}
+		return [FALSE, $this->mod->Lang('system_error', '#01')];
 	}
 
 	/**
@@ -361,7 +367,7 @@ class Auth extends Session
 
 		if (!$userdata) {
 			$this->AddAttempt($token);
-			return [FALSE, $this->mod->Lang('system_error', '#14')];
+			return [FALSE, $this->mod->Lang('system_error', '#02')];
 		}
 
 		$tries = 1; //TODO
@@ -372,7 +378,7 @@ class Auth extends Session
 
 		$newpass = password_hash($newpass, PASSWORD_DEFAULT);
 
-		$sql = 'UPDATE '.$this->pref.'module_auth_users SET privhash=? WHERE id=?';
+		$sql = 'UPDATE '.$this->pref.'module_auth_users SET passhash=? WHERE id=?';
 		$this->db->Execute($sql, [$newpass, $uid]);
 		return [TRUE, $this->mod->Lang('password_changed')];
 	}
@@ -387,7 +393,7 @@ class Auth extends Session
 	 */
 	public function ComparePasswords($uid, $password)
 	{
-		$sql = 'SELECT privhash FROM '.$this->pref.'module_auth_users WHERE id=?';
+		$sql = 'SELECT passhash FROM '.$this->pref.'module_auth_users WHERE id=?';
 		$hash = $this->db->GetOne($sql, [$uid]);
 		if ($hash) {
 			return $this->DoPasswordCheck($password, $hash, 0, $uid);
@@ -404,10 +410,10 @@ class Auth extends Session
 	 */
 	protected function MatchPassword($uid, $password)
 	{
-		$sql = 'SELECT privhash FROM '.$this->pref.'module_auth_users WHERE id=?';
+		$sql = 'SELECT passhash FROM '.$this->pref.'module_auth_users WHERE id=?';
 		$hash = $this->db->GetOne($sql, [$uid]);
 		if (!$hash) {
-			return [FALSE, $this->mod->Lang('system_error', '#15')];
+			return [FALSE, $this->mod->Lang('system_error', '#03')];
 		}
 
 		$tries = 1; //TODO
@@ -431,7 +437,7 @@ class Auth extends Session
 		if (password_verify($password, $hash)) {
 			if ($uid > 0 && password_needs_rehash($hash, PASSWORD_DEFAULT)) {
 				$newhash = password_hash($password, PASSWORD_DEFAULT);
-				$sql = 'UPDATE '.$this->pref.'module_auth_users SET privhash=? WHERE id=?';
+				$sql = 'UPDATE '.$this->pref.'module_auth_users SET passhash=? WHERE id=?';
 				$this->db->Execute($sql, [$newhash, $uid]);
 			}
 			return TRUE;
@@ -448,7 +454,7 @@ class Auth extends Session
 	/**
 	 * Logs a user in
 	 *
-	 * @login: string user identifier
+	 * @login: string plaintext user identifier
 	 * @password: plaintext string
 	 * @remember: optional boolean whether to setup session-expiry-time in self::AddSession() default = FALSE
 	 * Returns: array, [0]=boolean for success, [1]=message or '', if [0] then also session-parameters: 'token','expire'
@@ -512,7 +518,7 @@ class Auth extends Session
 		if (!$sdata) {
 			$parms = []; //TODO API
 			$this->mod->SendEvent('OnLoginFail', $parms);
-			return [FALSE, $this->mod->Lang('system_error', '#01')];
+			return [FALSE, $this->mod->Lang('system_error', '#04')];
 		}
 
 		$parms = []; //TODO API
@@ -541,75 +547,11 @@ class Auth extends Session
 	//~~~~~~~~~~~~~ USER OPERATIONS ~~~~~~~~~~~~~~~~~
 
 	/**
-	 * Checks whether @login is recorded for current context and (if @active = TRUE) active,
-	 *  and @password (if not FALSE) is valid. A session is created/updated as appropriate.
-	 *
-	 * @login: string user identifier
-	 * @password: optional plaintext string, or FALSE to skip password-validation, default = FALSE
-	 * @active: optional boolean whether to check for active user, default TRUE
-	 * @fast: optional boolean whether to return immediately if not recognized, default = FALSE
-	 * @token: optional string 24-byte session-data key, default = FALSE
-	 * Returns: 2-member array [0]=boolean indicating success [1]=array of data from row of session table
-	 * TODO also return indication that password-reset is now forced
-	 */
-	public function IsRegistered($login, $password = FALSE, $active = TRUE, $fast = FALSE, $token = FALSE)
-	{
-		$sql = 'SELECT id,privhash,active FROM '.$this->pref.'module_auth_users WHERE publicid=? AND context_id=?';
-		$userdata = $this->db->GetRow($sql, [$login, $this->context]);
-		$uid = ($userdata) ? $userdata['id'] : -1;
-		$ip = $this->GetIp();
-		$sdata = $this->CurrentSession($token, $uid, $ip);
-		if ($userdata && (!$active || $userdata['active'] > 0)) {
-			if ($password === FALSE) {
-				if ($sdata) {
-					//cleanup TODO change status if NEW_FOR_IP
-					$sql = 'UPDATE '.$this->pref.'module_auth_cache SET user_id=?,attempts=1 WHERE token=?';
-					$this->db->Execute($sql, [$uid, $token]); //TODO update token WHERE token=sdata[token]
-					$sdata['user_id'] = $uid;
-					$sdata['attempts'] = 1;
-				} else {
-					$token = $this->MakeUserSession($uid, $token);
-					$sql = 'SELECT * FROM '.$this->pref.'module_auth_cache WHERE token=?';
-					$sdata = $this->db->GetRow($sql, [$token]);
-				}
-				return [TRUE, $sdata];
-			}
-			if (!$sdata) {
-				$token = $this->MakeUserSession($uid, $token);
-				$sql = 'SELECT * FROM '.$this->pref.'module_auth_cache WHERE token=?';
-				$sdata = $this->db->GetRow($sql, [$token]);
-			}
-			$tries = ($fast) ? 0 : $sdata['attempts'];
-			$res = $this->DoPasswordCheck($password, $userdata['privhash'], $tries, $uid);
-			if (!$res) {
-				$this->AddAttempt($sdata['token']); //TODO update token WHERE token=sdata[token]
-				$sdata['attempts']++;
-			}
-			return [$res, $sdata];
-		} else {
-			if ($sdata) {
-				$this->AddAttempt($sdata['token']);
-				$sdata['attempts']++;
-			} else {
-				$token = $this->MakeSourceSession($ip, $token);
-				$sql = 'SELECT * FROM '.$this->pref.'module_auth_cache WHERE token=?';
-				$sdata = $this->db->GetRow($sql, [$token]);
-			}
-		}
-		if (!$fast) {
-			$times = isset($sdata['attempts']) ? $sdata['attempts'] : 1;
-			$t = min(2000, $times * 500);
-			usleep($t * 1000);
-		}
-		return [FALSE, $sdata];
-	}
-
-	/**
 	 * Checks whether @login is recorded for current context and (if @active = TRUE)
 	 *  active, and @password (if not FALSE) is valid. As distinct from IsRegistered(),
 	 *  no session is involved, and no delay. Sorta 'IsRegisteredReal'
 	 *
-	 * @login: string user identifier
+	 * @login: string plaintext user identifier
 	 * @password: optional plaintext string, or FALSE to skip password-validation, default = FALSE
 	 * @active: optional boolean whether to check for active user, default TRUE
 	 * Returns: boolean indicating success
@@ -634,10 +576,77 @@ class Auth extends Session
 	}
 
 	/**
+	 * Checks whether @login is recorded for current context and (if @active = TRUE)
+	 *  active, and @password (if not FALSE) is valid. A session is created/updated
+	 *  as appropriate.
+	 *
+	 * @login: string plaintext user identifier
+	 * @password: optional plaintext string, or FALSE to skip password-validation, default = FALSE
+	 * @active: optional boolean whether to check for active user, default TRUE
+	 * @fast: optional boolean whether to return immediately if not recognized, default = FALSE
+	 * @token: optional string 24-byte session-data key, default = FALSE
+	 * Returns: 2-member array, [0]=boolean indicating success [1]=array of data from row of users-table
+	 * TODO also return indication that password-reset is now forced
+	 */
+	public function IsRegistered($login, $password = FALSE, $active = TRUE, $fast = FALSE, $token = FALSE)
+	{
+		$sql = 'SELECT id,passhash,active FROM '.$this->pref.'module_auth_users WHERE acchash=? AND context_id=?';
+		$cfuncs = new Crypter($this->mod);
+		$hash = $cfuncs->hash_value($login);
+		$userdata = $this->db->GetRow($sql, [$hash, $this->context]);
+		$uid = ($userdata) ? $userdata['id'] : -1;
+		$ip = $this->GetIp();
+		$sdata = $this->CurrentSession($token, $uid, $ip);
+		if ($userdata && (!$active || $userdata['active'] > 0)) {
+			if ($password === FALSE) {
+				if ($sdata) {
+					//cleanup TODO change status if NEW_FOR_IP
+					$sql = 'UPDATE '.$this->pref.'module_auth_cache SET user_id=?,attempts=1 WHERE token=?';
+					$this->db->Execute($sql, [$uid, $token]); //TODO update token WHERE token=sdata[token]
+					$sdata['user_id'] = $uid;
+					$sdata['attempts'] = 1;
+				} else {
+					$token = $this->MakeUserSession($uid, $token);
+					$sql = 'SELECT * FROM '.$this->pref.'module_auth_cache WHERE token=?';
+					$sdata = $this->db->GetRow($sql, [$token]);
+				}
+				return [TRUE, $sdata];
+			}
+			if (!$sdata) {
+				$token = $this->MakeUserSession($uid, $token);
+				$sql = 'SELECT * FROM '.$this->pref.'module_auth_cache WHERE token=?';
+				$sdata = $this->db->GetRow($sql, [$token]);
+			}
+			$tries = ($fast) ? 0 : $sdata['attempts'];
+			$res = $this->DoPasswordCheck($password, $userdata['passhash'], $tries, $uid);
+			if (!$res) {
+				$this->AddAttempt($sdata['token']); //TODO update token WHERE token=sdata[token]
+				$sdata['attempts']++;
+			}
+			return [$res, $sdata];
+		} else {
+			if ($sdata) {
+				$this->AddAttempt($sdata['token']);
+				$sdata['attempts']++;
+			} else {
+				$token = $this->MakeSourceSession($ip, $token);
+				$sql = 'SELECT * FROM '.$this->pref.'module_auth_cache WHERE token=?';
+				$sdata = $this->db->GetRow($sql, [$token]);
+			}
+		}
+		if (!$fast) {
+			$times = isset($sdata['attempts']) ? $sdata['attempts'] : 1;
+			$t = min(2000, $times * 500);
+			usleep($t * 1000);
+		}
+		return [FALSE, $sdata];
+	}
+
+	/**
 	 * If action-status warrants or @check=FALSE, changes a user's login name
 	 *
 	 * @uid: int user enumerator
-	 * @login: string user identifier
+	 * @login: string plaintext user identifier
 	 * @password: plaintext string
 	 * @check: optional boolean, whether to check action-status before proceeding, default = TRUE
 	 * Returns: array [0]=boolean for success, [1]=message or ''
@@ -684,41 +693,47 @@ class Auth extends Session
 			return [FALSE, $this->mod->Lang('incorrect_type', $this->mod->Lang('password'))];
 		}
 
-		if ($login == $userdata['publicid']) {
+		if ($login == $userdata['account']) {
 			$this->AddAttempt($token);
 			return [FALSE, $this->mod->Lang('newlogin_match')];
 		}
 
-		$sql = 'UPDATE '.$this->pref.'module_auth_users SET publicid=? WHERE id=?';
-		$res = $this->db->Execute($sql, [$login, $uid]);
-
-		if ($res == FALSE) {
-			return [FALSE, $this->mod->Lang('system_error', '#06')];
+		$cfuncs = new Crypter($this->mod);
+		$hash = $cfuncs->hash_value($login);
+		$login = $cfuncs->encrypt_value($login);
+		$sql = 'UPDATE '.$this->pref.'module_auth_users SET account=?,acchash=? WHERE id=?';
+		$this->db->Execute($sql, [$login, $hash, $uid]);
+		if ($this->db->Affected_Rows() > 0) {
+			return [TRUE, $this->mod->Lang('login_changed')];
 		}
-
-		return [TRUE, $this->mod->Lang('login_changed')];
+		return [FALSE, $this->mod->Lang('system_error', '#06')];
 	}
 
 	/**
 	 * Get a variant of (non-email) @login which is not currently recorded
 	 *
-	 * @login: string user identifier
-	 * Returns: string, @login with a numeric suffix, or FALSE
+	 * @login: string plaintext user identifier
+	 * Returns: string, @login with a numeric suffix, or @login, or FALSE
 	 */
 	public function NumberedLogin($login)
 	{
 		if (!login || preg_match(self::PATNEMAIL, $login)) {
 			return FALSE;
 		}
-		$sql = 'SELECT publicid FROM '.$this->pref.'module_auth_users WHERE publicid LIKE ?% AND context_id=? ORDER BY publicid';
-		$rows = $this->db->GeCol($sql, [$login, $this->context]);
-		if ($rows) {
+		$sql = 'SELECT account FROM '.$this->pref.'module_auth_users WHERE context_id=?';
+		$data = $this->db->GeCol($sql, [$this->context]);
+		if ($data) {
+			$cfuncs = new Crypter($this->mod);
+			$mpw = $cfuncs->decrypt_preference('masterpass');
 			$suffs = [];
 			$pl = strlen($login);
-			foreach ($rows as $one) {
-				$s = substr($one, $pl);
-				if ($s && is_numeric($s)) {
-					$suffs[] = (int)$s;
+			foreach ($data as $one) {
+				$t = $cfuncs->decrypt_value($one, $mpw);
+				if (strncmp($t, $login, $pl) === 0) {
+					$s = substr($t, $pl);
+					if ($s && is_numeric($s)) {
+						$suffs[] = (int)$s;
+					}
 				}
 			}
 			foreach ($suffs as $i => $one) {
@@ -732,7 +747,7 @@ class Auth extends Session
 			$s = count($suffs) + 1;
 			return $login.$s;
 		}
-		return FALSE; //should never get here
+		return $login;
 	}
 
 	/**
@@ -740,7 +755,7 @@ class Auth extends Session
 	 *
 	 * @uid: int user enumerator
 	 * @raw: optional boolean, whether to decrypt relevant values, default = FALSE
-	 * Returns: array with members uid,publicid,name,address,context_id,addwhen,lastuse,nameswap,active or else FALSE
+	 * Returns: array with members uid,account,name,address,context_id,addwhen,lastuse,nameswap,active or else FALSE
 	 */
 	public function GetUser($uid, $raw = FALSE)
 	{
@@ -749,9 +764,10 @@ class Auth extends Session
 
 		if ($data) {
 			unset($data['id']);
-			unset($data['privhash']);
+			unset($data['passhash']);
 			if (!$raw) {
 				$cfuncs = new Crypter($this->mod);
+				$data['account'] = $cfuncs->decrypt_value($data['account']);
 				$data['name'] = $cfuncs->decrypt_value($data['name']);
 				$data['address'] = $cfuncs->decrypt_value($data['address']);
 //TODO context ??
@@ -777,7 +793,7 @@ class Auth extends Session
 	 */
 	public function GetUserPassword($uid, $raw = FALSE)
 	{
-		$sql = 'SELECT privhash FROM '.$this->pref.'module_auth_users WHERE id=?';
+		$sql = 'SELECT passhash FROM '.$this->pref.'module_auth_users WHERE id=?';
 		$data = $this->db->GetOne($sql, [$uid]);
 
 		if ($data) {
@@ -790,30 +806,52 @@ class Auth extends Session
 	}
 
 	/**
-	 * Get user-enumerator for @login (whether or not currently active)
+	 * Get user-enumerator(s) for @login (whether or not currently active)
 	 *
-	 * @login: string user/account identifier
-	 * Returns: enumerator or FALSE
+	 * @login: string plaintext user/account identifier, or array of them
+	 * Returns: enumerator or associative array or FALSE
 	 */
 	public function GetUserID($login)
 	{
-		$sql = 'SELECT id FROM '.$this->pref.'module_auth_users WHERE publicid=? AND context_id=?';
-		return $this->db->GetOne($sql, [$login, $this->context]);
+		$a = is_array($login);
+		if ($a) {
+			$ret = [];
+		} else {
+			$ret = FALSE;
+			$login = [$login];
+		}
+
+		$cfuncs = new Crypter($this->mod);
+		$sql = 'SELECT id FROM '.$this->pref.'module_auth_users WHERE acchash=? AND context_id=?';
+		foreach($login as $one) {
+			$hash = $cfuncs->hash_value($one);
+			$uid = $this->db->GetOne($sql, [$hash, $this->context]);
+			if ($uid) {
+				if ($a) {
+					$ret[$one] = (int)$uid;
+				} else {
+					return (int)$uid;
+				}
+			}
+		}
+		return $ret;
 	}
 
 	/**
 	 * Gets some user-data for @uid
 	 *
 	 * @uid: int user enumerator
-	 * Returns: array with members uid,publicid,privhash,active or else FALSE
+	 * Returns: array with members uid,account,passhash(raw),active or else FALSE
 	 */
 	protected function GetUserBase($uid)
 	{
-		$sql = 'SELECT publicid,privhash,active FROM '.$this->pref.'module_auth_users WHERE id=?';
+		$sql = 'SELECT account,passhash,active FROM '.$this->pref.'module_auth_users WHERE id=?';
 		$data = $this->db->GetRow($sql, [$uid]);
 
 		if ($data) {
 			$data['uid'] = $uid;
+			$cfuncs = new Crypter($this->mod);
+			$data['account'] = $cfuncs->decrypt_value($data['account']);
 			return $data;
 		}
 		return FALSE;
@@ -822,9 +860,9 @@ class Auth extends Session
 	/**
 	 * Gets publicly-accessible user-data for @login
 	 *
-	 * @login: string user identifier
+	 * @login: string plaintext user identifier
 	 * @active: optional boolean, whether the user is required to be active, default = TRUE
-	 * Returns: array with members publicid,name,address,addwhen,lastuse[,active] or else FALSE
+	 * Returns: array with members account,name,address,addwhen,lastuse[,active] or else FALSE
 	 */
 	public function GetUserPublic($login, $active = TRUE)
 	{
@@ -832,23 +870,25 @@ class Auth extends Session
 		if (!$active) {
 			$sql .= ',active';
 		}
-		$sql .= ' FROM '.$this->pref.'module_auth_users WHERE publicid=? AND context_id=?';
+		$sql .= ' FROM '.$this->pref.'module_auth_users WHERE acchash=? AND context_id=?';
 		if ($active) {
 			$sql .= ' AND active>0';
 		}
-		$data = $this->db->GetRow($sql, [$login, $this->context]);
+		$cfuncs = new Crypter($this->mod);
+		$mpw = $cfuncs->decrypt_preference('masterpass');
+		$hash = $cfuncs->hash_value($login, $mpw);
+		$data = $this->db->GetRow($sql, [$hash, $this->context]);
 
 		if ($data) {
-			$cfuncs = new Crypter($this->mod);
-			$data['name'] = $cfuncs->decrypt_value($data['name']);
-			$data['address'] = $cfuncs->decrypt_value($data['address']);
+			$data['account'] = $login;
+			$data['name'] = $cfuncs->decrypt_value($data['name'], $mpw);
+			$data['address'] = $cfuncs->decrypt_value($data['address'], $mpw);
 //TODO zone offset
 			$dt = new \DateTime('@0', NULL);
 			$dt->setTimestamp($data['addwhen']);
 			$data['addwhen'] = $dt->format('Y-m-d H:i:s');
 			$dt->setTimestamp($data['lastuse']);
 			$data['lastuse'] = $dt->format('Y-m-d H:i:s');
-			$data['publicid'] = $login;
 			return $data;
 		}
 		return FALSE;
@@ -857,7 +897,7 @@ class Auth extends Session
 	/**
 	 * Gets specified user-data for @login
 	 *
-	 * @login: string user identifier, or array of them
+	 * @login: string plaintext user identifier, or array of them
 	 * @props: optional string, table field-name, or '*' or array of field names, default = '*'
 	 * @active: optional boolean, whether the user(s) is/are required to be active, default = TRUE
 	 * Returns: associative array or else FALSE
@@ -867,49 +907,55 @@ class Auth extends Session
 		if (is_array($props)) {
 			$namers = implode(',', $props);
 		} elseif ($props == '*') {
-			$namers = 'id,publicid,name,address,addwhen,lastuse,nameswap,active'; //exclude a few of the fields
+			$namers = 'id,account,name,address,addwhen,lastuse,nameswap,active'; //exclude a few of the fields
 		} else {
 			$namers = $props;
 		}
-		$sql = 'SELECT '.$namers.' FROM '.$this->pref.'module_auth_users WHERE context_id=?';
-		$args = [$this->context];
-
-		if (is_array($login)) {
-			$fillers = str_repeat('?,', count($login) - 1);
-			$sql .= ' AND publicid IN ('.$fillers.'?)';
-			$args = array_merge($args, $login);
+		if (strpos($namers,'account') === FALSE) {
+			$namers = 'account,'.$namers;
+			$strip = TRUE;
 		} else {
-			$sql .= ' AND publicid=?';
-			$args[] = $login;
+			$strip = FALSE;
 		}
-
+		$sql = 'SELECT '.$namers.' FROM '.$this->pref.'module_auth_users WHERE context_id=?';
 		if ($active) {
 			$sql .= ' AND active>0';
 		}
-		$data = $this->db->GetArray($sql, $args);
+		$data = $this->db->GetArray($sql, [$this->context]);
 
 		if ($data) {
 			$cfuncs = new Crypter($this->mod);
-//TODO zone offset
+			$mpw = $cfuncs->decrypt_preference('masterpass');
 			$dt = new \DateTime('@0', NULL);
-			foreach ($data as &$one) {
-				if (!empty($one['name'])) {
-					$one['name'] = $cfuncs->decrypt_value($one['name']);
-				}
-				if (!empty($one['address'])) {
-					$one['address'] = $cfuncs->decrypt_value($one['address']);
-				}
-				if (!empty($one['addwhen'])) {
-					$dt->setTimestamp($one['addwhen']);
-					$one['addwhen'] = $dt->format('Y-m-d H:i:s');
-				}
-				if (!empty($one['lastuse'])) {
-					$dt->setTimestamp($one['lastuse']);
-					$one['lastuse'] = $dt->format('Y-m-d H:i:s');
+//TODO zone offset
+			$a = is_array($login);
+			$ret = [];
+			foreach ($data as $one) {
+				$t = $cfuncs->decrypt_value($one['account'], $mpw);
+				if ((!$a && $t == $login) || ($a && in_array($t,$login))) {
+					if ($strip) {
+						unset($one['account']);
+					} else {
+						$one['account'] = $t;
+					}
+					if (!empty($one['name'])) {
+						$one['name'] = $cfuncs->decrypt_value($one['name'], $mpw);
+					}
+					if (!empty($one['address'])) {
+						$one['address'] = $cfuncs->decrypt_value($one['address'], $mpw);
+					}
+					if (!empty($one['addwhen'])) {
+						$dt->setTimestamp($one['addwhen']);
+						$one['addwhen'] = $dt->format('Y-m-d H:i:s');
+					}
+					if (!empty($one['lastuse'])) {
+						$dt->setTimestamp($one['lastuse']);
+						$one['lastuse'] = $dt->format('Y-m-d H:i:s');
+					}
+					$ret[] = $one;
 				}
 			}
-			unset($one);
-			return $data;
+			return $ret;
 		}
 		return FALSE;
 	}
@@ -926,58 +972,60 @@ class Auth extends Session
 		if (is_numeric(key($data))) {
 			$cfuncs = new Crypter($this->mod);
 			$dt = new \DateTime('@0', NULL);
-			foreach ($data as &$row) {
-				foreach ($row as $name => &$one) {
+			foreach ($data as &$one) {
+				foreach ($one as $name => &$val) {
 					switch ($name) {
+					 case 'account':
 					 case 'name':
 					 case 'address':
-						$one = $cfuncs->decrypt_value($one);
+						$val = $cfuncs->decrypt_value($val);
 						break;
 					 case 'addwhen':
 					 case 'lastuse':
-						$dt->setTimestamp($one);
-						$one = $dt->format('Y-m-d H:i:s');
+						$dt->setTimestamp($val);
+						$val = $dt->format('Y-m-d H:i:s');
 						break;
 					 default:
-						if (is_numeric($one)) {
-							$one += 0;
-						} elseif (is_string($one)) {
-							$one = trim($one);
+						if (is_numeric($val)) {
+							$val += 0;
+						} elseif (is_string($val)) {
+							$val = trim($val);
 						}
 					}
 				}
-				unset ($one);
+				unset ($val);
 			}
-			unset ($row);
+			unset ($one);
 		} else { //single row of data
 			$cfuncs = NULL;
 			$dt = NULL;
-			foreach ($data as $name => &$one) {
+			foreach ($data as $name => &$val) {
 				switch ($name) {
+				 case 'account':
 				 case 'name':
 				 case 'address':
 					if (!$cfuncs) {
 						$cfuncs = new Crypter($this->mod);
 					}
-					$one = $cfuncs->decrypt_value($one);
+					$val = $cfuncs->decrypt_value($val);
 					break;
 				 case 'addwhen':
 				 case 'lastuse':
 					if (!$dt) {
 						$dt = new \DateTime('@0', NULL);
 					}
-					$dt->setTimestamp($one);
-					$one = $dt->format('Y-m-d H:i:s');
+					$dt->setTimestamp($val);
+					$val = $dt->format('Y-m-d H:i:s');
 					break;
 				 default:
-					if (is_numeric($one)) {
-						$one += 0;
-					} elseif (is_string($one)) {
-						$one = trim($one);
+					if (is_numeric($val)) {
+						$val += 0;
+					} elseif (is_string($val)) {
+						$val = trim($val);
 					}
 				}
 			}
-			unset ($one);
+			unset ($val);
 		}
 	}
 
@@ -988,31 +1036,13 @@ class Auth extends Session
 	 */
 	public function GetActiveUsers()
 	{
-		$sql = 'SELECT id,publicid FROM '.$this->pref.'module_auth_users WHERE context_id=? AND active>0 ORDER BY addwhen';
-		return $this->db->GetAssoc($sql, [$this->context]);
-	}
-
-	/**
-	 * Gets some specific data for all, or all active, users of the current context
-	 *
-	 * @active: optional boolean, whether to report for active-users only, default = TRUE
-	 * @raw: optional boolean, whether to return encrypted data as-is, default = FALSE
-	 * Returns: array, each member of which has user_id,publicid,name,address,nameswap or else FALSE
-	 */
-	public function GetPublicUsers($active = TRUE, $raw = FALSE)
-	{
-		$sql = 'SELECT id,publicid,name,address,nameswap FROM '.$this->pref.'module_auth_users WHERE context_id=?';
-		if ($active) {
-			$sql .= ' AND active>0';
-		}
-		$sql .= ' ORDER BY publicid';
-		$data = $this->db->GetArray($sql, [$this->context]);
-		if ($data && !$raw) {
+		$sql = 'SELECT id,account FROM '.$this->pref.'module_auth_users WHERE context_id=? AND active>0 ORDER BY addwhen';
+		$data = $this->db->GetAssoc($sql, [$this->context]);
+		if ($data) {
 			$cfuncs = new Crypter($this->mod);
-			$pw = $cfuncs->decrypt_preference('masterpass');
+			$mpw = $cfuncs->decrypt_preference('masterpass');
 			foreach ($data as &$one) {
-				$one['name'] = $cfuncs->decrypt_value($one['name'], $pw);
-				$one['address'] = $cfuncs->decrypt_value($one['address'], $pw);
+				$one = $cfuncs->decrypt_value($one, $mpw);
 			}
 			unset ($one);
 		}
@@ -1020,9 +1050,40 @@ class Auth extends Session
 	}
 
 	/**
+	 * Gets some specific data for all, or all active, users of the current context
+	 *
+	 * @active: optional boolean, whether to report for active-users only, default = TRUE
+	 * @raw: optional boolean, whether to return encrypted data as-is, default = FALSE
+	 * Returns: array, each member of which has user_id,account,name,address,nameswap or else FALSE
+	 */
+	public function GetPublicUsers($active = TRUE, $raw = FALSE)
+	{
+		$sql = 'SELECT id,account,name,address,nameswap FROM '.$this->pref.'module_auth_users WHERE context_id=?';
+		if ($active) {
+			$sql .= ' AND active>0';
+		}
+		$data = $this->db->GetArray($sql, [$this->context]);
+		if ($data) {
+			if (!$raw) {
+				$cfuncs = new Crypter($this->mod);
+				$mpw = $cfuncs->decrypt_preference('masterpass');
+				foreach ($data as &$one) {
+					$one['account'] = $cfuncs->decrypt_value($one['account'], $mpw);
+					$one['name'] = $cfuncs->decrypt_value($one['name'], $mpw);
+					$one['address'] = $cfuncs->decrypt_value($one['address'], $mpw);
+				}
+				unset ($one);
+				//TODO support mb sort
+				usort($data, function ($a, $b) { return strcmp($a['account'], $b['account']); });
+			}
+		}
+		return $data;
+	}
+
+	/**
 	 * Records a new user, without any status-check or parameter validation
 	 *
-	 * @login: string user identifier
+	 * @login: string plaintext user identifier
 	 * @password: plaintext string
 	 * @name: string user name
 	 * @address: email or other type of address for messages, possibly empty
@@ -1037,6 +1098,8 @@ class Auth extends Session
 		$password = password_hash($password, PASSWORD_DEFAULT);
 
 		$cfuncs = new Crypter($this->mod);
+		$hash = $cfuncs->hash_value($login);
+		$login = $cfuncs->encrypt_value($login);
 		if ($name || is_numeric($name)) {
 			$name = $cfuncs->encrypt_value($name);
 		} else {
@@ -1048,10 +1111,10 @@ class Auth extends Session
 			$address = NULL;
 		}
 		//TODO any others?
-		$sql = 'INSERT INTO '.$this->pref.'module_auth_users (id,publicid,privhash,name,address,context_id,addwhen,active) VALUES (?,?,?,?,?,?,?,?)';
-		$this->db->Execute($sql, [$uid, $login, $password, $name, $address, $this->context, time(), $active]);
+		$sql = 'INSERT INTO '.$this->pref.'module_auth_users (id,account,acchash,passhash,name,address,context_id,addwhen,active) VALUES (?,?,?,?,?,?,?,?)';
+		$this->db->Execute($sql, [$uid, $login, $hash, $password, $name, $address, $this->context, time(), $active]);
 		if ($this->db->Affected_Rows() == 0) {
-			return [FALSE, $this->mod->Lang('system_error', '#08')]; //probably a duplicate
+			return [FALSE, $this->mod->Lang('system_error', '#07')]; //probably a duplicate
 		}
 
 		if (is_array($params) && count($params) > 0) {
@@ -1065,7 +1128,7 @@ class Auth extends Session
 	 * If action-status warrants or @check=FALSE, creates and records a new user,
 	 *  after parameter validation
 	 *
-	 * @login: string user identifier
+	 * @login: string plaintext user identifier
 	 * @password: plaintext string
 	 * @name: string user name
 	 * @address: email or other type of address for messages, possibly empty
@@ -1085,7 +1148,7 @@ class Auth extends Session
 		}
 
 		$res = $this->ValidateAll([
-			'publicid' => $login,
+			'account' => $login,
 			'password' => $password,
 			'name' => $name,
 			'address' => $address
@@ -1100,7 +1163,7 @@ class Auth extends Session
 	 * If action-status warrants or @check=FALSE, creates and records a user,
 	 *  after validation of all supplied parameters
 	 *
-	 * @login: string user identifier
+	 * @login: string plaintext user identifier
 	 * @password: plaintext string
 	 * @repeatpass: plaintext string
 	 * @address: plaintext string
@@ -1128,7 +1191,7 @@ class Auth extends Session
 	 *  or parameter validation except @oldlogin must be recognised
 	 *
 	 * @oldlogin: string curent user identifier
-	 * @login: string new user identifier, ignored if any FALSE other than '' or '0'
+	 * @login: string plaintext new user identifier, ignored if any FALSE other than '' or '0'
 	 * @name: string new user name, ignored if ditto
 	 * @address: string new email or other type of address for messages, ignored if ditto
 	 * @active: optional flag (0/1 or FALSE) indicating user's active-state, default = FALSE
@@ -1148,8 +1211,10 @@ class Auth extends Session
 
 		//TODO consider - password change too?
 		if ($login && $login !== $oldlogin) {
-			$namers[] = 'publicid';
-			$args[] = $login;
+			$namers[] = 'account';
+			$args[] = $cfuncs->encrypt_value($login);
+			$namers[] = 'acchash';
+			$args[] = $cfuncs->hash_value($login);
 		}
 		if ($name || $name === '' || is_numeric($name)) {
 			$namers[] = 'name';
@@ -1181,9 +1246,9 @@ class Auth extends Session
 	 * If action-status warrants or @check=FALSE, changes property-values
 	 *  (not password) for a user, after new-parameter validation
 	 *
-	 * @oldlogin: string current user identifier
+	 * @oldlogin: string current user plaintext identifier
 	 * @password: string plaintext current password
-	 * @login: string new user identifier ignored if FALSE
+	 * @login: string new user plaintext identifier ignored if FALSE
 	 * @name: string user name maybe ignored if FALSE
 	 * @address: email or other type of address for messages, ignored if FALSE
 	 * @active: optional integer (0/1) or FALSE, default = FALSE
@@ -1222,7 +1287,7 @@ class Auth extends Session
 			$address = $data['address'];
 		}
 		$res = $this->ValidateAll([
-			'publicid' => $login,
+			'account' => $login,
 			'password' => $password,
 			'name' => $name,
 			'address' => $address
@@ -1238,7 +1303,7 @@ class Auth extends Session
 	 * Deletes data for @login from all tables, sends event
 	 * c.f. Utils->DeleteUser, Utils->DeleteContextUsers for admin use
 	 *
-	 * @login: string user identifier
+	 * @login: string plaintext user identifier
 	 * Returns: array [0]=boolean for success, [1]=message or ''
 	 */
 	public function DeleteUserReal($login)
@@ -1269,7 +1334,7 @@ class Auth extends Session
 	/**
 	 * If action-status warrants or @check=FALSE, deletes data for @login from all tables
 	 *
-	 * @login: string user identifier
+	 * @login: string plaintext user identifier
 	 * @password: string plaintext
 	 * @check: optional boolean, whether to check action-status before proceeding, default = TRUE
 	 * Returns: array [0]=boolean for success, [1]=message

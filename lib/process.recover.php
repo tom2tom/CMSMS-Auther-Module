@@ -196,7 +196,7 @@ if ($msgs || $fake) {
 		if ($sendto) {
 			$res = $mfuncs->ChallengeMessage($sendto, 'recover', $pw);
 			if ($res[0]) {
-				$flds = ['temptoken' => password_hash($pw, PASSWORD_DEFAULT)];
+				$flds = ['temptoken' => $cfuncs->hash_value($pw, FALSE, FALSE)];
 				$enc = $cfuncs->encrypt_value(json_encode($flds));
 				$sql = 'UPDATE '.$pref.'module_auth_cache SET data=? WHERE token=?';
 				$db->Execute($sql, [$enc, $token]);

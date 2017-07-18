@@ -43,6 +43,9 @@ if (isset($params['cancel'])) {
 	$t = $cfuncs->decrypt_preference('masterpass');
 	$msg = FALSE;
 	$accset = FALSE;
+	if (!function_exists('password_hash')) {
+		include __DIR__.DIRECTORY_SEPARATOR.'lib'.DIRECTORY_SEPARATOR.'password.php';
+	}
 
 	$props = GetUProps();
 	$c = count($props);
@@ -87,7 +90,7 @@ if (isset($params['cancel'])) {
 				 case 'account':
 					$status = $afuncs->validateLogin($val);
 					if ($status[0]) {
-						$accset = $t;
+						$accset = $val;
 						$val = $cfuncs->encrypt_value($val, $t);
 					} else {
 						$msg = $status[1];
@@ -123,7 +126,7 @@ if (isset($params['cancel'])) {
 	if (!$msg) {
 		if ($accset) {
 			$keys[] = 'acchash';
-			$args[] = password_hash($accset, PASSWORD_DEFAULT);
+			$args[] = $cfuncs->hash_value($accset, $t);
 		}
 		$pre = cms_db_prefix();
 		if ($uid == -1) {

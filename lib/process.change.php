@@ -304,7 +304,7 @@ if ($msgs || $fake) {
 		if ($sendto) {
 			$res = $mfuncs->TellUser($sendto, 'change', $pw);
 			if ($res[0]) {
-				$flds = ['temptoken' => password_hash($pw, PASSWORD_DEFAULT)];
+				$flds = ['temptoken' => $cfuncs->hash_value($pw, FALSE, FALSE)];
 				$enc = $cfuncs->encrypt_value(json_encode($flds));
 				$sql = 'UPDATE '.$pref.'module_auth_cache SET data=? WHERE token=?';
 				$db->Execute($sql, [$enc, $token]);
@@ -349,11 +349,16 @@ if ($msgs || $fake) {
 	} else {
 		$namers = [];
 		$args = [];
+		if (!function_exists('password_hash')) {
+			include __DIR__.DIRECTORY_SEPARATOR.'password.php';
+		}
 		foreach ($flds as $field => $val) {
 			$namers[] = $field.'=?';
 			switch ($field) {
 			 case 'account':
-				$args[] = $val;
+				$args[] = $cfuncs->encrypt_value($val);
+				$namers[] = 'acchash=?';
+				$args[] = $cfuncs->hash_value($val);
 				break;
 			 case 'passhash':
 				$args[] = password_hash($val, PASSWORD_DEFAULT);

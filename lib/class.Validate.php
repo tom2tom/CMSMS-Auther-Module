@@ -186,10 +186,7 @@ class Validate
 			$sql = 'SELECT 1 FROM '.$pref.'module_auth_users WHERE id=? AND passreset>0';
 			return \cmsms()->GetDb()->GetOne($sql, [$uid]);
 		} elseif ($login) {
-			if (!function_exists('password_hash')) {
-				include __DIR__.DIRECTORY_SEPARATOR.'password.php';
-			}
-			$hash = password_hash($login, PASSWORD_DEFAULT);
+			$hash = $this->cfuncs->hash_value($login);
 			$sql = 'SELECT 1 FROM '.$pref.'module_auth_users WHERE acchash=? AND context_id=? AND passreset>0';
 			return \cmsms()->GetDb()->GetOne($sql, [$hash, $cid]);
 		}
@@ -210,10 +207,7 @@ class Validate
 			$sql = 'UPDATE '.$pref.'module_auth_users SET passreset=? WHERE id=?';
 			\cmsms()->GetDb()->Execute($sql, [$state, $uid]);
 		} elseif ($login) {
-			if (!function_exists('password_hash')) {
-				include __DIR__.DIRECTORY_SEPARATOR.'password.php';
-			}
-			$hash = password_hash($login, PASSWORD_DEFAULT);
+			$hash = $this->cfuncs->hash_value($login);
 			$sql = 'UPDATE '.$pref.'module_auth_users SET passreset=? WHERE acchash=? AND context_id=?';
 			\cmsms()->GetDb()->Execute($sql, [$state, $hash, $cid]);
 		}

@@ -122,6 +122,9 @@ class Challenge extends Session
 			return [FALSE, $this->mod->Lang('newpassword_match')];
 		}
 
+		if (!function_exists('password_hash')) {
+			include __DIR__.DIRECTORY_SEPARATOR.'password.php';
+		}
 		$newpass = password_hash($newpass, PASSWORD_DEFAULT);
 		$sql = 'UPDATE '.$this->pref.'module_auth_users SET passhash=? WHERE id=?';
 		$this->db->Execute($sql, [$newpass, $data['uid']]);
@@ -172,16 +175,13 @@ class Challenge extends Session
 			return [FALSE, $this->mod->Lang('system_error', '#52')];
 		}
 
-		if (!function_exists('password_hash')) {
-			include __DIR__.DIRECTORY_SEPARATOR.'password.php';
-		}
-		$hash = password_hash($login, PASSWORD_DEFAULT);
+		$cfuncs = new Crypter($this->mod);
+		$hash = $cfuncs->hash_value($login);
 		$sql = 'SELECT id,address,active FROM '.$this->pref.'module_auth_users WHERE acchash=? AND context_id=?';
 		$row = $this->db->GetRow($sql, [$hash, $this->context]);
 		if ($row) {
 			$t = $row['address'];
 			if ($t) {
-				$cfuncs = new Crypter($this->mod);
 				$t = $cfuncs->decrypt_value($t);
 			}
 			if ($t && preg_match(self::PATNEMAIL, $t)) {
@@ -393,10 +393,8 @@ class Challenge extends Session
 	*/
 	public function IsTellable($login, $failkey='not_contactable')
 	{
-		if (!function_exists('password_hash')) {
-			include __DIR__.DIRECTORY_SEPARATOR.'password.php';
-		}
-		$hash = password_hash($login, PASSWORD_DEFAULT);
+		$cfuncs = new Crypter($this->mod);
+		$hash = $cfuncs->hash_value($login);
 		$pref = \cms_db_prefix();
 		$sql = 'SELECT address FROM '.$pref.'module_auth_users WHERE acchash=? AND context_id=?';
 		$contact = \cmsms()->GetDb()->GetOne($sql, [$hash, $this->context]);
@@ -408,7 +406,6 @@ class Challenge extends Session
 		foreach ($tests as $t) {
 			if ($t) {
 				if ($t == $contact) {
-					$cfuncs = new Crypter($this->mod);
 					$t = $cfuncs->decrypt_value($t);
 				}
 				if ($this->mod->sendMail && preg_match(Auth::PATNEMAIL, $t)) {

@@ -145,6 +145,10 @@ class Import
 				}
 			}
 
+			if (!function_exists('password_hash')) {
+				include __DIR__.DIRECTORY_SEPARATOR.'password.php';
+			}
+
 			$pref = \cms_db_prefix();
 			$db = \cmsms()->GetDb();
 			//CHECKME cache for update-checks, dup-checks BUT should be no dup's in data here
@@ -169,7 +173,7 @@ class Import
 				$imports = self::GetSplitLine($fh);
 				if ($imports) {
 					$data = [];
-					$password = FALSE; //if set, store via password_hash($password);
+					$password = FALSE; //if set, store via password_hash($password, PASSWORD_DEFAULT);
 					$passhash = FALSE; //if set, store raw via unpack('H*',$passhash);
 					$update = FALSE;
 					foreach ($imports as $i => $one) {
@@ -272,11 +276,10 @@ class Import
 					if ($res[0]) {
 						$data['context_id'] = $cid;
 						$data['passhash'] = $passhash ?
-							pack('H*', $passhash) :
-							password_hash($password, PASSWORD_DEFAULT);
+							pack('H*', $passhash) : password_hash($password, PASSWORD_DEFAULT);
 						$login = $data['account'];
 						$data['account'] = $cfuncs->encrypt_value($login, $mpw);
-						$data['acchash'] = password_hash($login, PASSWORD_DEFAULT);
+						$data['acchash'] = $cfuncs->hash_value($login, $mpw);
 						$data['name'] = $cfuncs->encrypt_value($data['name'], $mpw);
 						$data['address'] = $cfuncs->encrypt_value($data['address'], $mpw);
 
