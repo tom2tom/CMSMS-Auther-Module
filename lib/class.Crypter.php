@@ -118,10 +118,10 @@ class Crypter Extends Encryption
 				$pw = self::decrypt_preference('masterpass');
 			}
 			if ($pw) {
-				$key = $this->extendKey($this->hasher, $pw,
+				$key = $this->extendKey('sha512', $pw,
 					$this->mod->GetPreference('nQCeESKBr99A'), $this->rounds,
-					$this->getOpenSSLKeysize());
-				$s = hash_hmac($this->hasher, $value, $key, $raw);
+					$this->getOpenSSLKeysize() * 2);
+				$s = hash_hmac('sha512', $value, $key, $raw);
 				if ($raw) {
 					return str_replace('\'', '\\\'', $s);
 				}
