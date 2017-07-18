@@ -80,7 +80,7 @@ class Crypter Extends Encryption
 
 	/**
 	decrypt_value:
-	@value: string to decrypted, may be empty
+	@value: string to be decrypted, may be empty
 	@pw: optional password string, default FALSE (meaning use the module-default)
 	@based: optional boolean, whether @value is base64_encoded, default FALSE
 	Returns: decrypted @value, or just @value if it's empty or if password is empty
@@ -98,6 +98,30 @@ class Crypter Extends Encryption
 //					$value = str_replace('\\\'', '\'', $value);
 				}
 				$value = parent::decrypt($value, $pw);
+			}
+		}
+		return $value;
+	}
+
+	/**
+	hash_value:
+	@value: value to be hashed, may be empty string
+	@pw: optional password string, default FALSE (meaning use the module-default)
+	@raw: optional boolean, whether to return raw binary data, default TRUE
+	Returns: hashed @value, or just @value if it's empty or if password is empty
+	*/
+	public function hash_value($value, $pw=FALSE, $raw=TRUE)
+	{
+		$value .= '';
+		if ($value) {
+			if (!$pw) {
+				$pw = self::decrypt_preference('masterpass');
+			}
+			if ($pw) {
+				$key = $this->extendKey($this->hasher, $pw,
+					$this->mod->GetPreference('nQCeESKBr99A'), $this->rounds,
+					$this->getOpenSSLKeysize());
+				return hash_hmac($this->hasher, $value, $key, $raw);
 			}
 		}
 		return $value;
