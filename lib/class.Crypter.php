@@ -121,7 +121,11 @@ class Crypter Extends Encryption
 				$key = $this->extendKey($this->hasher, $pw,
 					$this->mod->GetPreference('nQCeESKBr99A'), $this->rounds,
 					$this->getOpenSSLKeysize());
-				return hash_hmac($this->hasher, $value, $key, $raw);
+				$s = hash_hmac($this->hasher, $value, $key, $raw);
+				if ($raw) {
+					return str_replace('\'', '\\\'', $s);
+				}
+				return $s;
 			}
 		}
 		return $value;
