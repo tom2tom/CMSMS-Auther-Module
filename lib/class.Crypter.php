@@ -11,7 +11,6 @@ class Crypter Extends Encryption
 {
 	const STRETCHES = 8192;
 	protected $mod;
-	protected $custom;
 
 	/*
 	constructor:
@@ -22,7 +21,6 @@ class Crypter Extends Encryption
 	public function __construct(&$mod, $method='BF-CBC', $stretches=self::STRETCHES)
 	{
 		$this->mod = $mod;
-		$this->custom = \cmsms()->GetConfig()['ssl_url'].$mod->GetModulePath(); //site&module-dependent
 		parent::__construct($method, 'default', $stretches);
 	}
 
@@ -33,10 +31,10 @@ class Crypter Extends Encryption
 	*/
 	public function encrypt_preference($key, $value)
 	{
-		$s = parent::encrypt($value,
-			hash_hmac('sha1', $this->mod->GetPreference('nQCeESKBr99A').$this->custom, $key));
-		$this->mod->SetPreference(
-			hash('sha1', $key.$this->custom), base64_encode($s));
+		$s = \cmsms()->GetConfig()['ssl_url'].$this->mod->GetModulePath(); //site&module-dependent
+		$value = parent::encrypt($value,
+			hash_hmac('sha1', $this->mod->GetPreference('nQCeESKBr99A').$s, $key));
+		$this->mod->SetPreference(hash('sha1', $key.$s), base64_encode($value));
 	}
 
 	/**
@@ -46,10 +44,10 @@ class Crypter Extends Encryption
 	*/
 	public function decrypt_preference($key)
 	{
-		$s = base64_decode($this->mod->GetPreference(
-			hash('sha1', $key.$this->custom)));
-		return parent::decrypt($s,
-			hash_hmac('sha1', $this->mod->GetPreference('nQCeESKBr99A').$this->custom, $key));
+		$s = \cmsms()->GetConfig()['ssl_url'].$this->mod->GetModulePath();
+		$value = base64_decode($this->mod->GetPreference(hash('sha1', $key.$s)));
+		return parent::decrypt($value,
+			hash_hmac('sha1', $this->mod->GetPreference('nQCeESKBr99A').$s, $key));
 	}
 
 	/**
@@ -57,9 +55,10 @@ class Crypter Extends Encryption
 	@value: value to encrypted, may be empty string
 	@pw: optional password string, default FALSE (meaning use the module-default)
 	@based: optional boolean, whether to base64_encode the encrypted value, default FALSE
+	@escaped: optional boolean, whether to escape single-quote chars in the (raw) encrypted value, default FALSE
 	Returns: encrypted @value, or just @value if it's empty or if password is empty
 	*/
-	public function encrypt_value($value, $pw=FALSE, $based=FALSE)
+	public function encrypt_value($value, $pw=FALSE, $based=FALSE, $escaped=FALSE)
 	{
 		$value .= '';
 		if ($value) {
@@ -70,8 +69,8 @@ class Crypter Extends Encryption
 				$value = parent::encrypt($value, $pw);
 				if ($based) {
 					$value = base64_encode($value);
-//				} else {
-//					$value = str_replace('\'', '\\\'', $value); //facilitate db-field storage
+				} elseif ($escaped) {
+					$value = str_replace('\'', '\\\'', $value); //facilitate db-field storage
 				}
 			}
 		}
@@ -83,9 +82,10 @@ class Crypter Extends Encryption
 	@value: string to be decrypted, may be empty
 	@pw: optional password string, default FALSE (meaning use the module-default)
 	@based: optional boolean, whether @value is base64_encoded, default FALSE
+	@escaped: optional boolean, whether single-quote chars in (raw) @value have been escaped, default FALSE
 	Returns: decrypted @value, or just @value if it's empty or if password is empty
 	*/
-	public function decrypt_value($value, $pw=FALSE, $based=FALSE)
+	public function decrypt_value($value, $pw=FALSE, $based=FALSE, $escaped=FALSE)
 	{
 		if ($value) {
 			if (!$pw) {
@@ -94,8 +94,8 @@ class Crypter Extends Encryption
 			if ($pw) {
 				if ($based) {
 					$value = base64_decode($value);
-//				} else {
-//					$value = str_replace('\\\'', '\'', $value);
+				} elseif ($escaped) {
+					$value = str_replace('\\\'', '\'', $value);
 				}
 				$value = parent::decrypt($value, $pw);
 			}
