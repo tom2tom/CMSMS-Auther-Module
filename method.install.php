@@ -174,13 +174,10 @@ $funcs = new Auther\Utils();
 $t = $funcs->RandomString(32, FALSE, FALSE);
 $this->SetPreference('session_salt', $t);
 $t = $funcs->RandomString(10, TRUE, TRUE);
-$s = sprintf(base64_decode('Q3JhY2sgJXMgaWYgeW91IGNhbiE='), $t);
+$t = sprintf(base64_decode('Q3JhY2sgJXMgaWYgeW91IGNhbiE='), $t);
 $funcs = new Auther\Crypter($this);
-$t = cmsms()->GetConfig()['ssl_url'].$this->GetModulePath();
-$key = 'prefsalt';
-$val = $funcs->encrypt('nQCeESKBr99A'.microtime(), hash_hmac('sha256', $t.$key, $key));
-$this->SetPreference(hash('tiger192,3', $t.$key), base64_encode($val));
-$funcs->encrypt_preference('masterpass', $s);
+$funcs->init_crypt();
+$funcs->encrypt_preference('masterpass', $t);
 $t = base64_decode('Y2hhbmdlfCMkIyR8QVNBUA=='); //score 4
 $funcs->encrypt_preference('default_password', $t);
 $this->SetPreference('recaptcha_key', '');
