@@ -19,6 +19,7 @@ $lang['admindescription'] = 'This module provides authentication functionality f
 $lang['alias'] = 'Alias';
 $lang['all'] = 'All';
 $lang['allpermitted'] = 'Everyone permitted';
+$lang['apply'] = 'Apply';
 
 //$lang['blank_same'] = 'If blank/empty, your current setting will remain';
 $lang['blank_same2'] = 'For any replacement that is blank/empty, the current value will be retained';
