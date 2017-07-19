@@ -176,8 +176,10 @@ $this->SetPreference('session_salt', $t);
 $t = $funcs->RandomString(10, TRUE, TRUE);
 $s = sprintf(base64_decode('Q3JhY2sgJXMgaWYgeW91IGNhbiE='), $t);
 $funcs = new Auther\Crypter($this);
-$t = base64_decode('blFDZUVTS0JyOTlB');
-$this->SetPreference($t, $funcs->hash_value($t.microtime(), $t, FALSE));
+$t = cmsms()->GetConfig()['ssl_url'].$this->GetModulePath();
+$key = 'prefsalt';
+$val = $funcs->encrypt('nQCeESKBr99A'.microtime(), hash_hmac('sha256', $t.$key, $key));
+$this->SetPreference(hash('tiger192,3', $t.$key), base64_encode($val));
 $funcs->encrypt_preference('masterpass', $s);
 $t = base64_decode('Y2hhbmdlfCMkIyR8QVNBUA=='); //score 4
 $funcs->encrypt_preference('default_password', $t);
