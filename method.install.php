@@ -170,19 +170,19 @@ $db->Execute('CREATE INDEX '.$tblname.'_idx ON '.$tblname.' (uid)');
 $db->CreateSequence($pref.'module_auth_userprops_seq');
 */
 
-$t = 'nQCeESKBr99A';
-$this->SetPreference($t, hash('sha256', $t.microtime()));
 $funcs = new Auther\Utils();
 $t = $funcs->RandomString(32, FALSE, FALSE);
 $this->SetPreference('session_salt', $t);
 $t = $funcs->RandomString(10, TRUE, TRUE);
-$t = sprintf(base64_decode('Q3JhY2sgJXMgaWYgeW91IGNhbiE='), $t);
+$s = sprintf(base64_decode('Q3JhY2sgJXMgaWYgeW91IGNhbiE='), $t);
 $funcs = new Auther\Crypter($this);
-$funcs->encrypt_preference('masterpass', $t);
+$t = base64_decode('blFDZUVTS0JyOTlB');
+$this->SetPreference($t, $funcs->hash_value($t.microtime(), $t, FALSE));
+$funcs->encrypt_preference('masterpass', $s);
 $t = base64_decode('Y2hhbmdlfCMkIyR8QVNBUA=='); //score 4
 $funcs->encrypt_preference('default_password', $t);
-$this->SetPreference('recaptcha_key','');
-$this->SetPreference('recaptcha_secret','');
+$this->SetPreference('recaptcha_key', '');
+$funcs->encrypt_preference('recaptcha_secret', '');
 
 $this->SetPreference('address_required', 1);
 $this->SetPreference('attack_mitigation_span', '30 minutes');
