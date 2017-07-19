@@ -24,12 +24,15 @@ class Auth extends Session
 	protected $nametrained = FALSE;
 	protected $phrasetrained = FALSE;
 
-	public function __construct(&$mod, $context = 0)
+	public function __construct($mod = NULL, $context = 0)
 	{
+		if ($mod == NULL) {
+			$mod = \cms_utils::get_module('Auther');
+		}
+		parent::__construct($mod, $context);
 		if (!function_exists('password_hash')) {
 			include __DIR__.DIRECTORY_SEPARATOR.'password.php';
 		}
-		parent::__construct($mod, $context);
 	}
 
 	//~~~~~~~~~~~~~ PROPERTY VALIDATION ~~~~~~~~~~~~~~~~~
@@ -1027,6 +1030,19 @@ class Auth extends Session
 			}
 			unset ($val);
 		}
+	}
+
+	/**
+	 * Gets locally-hashed value of @str
+	 *
+	 * @str:
+	 * @raw: optional boolean whether to get binary-hash, default TRUE
+	 * Returns: string
+	 */
+	public function GetHash($str, $raw = TRUE)
+	{
+		$cfuncs = new Crypter($this->mod);
+		return $cfuncs->hash_value($one, FALSE, $raw);
 	}
 
 	/**
