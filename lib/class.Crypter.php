@@ -33,8 +33,9 @@ class Crypter Extends Encryption
 	{
 		$s = \cmsms()->GetConfig()['ssl_url'].$this->mod->GetModulePath(); //site&module-dependent
 		$value = parent::encrypt($value,
-			hash_hmac('sha1', $this->mod->GetPreference('nQCeESKBr99A').$s, $key));
-		$this->mod->SetPreference(hash('sha1', $key.$s), base64_encode($value));
+			hash_hmac('sha256', $s.$this->decrypt_preference('prefsalt'), $key));
+		$this->mod->SetPreference(hash('tiger192,3', $s.$key),
+			base64_encode($value));
 	}
 
 	/**
@@ -45,9 +46,17 @@ class Crypter Extends Encryption
 	public function decrypt_preference($key)
 	{
 		$s = \cmsms()->GetConfig()['ssl_url'].$this->mod->GetModulePath();
-		$value = base64_decode($this->mod->GetPreference(hash('sha1', $key.$s)));
-		return parent::decrypt($value,
-			hash_hmac('sha1', $this->mod->GetPreference('nQCeESKBr99A').$s, $key));
+		$value = base64_decode(
+			$this->mod->GetPreference(hash('tiger192,3', $s.'prefsalt')));
+		$t = parent::decrypt($value,
+			hash_hmac('sha256', $s.'prefsalt', 'prefsalt'));
+		if ($key != 'prefsalt') {
+			$value = base64_decode(
+				$this->mod->GetPreference(hash('tiger192,3', $s.$key)));
+			return parent::decrypt($value,
+				hash_hmac('sha256', $s.$t, $key));
+		}
+		return $t;
 	}
 
 	/**
@@ -119,7 +128,7 @@ class Crypter Extends Encryption
 			}
 			if ($pw) {
 				$key = $this->extendKey('sha512', $pw,
-					$this->mod->GetPreference('nQCeESKBr99A'), $this->rounds,
+					$this->decrypt_preference('prefsalt'), $this->rounds,
 					$this->getOpenSSLKeysize() * 2);
 				$s = hash_hmac('sha512', $value, $key, $raw);
 				if ($raw) {
