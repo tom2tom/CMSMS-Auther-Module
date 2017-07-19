@@ -16,14 +16,8 @@ class Validate
 	public function __construct(&$mod, &$afuncs=NULL, &$cfuncs=NULL)
 	{
 		$this->mod = $mod;
-		if (!$afuncs) {
-			$afuncs = new Auth($mod, NULL); //TODO some relevant context
-		}
-		$this->afuncs = $afuncs;
-		if (!$cfuncs) {
-			$cfuncs = new Crypter($mod);
-		}
-		$this->cfuncs = $cfuncs;
+		$this->afuncs = ($afuncs) ? $afuncs : new Auth($mod); //TODO some relevant context
+		$this->cfuncs = ($cfuncs) ? $cfuncs : new Crypter($mod);
 	}
 
 	protected function CompoundMessage($args)
