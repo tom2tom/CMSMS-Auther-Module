@@ -174,7 +174,7 @@ if (isset($params['submit'])) {
 					$cfuncs->encrypt_preference($kn, $val);
 					continue 2;
 				 case 'default_password':
-					$afuncs = new Auther\Auth($this, NULL);
+					$afuncs = new Auther\Auth($this);
 					$status = $afuncs->ValidatePassword($val);
 					if ($status[0]) {
 						$cfuncs->encrypt_preference($kn, $val);
