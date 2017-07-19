@@ -53,8 +53,8 @@ if (!function_exists('getModulePrefs')) {
 	'cookie_remember',			1, 16, 1,
 	'cookie_forget',			1, 16, 1,
 
-	'recaptcha_key',			1, 40, 0,
-	'recaptcha_secret',			4, 40, 0,
+	'recaptcha_key',			1, 50, 0,
+	'recaptcha_secret',			4, 50, 0,
 	];
  }
 }
@@ -517,7 +517,7 @@ EOS;
  });
 EOS;
 
-	$tplvars['submit'] = $this->CreateInputSubmit($id,'submit',$this->Lang('submit'));
+	$tplvars['submit'] = $this->CreateInputSubmit($id,'submit',$this->Lang('apply'));
 	$tplvars['cancel'] = $this->CreateInputSubmit($id,'cancel',$this->Lang('cancel'));
 } //$pset
 
