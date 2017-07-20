@@ -480,12 +480,15 @@ class Session
 			$data = $this->db->GetRow($sql, [$this->context]);
 			if ($data) {
 				//grab defaults for 'empty' settings
-				foreach ($data as $key=>&$val) {
+				foreach ($data as $key => &$val) {
 					if ($key == 'default_password') {
 						$cfuncs = new Crypter($this->mod);
 						$val = $cfuncs->decrypt_value($key);
+						if (!$val) {
+							$val == NULL;
+						}
 					}
-					if (0) { //TODO empty test
+					if ($val === NULL) { //TODO relevant empty-test
 						$val = $this->mod->GetPreference($key, NULL);
 					}
 				}
