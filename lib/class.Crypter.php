@@ -38,13 +38,14 @@ class Crypter Extends Encryption
 
 	/**
 	init_crypt:
-	Must be called ONCE (during installation or after any localisation change)
+	Must be called ONCE (during installation and/or after any localisation change)
 	before any hash or preference-crypt
 	*/
 	public function init_crypt()
 	{
 		$s = $this->localise().self::SKEY;
-		$value = parent::encrypt('nQCeESKBr99A'.microtime(),
+		$value = str_shuffle(openssl_random_pseudo_bytes(9).microtime(TRUE));
+		$value = parent::encrypt($value,
 			hash_hmac('sha256', $s, self::SKEY));
 		$this->mod->SetPreference(hash('tiger192,3', $s),
 			base64_encode($value));
@@ -163,5 +164,72 @@ class Crypter Extends Encryption
 			}
 		}
 		return $value;
+	}
+
+	/**
+	cloak_value:
+	@value: value to encrypted, may be empty string
+	@minsize: optional minimum byte-length of cloak, default FALSE (hence @value-length + 8)
+	@pw: optional password string, default FALSE (hence use the module-default)
+	@based: optional boolean, whether to base64_encode the encrypted value, default FALSE
+	Returns: encrypted @value
+	*/
+	public function cloak_value($value, $minsize=FALSE, $pw=FALSE, $based=FALSE)
+	{
+		$value = ''.$value;
+		$lv = strlen($value);
+		$lc = $lv + 8;
+		if ($minsize != FALSE && $minsize > $lc) {
+			$lc = $minsize;
+		}
+		try {
+			include __DIR__.DIRECTORY_SEPARATOR.'random'.DIRECTORY_SEPARATOR.'random.php';
+			$cloak = random_bytes($lc);
+		} catch (\Error $e) {
+			//required, if you do not need to do anything just rethrow
+			throw $e;
+		} catch (\Exception $e) {
+			$strong = TRUE;
+			$cloak = openssl_random_pseudo_bytes($lc, $strong);
+		}
+		$c = chr(0);
+		$p = 1;
+		for ($i = 0; $i < $lc; $i++) {
+			if ($cloak[$i] === $c) {
+				$cloak[$i] = chr($p);
+				$p++;
+			}
+		}
+		$p = mt_rand(0, $lc - $lv - 3);
+		$cloak[$p++] = $c;
+		for ($i = 0; $i < $lv; $i++) {
+			$cloak[$p++] = $value[$i];
+		}
+		$cloak[$p] = $c;
+		return self::encrypt_value($cloak, $pw, $based);
+	}
+
+	/**
+	uncloak_value:
+	@value: string to decrypted, may be empty
+	@pw: optional password string, default FALSE (meaning use the module-default)
+	@based: optional boolean, whether @value is base64_encoded, default FALSE
+	Returns: decrypted @value (string), or FALSE
+	*/
+	public function uncloak_value($value, $pw=FALSE, $based=FALSE)
+	{
+		$cloak = self::decrypt_value($value, $pw, $based);
+		if ($cloak) {
+			$c = chr(0);
+			$p = strpos($cloak, $c);
+			if ($p !== FALSE) {
+				$p++;
+				$i = strpos($cloak, $c, $p);
+				if ($i !== FALSE) {
+					return substr($cloak, $p, $i - $p);
+				}
+			}
+		}
+		return FALSE;
 	}
 }
