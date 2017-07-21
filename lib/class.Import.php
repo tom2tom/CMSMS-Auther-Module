@@ -159,7 +159,7 @@ class Import
 			$afuncs = new Auth($mod); //context [re]set in loop
 			$cfuncs = new Crypter($mod);
 
-			$mpw = $cfuncs->decrypt_preference('masterpass');
+			$mpw = $cfuncs->decrypt_preference(Crypter::MKEY);
 			$cached = [];
 			$st = time(); //UTC stamp
 			$skips = 0;
@@ -278,10 +278,10 @@ class Import
 						$data['passhash'] = $passhash ?
 							pack('H*', $passhash) : password_hash($password, PASSWORD_DEFAULT);
 						$login = $data['account'];
-						$data['account'] = $cfuncs->encrypt_value($login, $mpw);
+						$data['account'] = $cfuncs->cloak_value($login, 16, $mpw);
 						$data['acchash'] = $cfuncs->hash_value($login, $mpw);
-						$data['name'] = $cfuncs->encrypt_value($data['name'], $mpw);
-						$data['address'] = $cfuncs->encrypt_value($data['address'], $mpw);
+						$data['name'] = $cfuncs->cloak_value($data['name'], 0, $mpw);
+						$data['address'] = $cfuncs->cloak_value($data['address'], 24, $mpw);
 
 						$done = FALSE;
 						if ($update) { //TODO robust UPSERT
