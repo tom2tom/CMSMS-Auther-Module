@@ -5,6 +5,8 @@
 # Refer to licence and other details at the top of file Auther.module.php
 # More info at http://dev.cmsmadesimple.org/projects/auther
 #----------------------------------------------------------------------
+$cfuncs = new Auther\Crypter($this);
+
 if (!function_exists('getModulePrefs')) {
  function getModulePrefs()
  {
@@ -12,7 +14,7 @@ if (!function_exists('getModulePrefs')) {
 	//text-lengths here must conform to field lengths in module_auth_contexts table
 	//see also: getContextProperties()
 	return [
-	'masterpass',				4, 2, 1,
+	Auther\Crypter::MKEY,		4, 2, 1,
 	'security_level',			4, 0, 0,
 
 	'login_min_length',			1, 3, 0,
@@ -67,8 +69,6 @@ if ($pmod) {
 	$psee = $this->_CheckAccess('view');
 	$pset = FALSE;
 }
-
-$cfuncs = new Auther\Crypter($this);
 
 if (isset($params['submit'])) {
 	//save settings
@@ -129,7 +129,7 @@ if (isset($params['submit'])) {
 						$val = 5;
 					}
 					break;
-				 case 'masterpass':
+				 case Auther\Crypter::MKEY:
 					$oldpw = $cfuncs->decrypt_preference($kn);
 					if ($oldpw != $val) {
 						//re-hash relevant data
@@ -137,17 +137,20 @@ if (isset($params['submit'])) {
 						$sql = 'SELECT id,account,name,address FROM '.$pref.'module_auth_users';
 						$rst = $db->Execute($sql);
 						if ($rst) {
-							$sql = 'UPDATE '.$pref.'module_auth_users SET account=?,name=?,address=? WHERE id=?';
+							$sql = 'UPDATE '.$pref.'module_auth_users SET acchash=?,account=?,name=?,address=? WHERE id=?';
 							while (!$rst->EOF) {
-								$login = $cfuncs->decrypt_value($rst->fields['account'], $oldpw);
-								$name = $cfuncs->decrypt_value($rst->fields['name'], $oldpw);
-								$address = $cfuncs->decrypt_value($rst->fields['address'], $oldpw);
+								$login = $cfuncs->uncloak_value($rst->fields['account'], $oldpw);
+								$name = $cfuncs->uncloak_value($rst->fields['name'], $oldpw);
+								$address = $cfuncs->uncloak_value($rst->fields['address'], $oldpw);
 								if ($val) {
-									$login = $cfuncs->encrypt_value($login, $val);
-									$name = $cfuncs->encrypt_value($name, $val);
-									$address = $cfuncs->encrypt_value($address, $val);
+									$hash = $cfuncs->hash_value($login, $val);
+									$login = $cfuncs->cloak_value($login, 16, $val);
+									$name = $cfuncs->cloak_value($name, 0, $val);
+									$address = $cfuncs->cloak_value($address, 24, $val);
+								} else {
+									$hash = $cfuncs->hash_value($login, $val);
 								}
-								$db->Execute($sql, [$login, $name, $address, $rst->fields['id']]);
+								$db->Execute($sql, [$hash, $login, $name, $address, $rst->fields['id']]);
 								if (!$rst->MoveNext()) {
 									break;
 								}
@@ -452,7 +455,7 @@ if ($pset) {
 */
 		 case 4:
 		 	switch($kn) {
-			 case 'masterpass':
+			 case Auther\Crypter::MKEY:
 				$t = $cfuncs->decrypt_preference($kn);
 				$one->input = $this->CreateTextArea(FALSE, $id, $t, $kn, 'cloaked',
 					'', '', '', 40, $props[$i+2]);
