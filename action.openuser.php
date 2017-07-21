@@ -28,6 +28,8 @@ if (!function_exists('GetUProps')) {
  }
 }
 
+$utils = new Auther\Utils();
+
 if (empty($params['ctx_id'])) {
 	$params['ctx_id'] = 0;
 } elseif (!is_numeric($params['ctx_id'])) {
@@ -37,10 +39,14 @@ $cid = $params['ctx_id'] + 0;
 
 if (isset($params['cancel'])) {
 	$this->Redirect($id, 'users', '', ['ctx_id' => $cid]); //TODO CHECKME other parms
-} elseif (isset($params['submit'])) {
-	$afuncs = new Auther\Auth($this, $cid);
-	$cfuncs = new Auther\Crypter($this);
-	$t = $cfuncs->decrypt_preference('masterpass');
+}
+
+$afuncs = new Auther\Auth($this, $cid);
+$cfuncs = new Auther\Crypter($this);
+$pre = cms_db_prefix();
+
+if (isset($params['submit'])) {
+	$t = $cfuncs->decrypt_preference(Auther\Crypter::MKEY);
 	$msg = FALSE;
 	$accset = FALSE;
 	if (!function_exists('password_hash')) {
@@ -70,28 +76,31 @@ if (isset($params['cancel'])) {
 				switch ($kf) {
 				 case 'name':
 //					$val = c.f. Validate->SanitizeName($val); TODO cleanup whitespace etc
-					$status = $afuncs->validateName($val);
+					$status = $afuncs->ValidateName($val);
 					if ($status[0]) {
-						$val = $cfuncs->encrypt_value($val, $t);
+						$val = $cfuncs->cloak_value($val, 0, $t);
 					} else {
 						$msg = $this->Lang('invalid_type', $this->Lang('title_'.$props[$i+1]));
 						break 2;
 					}
 					break;
 				 case 'address':
-					$status = $afuncs->validateAddress($val);
+					if (preg_match(Auther\Auth::PATNPHONE, $val)) {
+						$val = str_replace(' ', '', $val);
+					}
+					$status = $afuncs->ValidateAddress($val);
 					if ($status[0]) {
-						$val = $cfuncs->encrypt_value($val, $t);
+						$val = $cfuncs->cloak_value($val, 24, $t);
 					} else {
 						$msg = $status[1];
 						break 2;
 					}
 					break;
 				 case 'account':
-					$status = $afuncs->validateLogin($val);
+					$status = $afuncs->ValidateLogin($val);
 					if ($status[0]) {
 						$accset = $val;
-						$val = $cfuncs->encrypt_value($val, $t);
+						$val = $cfuncs->cloak_value($val, 16, $t);
 					} else {
 						$msg = $status[1];
 						break 2;
@@ -128,7 +137,6 @@ if (isset($params['cancel'])) {
 			$keys[] = 'acchash';
 			$args[] = $cfuncs->hash_value($accset, $t);
 		}
-		$pre = cms_db_prefix();
 		if ($uid == -1) {
 			$uid = $db->GenID($pre.'module_auth_users_seq');
 			array_unshift($args, $uid);
@@ -150,11 +158,6 @@ if (isset($params['cancel'])) {
 		$this->Redirect($id, 'users', '', ['ctx_id'=>$cid]); //TODO CHECKME other parms
 	}
 }
-
-$utils = new Auther\Utils();
-
-$cfuncs = new Auther\Crypter($this);
-$pre = cms_db_prefix();
 
 if (empty($msg)) {
 	if ($uid > -1) { //existing data
@@ -252,10 +255,17 @@ for ($i = 0; $i < $c; $i += 6) {
 		break;
 	 case 2:
 		switch ($kf) {
+		 case 'address':
+			$ctxprops = $afuncs->GetConfig(['email_login','email_required','address_required']);
+			if ($ctxprops['address_required']) {
+				$one->must = 1;
+			}
+			if ($ctxprops['email_login'] || !$ctxprops['email_required']) {
+				$one->help = $this->Lang('help_contact2');
+			}
 		 case 'account':
 		 case 'name':
-		 case 'address':
-			$val = $cfuncs->decrypt_value($val);
+			$val = $cfuncs->uncloak_value($val);
 			if ($pmod) {
 				$one->input = $this->CreateInputText($id, $kf, $val, $props[$i+3], $props[$i+4]);
 			} else {
