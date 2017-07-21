@@ -703,7 +703,7 @@ class Auth extends Session
 
 		$cfuncs = new Crypter($this->mod);
 		$hash = $cfuncs->hash_value($login);
-		$login = $cfuncs->encrypt_value($login);
+		$login = $cfuncs->cloak_value($login, 16);
 		$sql = 'UPDATE '.$this->pref.'module_auth_users SET account=?,acchash=? WHERE id=?';
 		$this->db->Execute($sql, [$login, $hash, $uid]);
 		if ($this->db->Affected_Rows() > 0) {
@@ -727,11 +727,11 @@ class Auth extends Session
 		$data = $this->db->GeCol($sql, [$this->context]);
 		if ($data) {
 			$cfuncs = new Crypter($this->mod);
-			$mpw = $cfuncs->decrypt_preference('masterpass');
+			$mpw = $cfuncs->decrypt_preference(Crypter::MKEY);
 			$suffs = [];
 			$pl = strlen($login);
 			foreach ($data as $one) {
-				$t = $cfuncs->decrypt_value($one, $mpw);
+				$t = $cfuncs->uncloak_value($one, $mpw);
 				if (strncmp($t, $login, $pl) === 0) {
 					$s = substr($t, $pl);
 					if ($s && is_numeric($s)) {
@@ -770,9 +770,9 @@ class Auth extends Session
 			unset($data['passhash']);
 			if (!$raw) {
 				$cfuncs = new Crypter($this->mod);
-				$data['account'] = $cfuncs->decrypt_value($data['account']);
-				$data['name'] = $cfuncs->decrypt_value($data['name']);
-				$data['address'] = $cfuncs->decrypt_value($data['address']);
+				$data['account'] = $cfuncs->uncloak_value($data['account']);
+				$data['name'] = $cfuncs->uncloak_value($data['name']);
+				$data['address'] = $cfuncs->uncloak_value($data['address']);
 //TODO context ??
 				$dt = new \DateTime('@0', NULL);
 				$dt->setTimestamp($data['addwhen']);
@@ -854,7 +854,7 @@ class Auth extends Session
 		if ($data) {
 			$data['uid'] = $uid;
 			$cfuncs = new Crypter($this->mod);
-			$data['account'] = $cfuncs->decrypt_value($data['account']);
+			$data['account'] = $cfuncs->uncloak_value($data['account']);
 			return $data;
 		}
 		return FALSE;
@@ -878,14 +878,14 @@ class Auth extends Session
 			$sql .= ' AND active>0';
 		}
 		$cfuncs = new Crypter($this->mod);
-		$mpw = $cfuncs->decrypt_preference('masterpass');
+		$mpw = $cfuncs->decrypt_preference(Crypter::MKEY);
 		$hash = $cfuncs->hash_value($login, $mpw);
 		$data = $this->db->GetRow($sql, [$hash, $this->context]);
 
 		if ($data) {
 			$data['account'] = $login;
-			$data['name'] = $cfuncs->decrypt_value($data['name'], $mpw);
-			$data['address'] = $cfuncs->decrypt_value($data['address'], $mpw);
+			$data['name'] = $cfuncs->uncloak_value($data['name'], $mpw);
+			$data['address'] = $cfuncs->uncloak_value($data['address'], $mpw);
 //TODO zone offset
 			$dt = new \DateTime('@0', NULL);
 			$dt->setTimestamp($data['addwhen']);
@@ -928,13 +928,13 @@ class Auth extends Session
 
 		if ($data) {
 			$cfuncs = new Crypter($this->mod);
-			$mpw = $cfuncs->decrypt_preference('masterpass');
+			$mpw = $cfuncs->decrypt_preference(Crypter::MKEY);
 			$dt = new \DateTime('@0', NULL);
 //TODO zone offset
 			$a = is_array($login);
 			$ret = [];
 			foreach ($data as $one) {
-				$t = $cfuncs->decrypt_value($one['account'], $mpw);
+				$t = $cfuncs->uncloak_value($one['account'], $mpw);
 				if ((!$a && $t == $login) || ($a && in_array($t,$login))) {
 					if ($strip) {
 						unset($one['account']);
@@ -942,10 +942,10 @@ class Auth extends Session
 						$one['account'] = $t;
 					}
 					if (!empty($one['name'])) {
-						$one['name'] = $cfuncs->decrypt_value($one['name'], $mpw);
+						$one['name'] = $cfuncs->uncloak_value($one['name'], $mpw);
 					}
 					if (!empty($one['address'])) {
-						$one['address'] = $cfuncs->decrypt_value($one['address'], $mpw);
+						$one['address'] = $cfuncs->uncloak_value($one['address'], $mpw);
 					}
 					if (!empty($one['addwhen'])) {
 						$dt->setTimestamp($one['addwhen']);
@@ -981,7 +981,7 @@ class Auth extends Session
 					 case 'account':
 					 case 'name':
 					 case 'address':
-						$val = $cfuncs->decrypt_value($val);
+						$val = $cfuncs->uncloak_value($val);
 						break;
 					 case 'addwhen':
 					 case 'lastuse':
@@ -1010,7 +1010,7 @@ class Auth extends Session
 					if (!$cfuncs) {
 						$cfuncs = new Crypter($this->mod);
 					}
-					$val = $cfuncs->decrypt_value($val);
+					$val = $cfuncs->uncloak_value($val);
 					break;
 				 case 'addwhen':
 				 case 'lastuse':
@@ -1056,9 +1056,9 @@ class Auth extends Session
 		$data = $this->db->GetAssoc($sql, [$this->context]);
 		if ($data) {
 			$cfuncs = new Crypter($this->mod);
-			$mpw = $cfuncs->decrypt_preference('masterpass');
+			$mpw = $cfuncs->decrypt_preference(Crypter::MKEY);
 			foreach ($data as &$one) {
-				$one = $cfuncs->decrypt_value($one, $mpw);
+				$one = $cfuncs->uncloak_value($one, $mpw);
 			}
 			unset ($one);
 		}
@@ -1082,11 +1082,11 @@ class Auth extends Session
 		if ($data) {
 			if (!$raw) {
 				$cfuncs = new Crypter($this->mod);
-				$mpw = $cfuncs->decrypt_preference('masterpass');
+				$mpw = $cfuncs->decrypt_preference(Crypter::MKEY);
 				foreach ($data as &$one) {
-					$one['account'] = $cfuncs->decrypt_value($one['account'], $mpw);
-					$one['name'] = $cfuncs->decrypt_value($one['name'], $mpw);
-					$one['address'] = $cfuncs->decrypt_value($one['address'], $mpw);
+					$one['account'] = $cfuncs->uncloak_value($one['account'], $mpw);
+					$one['name'] = $cfuncs->uncloak_value($one['name'], $mpw);
+					$one['address'] = $cfuncs->uncloak_value($one['address'], $mpw);
 				}
 				unset ($one);
 				//TODO support mb sort
@@ -1115,14 +1115,14 @@ class Auth extends Session
 
 		$cfuncs = new Crypter($this->mod);
 		$hash = $cfuncs->hash_value($login);
-		$login = $cfuncs->encrypt_value($login);
+		$login = $cfuncs->cloak_value($login, 16);
 		if ($name || is_numeric($name)) {
-			$name = $cfuncs->encrypt_value($name);
+			$name = $cfuncs->cloak_value($name);
 		} else {
 			$name = NULL;
 		}
 		if ($address || is_numeric($address)) {
-			$address = $cfuncs->encrypt_value($address);
+			$address = $cfuncs->cloak_value($address, 24);
 		} else {
 			$address = NULL;
 		}
@@ -1228,17 +1228,17 @@ class Auth extends Session
 		//TODO consider - password change too?
 		if ($login && $login !== $oldlogin) {
 			$namers[] = 'account';
-			$args[] = $cfuncs->encrypt_value($login);
+			$args[] = $cfuncs->cloak_value($login, 16);
 			$namers[] = 'acchash';
 			$args[] = $cfuncs->hash_value($login);
 		}
 		if ($name || $name === '' || is_numeric($name)) {
 			$namers[] = 'name';
-			$args[] = $cfuncs->encrypt_value($name);
+			$args[] = $cfuncs->cloak_value($name);
 		}
 		if ($address || $address === '' || is_numeric($address)) {
 			$namers[] = 'address';
-			$args[] = $cfuncs->encrypt_value($address);
+			$args[] = $cfuncs->cloak_value($address, 24);
 		}
 		if ($active !== FALSE) {
 			$namers[] = 'active';
