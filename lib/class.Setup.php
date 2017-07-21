@@ -430,7 +430,7 @@ EOS;
 		require __DIR__.DIRECTORY_SEPARATOR.'setup.'.$task.'.php';
 
 		$cfuncs = new Crypter($mod);
-		$mpw = $cfuncs->decrypt_preference('masterpass');
+		$mpw = $cfuncs->decrypt_preference(Crypter::MKEY);
 		try {
 			require __DIR__.DIRECTORY_SEPARATOR.'random'.DIRECTORY_SEPARATOR.'random.php';
 			$iv = random_bytes(8); //sized for Blowfish in openssl

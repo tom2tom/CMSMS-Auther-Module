@@ -146,7 +146,7 @@ $mod = cms_utils::get_module('Auther');
 $errmsg = $mod->Lang('err_ajax');
 
 $cfuncs = new Auther\Crypter($mod);
-$mpw = $cfuncs->decrypt_preference('masterpass');
+$mpw = $cfuncs->decrypt_preference(Auther\Crypter::MKEY);
 $iv = base64_decode($_POST[$id.'IV']);
 $t = openssl_decrypt($_POST[$kn], 'BF-CBC', $mpw, 0, $iv);
 if (!$t) {

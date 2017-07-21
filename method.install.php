@@ -177,7 +177,7 @@ $t = $funcs->RandomString(10, TRUE, TRUE);
 $t = sprintf(base64_decode('Q3JhY2sgJXMgaWYgeW91IGNhbiE='), $t);
 $funcs = new Auther\Crypter($this);
 $funcs->init_crypt();
-$funcs->encrypt_preference('masterpass', $t);
+$funcs->encrypt_preference(Auther\Crypter::MKEY, $t);
 $t = base64_decode('Y2hhbmdlfCMkIyR8QVNBUA=='); //score 4
 $funcs->encrypt_preference('default_password', $t);
 $this->SetPreference('recaptcha_key', '');
