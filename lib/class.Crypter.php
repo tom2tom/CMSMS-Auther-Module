@@ -40,10 +40,13 @@ class Crypter Extends Encryption
 	init_crypt:
 	Must be called ONCE (during installation and/or after any localisation change)
 	before any hash or preference-crypt
+	@s: optional 'localisation' string, default ''
 	*/
-	public function init_crypt()
+	public function init_crypt($s='')
 	{
-		$s = $this->localise().self::SKEY;
+		if (!$s) {
+			$s = $this->localise().self::SKEY;
+		}
 		$value = str_shuffle(openssl_random_pseudo_bytes(9).microtime(TRUE));
 		$value = parent::encrypt($value,
 			hash_hmac('sha256', $s, self::SKEY));
@@ -55,10 +58,13 @@ class Crypter Extends Encryption
 	encrypt_preference:
 	@value: value to be stored, normally a string
 	@key: module-preferences key
+	@s: optional 'localisation' string, default ''
 	*/
-	public function encrypt_preference($key, $value)
+	public function encrypt_preference($key, $value, $s='')
 	{
-		$s = $this->localise();
+		if (!$s) {
+			$s = $this->localise();
+		}
 		$value = parent::encrypt(''.$value,
 			hash_hmac('sha256', $s.$this->decrypt_preference(self::SKEY), $key));
 		$this->mod->SetPreference(hash('tiger192,3', $s.$key),
@@ -68,11 +74,14 @@ class Crypter Extends Encryption
 	/**
 	decrypt_preference:
 	@key: module-preferences key
+	@s: optional 'localisation' string, default ''
 	Returns: plaintext string, or FALSE
 	*/
-	public function decrypt_preference($key)
+	public function decrypt_preference($key, $s='')
 	{
-		$s = $this->localise();
+		if (!$s) {
+			$s = $this->localise();
+		}
 		if ($key != self::SKEY) {
 			$value = base64_decode(
 				$this->mod->GetPreference(hash('tiger192,3', $s.self::SKEY)));
