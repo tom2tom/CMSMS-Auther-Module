@@ -182,7 +182,7 @@ class Challenge extends Session
 		if ($row) {
 			$t = $row['address'];
 			if ($t) {
-				$t = $cfuncs->decrypt_value($t);
+				$t = $cfuncs->uncloak_value($t);
 			}
 			if ($t && preg_match(self::PATNEMAIL, $t)) {
 				$email = $t;
@@ -406,7 +406,7 @@ class Challenge extends Session
 		foreach ($tests as $t) {
 			if ($t) {
 				if ($t == $contact) {
-					$t = $cfuncs->decrypt_value($t);
+					$t = $cfuncs->uncloak_value($t);
 				}
 				if ($this->mod->sendMail && preg_match(Auth::PATNEMAIL, $t)) {
 					return [1, $t];

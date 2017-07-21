@@ -356,7 +356,7 @@ if ($msgs || $fake) {
 			$namers[] = $field.'=?';
 			switch ($field) {
 			 case 'account':
-				$args[] = $cfuncs->encrypt_value($val);
+				$args[] = $cfuncs->cloak_value($val, 16);
 				$namers[] = 'acchash=?';
 				$args[] = $cfuncs->hash_value($val);
 				break;
@@ -364,8 +364,10 @@ if ($msgs || $fake) {
 				$args[] = password_hash($val, PASSWORD_DEFAULT);
 				break;
 			 case 'name':
+				$args[] = $cfuncs->cloak_value($val);
+				break;
 			 case 'address':
-				$args[] = $cfuncs->encrypt_value($val);
+				$args[] = $cfuncs->cloak_value($val, 24);
 				break;
 			}
 		}

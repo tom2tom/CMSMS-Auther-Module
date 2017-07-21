@@ -53,12 +53,12 @@ class Validate
 	}
 
 	/**
-	 * Checks validity of decryted @val using Auth::@authmethod
+	 * Checks validity of uncloaked @val using Auth::@authmethod
 	 * Returns: 2-member array, [0] = boolean indicating success, [1] = error message or ''
 	 */
 	public function CheckEncrypted($val, $authmethod, $failkey=FALSE)
 	{
-		$val = $this->cfuncs->decrypt_value($val);
+		$val = $this->cfuncs->uncloak_value($val);
 		return $this->CheckValue($val, $authmethod, $failkey);
 	}
 
