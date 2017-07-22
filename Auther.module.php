@@ -154,7 +154,7 @@ class Auther extends CMSModule
 
 	public function GetVersion()
 	{
-		return '0.2';
+		return '0.2.1';
 	}
 
 	public function HasAdmin()
