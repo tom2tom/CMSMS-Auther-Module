@@ -31,18 +31,19 @@ function account_rehash(&$cfuncs)
 
 switch ($oldversion) {
  case '0.2':
-	$sqlarray = $dict->RenameColumnSQL($pref.'module_auth_users', 'publicid', 'account', 'account B');
+	$tbl = $pref.'module_auth_users';
+	$sqlarray = $dict->RenameColumnSQL($tbl, 'publicid', 'account', 'account B');
 	$dict->ExecuteSqlArray($sqlarray, FALSE);
-	$sqlarray = $dict->AlterColumnSQL($pref.'module_auth_users', 'account B');
+	$sqlarray = $dict->AlterColumnSQL($tbl, 'account B');
 	$dict->ExecuteSqlArray($sqlarray, FALSE);
-	$sqlarray = $dict->RenameColumnSQL($pref.'module_auth_users', 'privreset', 'passreset', 'passreset I(1) DEFAULT 0');
+	$sqlarray = $dict->RenameColumnSQL($tbl, 'privreset', 'passreset', 'passreset I(1) DEFAULT 0');
 	$dict->ExecuteSqlArray($sqlarray, FALSE);
-	$sqlarray = $dict->RenameColumnSQL($pref.'module_auth_users', 'privhash', 'passhash', 'passhash B');
+	$sqlarray = $dict->RenameColumnSQL($tbl, 'privhash', 'passhash', 'passhash B');
 	$dict->ExecuteSqlArray($sqlarray, FALSE);
-	$sqlarray = $dict->AddColumnSQL($pref.'module_auth_users', 'acchash B');
+	$sqlarray = $dict->AddColumnSQL($tbl, 'acchash B');
 	$dict->ExecuteSqlArray($sqlarray, FALSE);
 
-	$cfuncs = new Auther\Crypter($this);
+	$cfuncs = new Auther\CryptInit($this);
 	$t = $this->GetPreference('nQCeESKBr99A');
 	if ($t) {
 		$val = hash('crc32b', $t.$config['ssl_url'].$this->GetModulePath());
@@ -68,10 +69,10 @@ switch ($oldversion) {
 		$pw = $cfuncs->decrypt_preference(Auther\Crypter::MKEY);
 	}
 
-	$sql = 'SELECT id,account,name,address FROM '.$pref.'module_auth_users';
+	$sql = 'SELECT id,account,name,address FROM '.$tbl;
 	$rst = $db->Execute($sql);
 	if ($rst) {
-		$sql = 'UPDATE '.$pref.'module_auth_users SET account=?,acchash=?,name=?,address=? WHERE id=?';
+		$sql = 'UPDATE '.$tbl.' SET account=?,acchash=?,name=?,address=? WHERE id=?';
 		while (!$rst->EOF) {
 			$t = $cfuncs->decrypt_value($rst->fields['account'], $pw);
 			$hash = $cfuncs->hash_value($t, $pw);

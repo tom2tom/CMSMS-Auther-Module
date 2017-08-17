@@ -175,7 +175,7 @@ $t = $funcs->RandomString(32, FALSE, FALSE);
 $this->SetPreference('session_salt', $t);
 $t = $funcs->RandomString(10, TRUE, TRUE);
 $t = sprintf(base64_decode('Q3JhY2sgJXMgaWYgeW91IGNhbiE='), $t);
-$funcs = new Auther\Crypter($this);
+$funcs = new Auther\CryptInit($this);
 $funcs->init_crypt();
 $funcs->encrypt_preference(Auther\Crypter::MKEY, $t);
 $t = base64_decode('Y2hhbmdlfCMkIyR8QVNBUA=='); //score 4
