@@ -526,22 +526,21 @@ class Session
 	/**
 	* Gets a slightly random string (not as diverse as from Setup::UniqueToken())
 	* @length: int wanted byte-length of the string
+	* @alnum: optional boolean, whether to limit the string to numbers and (english) lettters, default TRUE
 	* Returns: string
 	*/
-	public function UniqueToken($length)
+	public function UniqueToken($length, $alnum=TRUE)
 	{
-		$s1 = uniqid();
-		$l2 = $length - strlen($s1);
-		if ($l2 > 0) {
-			$chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-			$s2 = str_repeat('0', $l2);
-			for ($i = 0; $i < $l2; $i++) {
-				$s2[$i] = $chars[mt_rand(0, 71)];
-			}
-			return str_shuffle($s2.$s1);
-		} else {
-			return substr(str_shuffle($s1), 0, $length);
+		$chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
+			.uniqid();
+		if (!$alnum) {
+			$chars .= '~!@#$%^&*<>[]{}()-+,.?|/\\';
 		}
+		$cl = strlen($chars) - 1;
+		$ret = str_repeat('0', $length);
+		for ($i = 0; $i < $length; $i++) {
+			$ret[$i] = $chars[mt_rand(0, $cl)];
+		return $ret;
 	}
 
 	/**
@@ -557,8 +556,7 @@ class Session
 		$chars = 'ACDHJKLMNTVXY3479#%^*+abcdefhkprstwxyz';
 		$cl = strlen($chars) - 1;
 		for ($i = 0; $i < $length; $i++) {
-			$ch = $chars[mt_rand(0, $cl)];
-			$ret[$i] = $ch;
+			$ret[$i] = $chars[mt_rand(0, $cl)];
 		}
 		return $ret;
 	}
