@@ -526,10 +526,10 @@ class Session
 	/**
 	* Gets a slightly random string (not as diverse as from Setup::UniqueToken())
 	* @length: int wanted byte-length of the string
-	* @alnum: optional boolean, whether to limit the string to numbers and (english) lettters, default TRUE
+	* @alnum: optional boolean, whether to limit the string to numbers and (english) lettters, default FALSE
 	* Returns: string
 	*/
-	public function UniqueToken($length, $alnum=TRUE)
+	public function UniqueToken($length, $alnum=FALSE)
 	{
 		$chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
 			.uniqid();
@@ -540,6 +540,7 @@ class Session
 		$ret = str_repeat('0', $length);
 		for ($i = 0; $i < $length; $i++) {
 			$ret[$i] = $chars[mt_rand(0, $cl)];
+		}
 		return $ret;
 	}
 
