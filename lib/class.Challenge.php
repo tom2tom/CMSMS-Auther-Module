@@ -14,7 +14,7 @@ namespace Auther;
  captcha?
 */
 
-class Challenge extends Session
+class Challenge extends Auth
 {
 	public function __construct(&$mod, $context=0)
 	{
@@ -50,7 +50,7 @@ class Challenge extends Session
 			return $data;
 		}
 
-		$userdata = $this->GetUserBase($data['uid']); //TODO wrong class
+		$userdata = $this->GetUserBase($data['uid']);
 		if ($userdata['active']) {
 			$this->AddAttempt($token);
 			$this->DeleteChallenge($token);
@@ -125,7 +125,7 @@ class Challenge extends Session
 		if (!function_exists('password_hash')) {
 			include __DIR__.DIRECTORY_SEPARATOR.'password.php';
 		}
-		$newpass = password_hash($newpass, PASSWORD_DEFAULT);
+		$newpass = $this->HashPassword($newpass);
 		$sql = 'UPDATE '.$this->pref.'module_auth_users SET passhash=? WHERE id=?';
 		$this->db->Execute($sql, [$newpass, $data['uid']]);
 
