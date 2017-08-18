@@ -21,61 +21,20 @@ class CryptInit Extends Crypter
 	}
 
 	/**
-	clear_preference:
-	NB key parent::SKEY should be last-cleared
-	@key: module-preferences key
-	@s: optional 'localisation' string, default ''
-	*/
-	public function clear_preference($key, $s='')
-	{
-		if (!$s) {
-			$s = parent::localise();
-		}
-		$this->mod->RemovePreference(hash('tiger192,3', $s.$key));
-	}
-
-	/*
-	localise:
-	Get constant site/host-specific string.
-	All hashes and crypted preferences depend on this
-	*/
-	protected function localise()
-	{
-		return cmsms()->GetConfig()['ssl_url'].$this->mod->GetModulePath();
-	}
-
-	/**
 	init_crypt:
 	Must be called ONCE (during installation and/or after any localisation change)
 	before any hash or preference-crypt
 	@s: optional 'localisation' string, default ''
 	*/
-	public function init_crypt($s='')
+	final public function init_crypt($s='')
 	{
 		if (!$s) {
-			$s = self::localise().parent::SKEY;
+			$s = cmsms()->GetConfig()['ssl_url'].$this->mod->GetModulePath().parent::SKEY;
 		}
 		$value = str_shuffle(openssl_random_pseudo_bytes(9).microtime(TRUE));
 		$value = $this->encrypt($value,
 			hash_hmac('sha256', $s, parent::SKEY));
 		$this->mod->SetPreference(hash('tiger192,3', $s),
-			base64_encode($value));
-	}
-
-	/**
-	encrypt_preference:
-	@value: value to be stored, normally a string
-	@key: module-preferences key
-	@s: optional 'localisation' string, default ''
-	*/
-	public function encrypt_preference($key, $value, $s='')
-	{
-		if (!$s) {
-			$s = self::localise();
-		}
-		$value = $this->encrypt(''.$value,
-			hash_hmac('sha256', $s.$this->decrypt_preference(parent::SKEY), $key));
-		$this->mod->SetPreference(hash('tiger192,3', $s.$key),
 			base64_encode($value));
 	}
 }
