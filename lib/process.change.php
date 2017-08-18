@@ -361,7 +361,7 @@ if ($msgs || $fake) {
 				$args[] = $cfuncs->hash_value($val);
 				break;
 			 case 'passhash':
-				$args[] = password_hash($val, PASSWORD_DEFAULT);
+				$args[] = $afuncs->HashPassword($val);
 				break;
 			 case 'name':
 				$args[] = $cfuncs->cloak_value($val);
