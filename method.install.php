@@ -11,6 +11,15 @@ $taboptarray = ['mysql' => 'ENGINE MyISAM CHARACTER SET utf8 COLLATE utf8_genera
 $dict = NewDataDictionary($db);
 $pref = \cms_db_prefix();
 
+if (strncasecmp($config['dbms'], 'mysql', 5) == 0) {
+	$bm = 'B(16384)';
+	$bs = 'B(512)';
+} else {
+	//postgres supported pre-1.11
+	$bm = 'B';
+	$bs = 'B';
+}
+
 //cookie_path C(48), // DEFAULT \'/\'
 //message_charset C(16) DEFAULT 'UTF-8',
 //cookie_secure I(1) DEFAULT 0,
@@ -21,7 +30,7 @@ id I(2) KEY,
 name C(48) NOTNULL,
 alias C(16) NOTNULL,
 owner I DEFAULT -1,
-default_password B,
+default_password '.$bs.',
 request_key_expiration C(16) DEFAULT \'10 minutes\',
 attack_mitigation_span C(16) DEFAULT \'30 minutes\',
 ban_count I(1) DEFAULT 10,
@@ -74,7 +83,7 @@ context_id I(2),
 user_id I(4),
 name C(48),
 value C('.Auther::LENSHORTVAL.'),
-longvalue B
+longvalue '.$bm.'
 ';
 $tblname = $pref.'module_auth_chprops';
 $sqlarray = $dict->CreateTableSQL($tblname, $flds, $taboptarray);
@@ -122,7 +131,7 @@ attempts I(1) DEFAULT 0,
 challenge C(64),
 cookie_hash C(40),
 agent C(200),
-data B
+data '.$bm.'
 ';
 $tblname = $pref.'module_auth_cache';
 $sql = $dict->CreateTableSQL($tblname, $flds, $taboptarray);
@@ -134,20 +143,20 @@ $dict->ExecuteSQLArray($sql);
 /*
 NB name,address,addwhen (at least) NULL if unused, to enable COALESCE
 */
-$flds = '
+$flds = "
 id I(4) KEY,
-account B,
-acchash B,
-passhash B,
-name B,
-address B,
+account $bs,
+acchash $bs,
+passhash $bm,
+name $bm,
+address $bm,
 context_id I(2),
 addwhen I(8),
 lastuse I(8),
 nameswap I(1) DEFAULT 0,
 passreset I(1) DEFAULT 0,
 active I(1) DEFAULT 1
-';
+";
 $tblname = $pref.'module_auth_users';
 $sql = $dict->CreateTableSQL($tblname, $flds, $taboptarray);
 $dict->ExecuteSQLArray($sql);
@@ -160,7 +169,7 @@ id I KEY,
 user_id I(4),
 name C(256),
 value C('.Auther::LENSHORTVAL.'),
-longvalue B
+longvalue '.$bm.'
 ';
 $tblname = $pref.'module_auth_userprops';
 $sql = $dict->CreateTableSQL($tblname, $flds, $taboptarray);
