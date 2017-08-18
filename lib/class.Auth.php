@@ -295,6 +295,18 @@ class Auth extends Session
 	//~~~~~~~~~~~~~ PASSWORD OPERATIONS ~~~~~~~~~~~~~~~~~
 
 	/**
+	 * Generate hash for @password
+	 * @password: plaintext string
+	 * Returns: string
+	 */
+	public function HashPassword($password)
+	{
+		$password = substr($password, 0, 32);
+		$salt = $this->UniqueToken(8, TRUE);
+		return password_hash($password.$salt,PASSWORD_DEFAULT).$salt;
+	}
+
+	/**
 	 * Gets whether password-recovery is supported
 	 *
 	 * Returns: boolean
@@ -314,7 +326,7 @@ class Auth extends Session
 	public function ChangePasswordReal($uid, $newpass, $raw = FALSE)
 	{
 		if (!$raw) {
-			$newpass = password_hash($newpass, PASSWORD_DEFAULT);
+			$newpass = $this->HashPassword($newpass);
 		}
 		$sql = 'UPDATE '.$this->pref.'module_auth_users SET passhash=? WHERE id=?';
 		$this->db->Execute($sql, [$newpass, $uid]);
@@ -379,7 +391,7 @@ class Auth extends Session
 			return [FALSE, $this->mod->Lang('incorrect_type', $this->mod->Lang('password'))];
 		}
 
-		$newpass = password_hash($newpass, PASSWORD_DEFAULT);
+		$newpass = $this->HashPassword($newpass);
 
 		$sql = 'UPDATE '.$this->pref.'module_auth_users SET passhash=? WHERE id=?';
 		$this->db->Execute($sql, [$newpass, $uid]);
@@ -437,9 +449,19 @@ class Auth extends Session
 	 */
 	public function DoPasswordCheck($password, $hash, $tries = 1, $uid = 0)
 	{
-		if (password_verify($password, $hash)) {
+		$password = substr($password, 0, 32);
+		$salt = substr($hash, -8);
+/*		if (extension_loaded('mbstring')) {
+			$len = mb_strlen($password, '8bit');
+		} else {
+			$len = strlen($password);
+		}
+*/
+		$len = strlen(bin2hex($hash))/2; //raw strlen may return chars
+		$hash = substr($hash, 0, $len-8);
+		if (password_verify($password.salt, $hash)) {
 			if ($uid > 0 && password_needs_rehash($hash, PASSWORD_DEFAULT)) {
-				$newhash = password_hash($password, PASSWORD_DEFAULT);
+				$newhash = $this->HashPassword($password);
 				$sql = 'UPDATE '.$this->pref.'module_auth_users SET passhash=? WHERE id=?';
 				$this->db->Execute($sql, [$newhash, $uid]);
 			}
@@ -1111,7 +1133,7 @@ class Auth extends Session
 	{
 		$uid = $this->db->GenID($this->pref.'module_auth_users_seq');
 
-		$password = password_hash($password, PASSWORD_DEFAULT);
+		$password = $this->HashPassword($password);
 
 		$cfuncs = new Crypter($this->mod);
 		$hash = $cfuncs->hash_value($login);
