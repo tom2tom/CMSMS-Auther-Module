@@ -125,7 +125,7 @@ EOS;
 	 case self::MIDSEC:
 		$far = $this->UniqueToken(32);
 		$cache['far'] = $far;
-		$far = strtr($far, ['\\'=>'\\\\', '"'=>'\"']);
+		$far = strtr($far, ['\\'=>'\\\\', '"'=>'\\"']);
 		$hidden[] = $mod->CreateInputHidden($id,'nearn','');
 		$one = new \stdClass();
 		$one->title = $mod->Lang('title_captcha');
