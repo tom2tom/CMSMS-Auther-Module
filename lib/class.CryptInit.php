@@ -17,7 +17,7 @@ class CryptInit Extends Crypter
 	*/
 	public function __construct(&$mod, $method='BF-CBC', $stretches=parent::STRETCHES)
 	{
-		parent::__construct($mod, $method, 'default', $stretches);
+		parent::__construct($mod, $method, $stretches);
 	}
 
 	/**
