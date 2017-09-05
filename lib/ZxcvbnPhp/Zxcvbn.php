@@ -2,6 +2,8 @@
 
 namespace ZxcvbnPhp;
 
+use \Auther\ZxcvbnPhp;
+
 class Zxcvbn
 {
 	/**
@@ -21,9 +23,9 @@ class Zxcvbn
 
 	public function __construct()
 	{
-		$this->scorer = new \ZxcvbnPhp\Scorer();
-		$this->searcher = new \ZxcvbnPhp\Searcher();
-		$this->matcher = new \ZxcvbnPhp\Matcher();
+		$this->scorer = new ZxcvbnPhp\Scorer();
+		$this->searcher = new ZxcvbnPhp\Searcher();
+		$this->matcher = new ZxcvbnPhp\Matcher();
 	}
 
 	/**

@@ -2,6 +2,8 @@
 
 namespace ZxcvbnPhp;
 
+use \Auther\ZxcvbnPhp;
+
 class Scorer implements ScorerInterface
 {
 	const SINGLE_GUESS = 0.010; // Lower bound assumption of time to hash based on bcrypt/scrypt/PBKDF2.

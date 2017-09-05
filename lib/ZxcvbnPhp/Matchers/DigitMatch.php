@@ -2,6 +2,8 @@
 
 namespace ZxcvbnPhp\Matchers;
 
+use \Auther\ZxcvbnPhp;
+
 class DigitMatch extends Match
 {
 

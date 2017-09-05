@@ -2,7 +2,7 @@
 
 namespace ZxcvbnPhp;
 
-use ZxcvbnPhp\Matchers\MatchInterface;
+use \Auther\ZxcvbnPhp, \Auther\ZxcvbnPhp\Matchers\MatchInterface;
 
 class Matcher
 {

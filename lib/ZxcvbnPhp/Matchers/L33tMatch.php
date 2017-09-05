@@ -2,7 +2,7 @@
 
 namespace ZxcvbnPhp\Matchers;
 
-use ZxcvbnPhp\Matchers\DictionaryMatch;
+use \Auther\ZxcvbnPhp, \Auther\ZxcvbnPhp\Matchers\DictionaryMatch;
 
 /**
  * Class L33tMatch extends DictionaryMatch to translate l33t into dictionary words for matching.

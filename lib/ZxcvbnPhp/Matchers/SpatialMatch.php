@@ -2,6 +2,8 @@
 
 namespace ZxcvbnPhp\Matchers;
 
+use \Auther\ZxcvbnPhp;
+
 /**
  * Class SpatialMatch.
  * @package ZxcvbnPhp\Matchers

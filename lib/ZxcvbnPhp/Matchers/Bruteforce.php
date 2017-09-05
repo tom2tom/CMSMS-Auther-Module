@@ -6,6 +6,8 @@
 
 namespace ZxcvbnPhp\Matchers;
 
+use \Auther\ZxcvbnPhp;
+
 /**
  * Class Bruteforce
  * @package ZxcvbnPhp\Matchers
