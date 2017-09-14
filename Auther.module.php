@@ -294,8 +294,8 @@ EOS;
 /*	public function get_tasks()
 	{
 		return [
-			new Auther\Cleanold_task(),
-//			new Auther\Clearcache_task()
+			new Auther\Cleanold(),
+//			new Auther\Clearcache(),
 		];
 	}
 */
