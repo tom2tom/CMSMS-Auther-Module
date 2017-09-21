@@ -116,7 +116,7 @@ $keys = array_keys($_POST);
 foreach ($keys as $kn) {
 	$t = substr($kn, 0, 6);
 	if (array_key_exists($t, $scan)) {
-		$scan[$t]++;
+		++$scan[$t];
 	} else {
 		$scan[$t] = 1;
 	}

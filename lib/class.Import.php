@@ -254,7 +254,7 @@ class Import
 					}
 
 					if (!($wanted == '*' || $wanted == $cid)) {
-						$skips++;
+						++$skips;
 						continue; //too bad about any newly-created context(s)!
 					}
 
@@ -302,7 +302,7 @@ class Import
 								$args[] = $uid;
 								$db->Execute($sql, $args);
 								if ($db->Affected_Rows() > 0) {
-									$icount++;
+									++$icount;
 									$done = TRUE;
 								}
 							}
@@ -317,13 +317,13 @@ class Import
 							$args[] = $st;
 							$db->Execute($sql, $args);
 							if ($db->Affected_Rows() > 0) {
-								$icount++;
+								++$icount;
 							} else {
 								return [FALSE, $mod->Lang('err_system')];
 							}
 						}
 					} else {
-						$skips++;
+						++$skips;
 					}
 				}
 			}
