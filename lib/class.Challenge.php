@@ -14,6 +14,18 @@ namespace Auther;
  captcha?
 */
 
+/* Challenge ancestor-calls
+Session
+AddAttempt();
+GetConfig()
+GetStatus()
+UniqueToken();
+Auth
+DoPasswordCheck()
+GetUserBase();
+HashPassword();
+*/
+
 class Challenge extends Auth
 {
 	public function __construct(&$mod, $context=0)
