@@ -256,6 +256,8 @@ $lang['retry'] = 'Try again';
 $lang['submit'] = 'Submit';
 $lang['system_error'] = 'A system error (%s) has been encountered. Please try again.';
 
+$lang['taskdescription_cleanold'] = 'Delete historical data which is older than the relevant retention period';
+$lang['taskdescription_clearcache'] = 'Delete redundant cached session data';
 $lang['temp_notsent'] = 'Cannot send information to your address. You\'ll need to re-register.';
 $lang['temp_sent'] = 'A temporary token has been sent to your address. Insert that token below, along with your replacement.';
 //$lang['temp_typed'] = '<i>TEMPORARY</i> %s';
