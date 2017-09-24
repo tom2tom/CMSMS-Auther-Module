@@ -157,6 +157,15 @@ class Auther extends CMSModule
 		return '0.2.1';
 	}
 
+	public function HasCapability($capability, $params = [])
+	{
+		switch ($capability) {
+			case 'tasks':
+				return TRUE;
+		}
+		return FALSE;
+	}
+
 	public function HasAdmin()
 	{
 		return TRUE;
@@ -291,14 +300,21 @@ EOS;
 	Specify the tasks that this module uses
 	Returns: CmsRegularTask-compliant object, or array of them
 	*/
-/*	public function get_tasks()
+	public function get_tasks()
 	{
-		return [
-			new Auther\Cleanold(),
-//			new Auther\Clearcache(),
-		];
+		if ($this->before20) {
+			return array(
+			 new authCleanoldTask(),
+			 new authClearcacheTask(),
+			);
+		} else {
+			return [
+			 new Auther\CleanoldTask(),
+			 new Auther\ClearcacheTask(),
+			];
+		}
 	}
-*/
+
 	/**
 	_CheckAccess:
 	NOT PART OF THE MODULE API
