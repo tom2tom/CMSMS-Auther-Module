@@ -9,6 +9,21 @@
 #----------------------------------------------------------------------
 namespace Auther;
 
+/* Auth ancestor-calls
+Session
+AddAttempt();  by Challenge too
+GetConfig();  & chall
+GetStatus();  & chall
+UniqueToken();  & chall
+
+AddSession();
+CurrentSession();
+DeleteSession();
+GetIp();
+MakeSourceSession();
+MakeUserSession();
+*/
+
 class Auth extends Session
 {
 	const PATNEMAIL = '/^\S+@[^\s.]+\.\S+$/';
@@ -147,7 +162,7 @@ class Auth extends Session
 		if ($val > 0 && strlen($password) < $val) {
 			return [FALSE, $this->mod->Lang('password_short')];
 		}
-		$funcs = new \ZxcvbnPhp\Zxcvbn();
+		$funcs = new Auther\ZxcvbnPhp\Zxcvbn();
 		$check = $funcs->passwordStrength($password);
 
 		$val = (int)$this->GetConfig('password_min_score');
@@ -646,13 +661,13 @@ class Auth extends Session
 			$res = $this->DoPasswordCheck($password, $userdata['passhash'], $tries, $uid);
 			if (!$res) {
 				$this->AddAttempt($sdata['token']); //TODO update token WHERE token=sdata[token]
-				$sdata['attempts']++;
+				++$sdata['attempts'];
 			}
 			return [$res, $sdata];
 		} else {
 			if ($sdata) {
 				$this->AddAttempt($sdata['token']);
-				$sdata['attempts']++;
+				++$sdata['attempts'];
 			} else {
 				$token = $this->MakeSourceSession($ip, $token);
 				$sql = 'SELECT * FROM '.$this->pref.'module_auth_cache WHERE token=?';
