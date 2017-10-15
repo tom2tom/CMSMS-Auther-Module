@@ -1,8 +1,8 @@
 <?php
 
-namespace ZxcvbnPhp;
+namespace Auther\ZxcvbnPhp;
 
-use \Auther\ZxcvbnPhp;
+use Auther\ZxcvbnPhp;
 
 class Zxcvbn
 {

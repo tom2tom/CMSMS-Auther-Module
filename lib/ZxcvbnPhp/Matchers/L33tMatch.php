@@ -1,8 +1,6 @@
 <?php
 
-namespace ZxcvbnPhp\Matchers;
-
-use \Auther\ZxcvbnPhp, \Auther\ZxcvbnPhp\Matchers\DictionaryMatch;
+namespace Auther\ZxcvbnPhp\Matchers;
 
 /**
  * Class L33tMatch extends DictionaryMatch to translate l33t into dictionary words for matching.

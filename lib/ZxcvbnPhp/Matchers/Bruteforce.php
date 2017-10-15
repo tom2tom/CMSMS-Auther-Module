@@ -4,9 +4,7 @@
  *
  */
 
-namespace ZxcvbnPhp\Matchers;
-
-use \Auther\ZxcvbnPhp;
+namespace Auther\ZxcvbnPhp\Matchers;
 
 /**
  * Class Bruteforce

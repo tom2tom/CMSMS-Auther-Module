@@ -1,8 +1,6 @@
 <?php
 
-namespace ZxcvbnPhp;
-
-use \Auther\ZxcvbnPhp, \Auther\ZxcvbnPhp\Matchers\MatchInterface;
+namespace Auther\ZxcvbnPhp;
 
 class Matcher
 {
@@ -24,6 +22,7 @@ class Matcher
 	{
 		$matches = array();
 		foreach ($this->getMatchers() as $matcher) {
+			$matcher = __NAMESPACE__.$matcher;
 			$matched = $matcher::match($password, $userInputs);
 			if (is_array($matched) && !empty($matched)) {
 				$matches = array_merge($matches, $matched);
@@ -42,14 +41,14 @@ class Matcher
 	{
 		// @todo change to dynamic
 		return array(
-			'ZxcvbnPhp\Matchers\DateMatch',
-			'ZxcvbnPhp\Matchers\DigitMatch',
-			'ZxcvbnPhp\Matchers\L33tMatch',
-			'ZxcvbnPhp\Matchers\RepeatMatch',
-			'ZxcvbnPhp\Matchers\SequenceMatch',
-			'ZxcvbnPhp\Matchers\SpatialMatch',
-			'ZxcvbnPhp\Matchers\YearMatch',
-			'ZxcvbnPhp\Matchers\DictionaryMatch',
+			'\Matchers\DateMatch',
+			'\Matchers\DigitMatch',
+			'\Matchers\L33tMatch',
+			'\Matchers\RepeatMatch',
+			'\Matchers\SequenceMatch',
+			'\Matchers\SpatialMatch',
+			'\Matchers\YearMatch',
+			'\Matchers\DictionaryMatch',
 		);
 	}
 }

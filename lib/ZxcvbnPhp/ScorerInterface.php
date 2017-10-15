@@ -1,6 +1,6 @@
 <?php
 
-namespace ZxcvbnPhp;
+namespace Auther\ZxcvbnPhp;
 
 interface ScorerInterface
 {

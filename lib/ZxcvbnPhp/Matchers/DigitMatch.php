@@ -1,8 +1,6 @@
 <?php
 
-namespace ZxcvbnPhp\Matchers;
-
-use \Auther\ZxcvbnPhp;
+namespace Auther\ZxcvbnPhp\Matchers;
 
 class DigitMatch extends Match
 {

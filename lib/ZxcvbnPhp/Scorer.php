@@ -1,8 +1,6 @@
 <?php
 
-namespace ZxcvbnPhp;
-
-use \Auther\ZxcvbnPhp;
+namespace Auther\ZxcvbnPhp;
 
 class Scorer implements ScorerInterface
 {
