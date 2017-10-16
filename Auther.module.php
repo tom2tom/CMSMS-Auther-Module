@@ -61,29 +61,29 @@ class Auther extends CMSModule
 			$this->sendSMS = FALSE;
 		}
 
-		spl_autoload_register([$this, 'cmsms_spacedload']);
+//		spl_autoload_register([$this, 'cmsms_spacedload']);
 	}
 
-	public function __destruct()
+/*	public function __destruct()
 	{
 		spl_autoload_unregister([$this, 'cmsms_spacedload']);
 		if (function_exists('parent::__destruct')) {
 			parent::__destruct();
 		}
 	}
-
+*/
 	/* namespace autoloader - CMSMS default autoloader doesn't do spacing */
-	private function cmsms_spacedload($class)
+/*	private function cmsms_spacedload($class)
 	{
 //		$prefix = get_class().'\\'; //our namespace prefix
 		$o = ($class[0] != '\\') ? 0:1;
-/*		$p = strpos($class, $prefix, $o);
+/ *		$p = strpos($class, $prefix, $o);
 		if ($p === 0 || ($p == 1 && $o == 1)) {
 			// directory for the namespace
 			$bp = __DIR__.DIRECTORY_SEPARATOR.'lib'.DIRECTORY_SEPARATOR;
 		} else
-*/
-		if (($p = strpos($class, 'ZxcvbnPhp\\', $o)) === 0 || ($p == 1 && $o == 1)) {
+* /
+		if (strpos($class, 'ZxcvbnPhp\\', $o) === $o) {
 			$parts = explode('\\',$class);
 			$fn = array_pop($parts);
 			$fp = __DIR__.DIRECTORY_SEPARATOR.'lib'.DIRECTORY_SEPARATOR
@@ -93,8 +93,7 @@ class Auther extends CMSModule
 				require $fp;
 			}
 //			return;
-		}
-/*		else {
+		} else {
 			$p = strpos($class, '\\', 1);
 			if ($p === FALSE) {
 				return;
@@ -123,9 +122,8 @@ class Auther extends CMSModule
 		if (file_exists($fp)) {
 			include $fp;
 		}
- */
 	}
-
+*/
 	public function GetAdminDescription()
 	{
 		return $this->Lang('admindescription');
