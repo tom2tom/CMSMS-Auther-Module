@@ -22,8 +22,8 @@ class Matcher
 	{
 		$matches = array();
 		foreach ($this->getMatchers() as $matcher) {
-			$matcher = __NAMESPACE__.$matcher;
-			$matched = $matcher::match($password, $userInputs);
+			$classname = __NAMESPACE__.'\\Matchers\\'.$matcher;
+			$matched = $classname::match($password, $userInputs);
 			if (is_array($matched) && !empty($matched)) {
 				$matches = array_merge($matches, $matched);
 			}
@@ -39,16 +39,15 @@ class Matcher
 	 */
 	protected function getMatchers()
 	{
-		// @todo change to dynamic
 		return array(
-			'\Matchers\DateMatch',
-			'\Matchers\DigitMatch',
-			'\Matchers\L33tMatch',
-			'\Matchers\RepeatMatch',
-			'\Matchers\SequenceMatch',
-			'\Matchers\SpatialMatch',
-			'\Matchers\YearMatch',
-			'\Matchers\DictionaryMatch',
+			'DateMatch',
+			'DigitMatch',
+			'L33tMatch',
+			'RepeatMatch',
+			'SequenceMatch',
+			'SpatialMatch',
+			'YearMatch',
+			'DictionaryMatch',
 		);
 	}
 }
