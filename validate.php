@@ -137,8 +137,8 @@ if (empty($_POST[$kn])) {
 
 //grab stuff cuz' we've bypassed a normal session-start
 $fp = __DIR__;
-$c = strpos($fp, '/modules');
-$inc = substr($fp, 0, $c+1).'include.php';
+$c = strpos($fp, 'modules');
+$inc = substr($fp, 0, $c).'lib'.DIRECTORY_SEPARATOR.'include.php';
 require $inc;
 
 $jax = !empty($_POST[$id.'jsworks']);
@@ -192,7 +192,8 @@ if (isset($_POST[$id.'success'])) {
 	notify_handler($params, $others);
 	exit;
 } elseif (isset($_POST[$id.'cancel'])) {
-	$others = ['authdata' => base64_encode(json_encode((object)['cancel'=>1]))];
+	$params['cancel'] = 1;
+	$others = ['authdata' => base64_encode(json_encode($params))];
 	notify_handler($params, $others);
 	exit;
 }
