@@ -262,10 +262,11 @@ class Encryption
 					$n -= 256;
 				}
 				if ($i % 2) {
-					$pad[$i] = $pad[$i]+$n+2;
+					$c = $n + 2;
 				} else {
-					$pad[$i] = $pad[$i]-$n-3;
+					$c = -$n - 3;
 				}
+				$pad[$i] = ord($pad[$i]) + $c;
 			}
 		} else {
 			$pad = '\0';
