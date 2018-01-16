@@ -306,8 +306,8 @@ EOS;
 	{
 		if ($this->before20) {
 			return array(
-			 new authCleanoldTask(),
-			 new authClearcacheTask(),
+//TODO			 new authCleanoldTask(),
+//TODO			 new authClearcacheTask(),
 			);
 		} else {
 			return [
