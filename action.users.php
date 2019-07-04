@@ -225,19 +225,19 @@ EOS;
 var pagedtable;
 
 function pagefirst() {
- $.SSsort.movePage(pagedtable,false,true);
+ $.fn.SSsort.movePage(pagedtable,false,true);
 }
 function pagelast() {
- $.SSsort.movePage(pagedtable,true,true);
+ $.fn.SSsort.movePage(pagedtable,true,true);
 }
 function pageforw() {
- $.SSsort.movePage(pagedtable,true,false);
+ $.fn.SSsort.movePage(pagedtable,true,false);
 }
 function pageback() {
- $.SSsort.movePage(pagedtable,false,false);
+ $.fn.SSsort.movePage(pagedtable,false,false);
 }
 function pagerows(cb) {
- $.SSsort.setCurrent(pagedtable,'pagesize',parseInt(cb.value));
+ $.fn.SSsort.setCurrent(pagedtable,'pagesize',parseInt(cb.value));
 }
 EOS;
 			$jsloads[] = <<<'EOS'
@@ -254,7 +254,7 @@ EOS;
 		}
 
 		$jsloads[] = <<<EOS
- $.SSsort.addParser({
+ $.fn.SSsort.addParser({
   id: 'icon',
   is: function(s,node) {
    var \$i = $(node).find('img');
