@@ -111,7 +111,7 @@ class SimpleCaptcha
 		$l = strlen($str);
 		$num = 5381;
 		for ($i = 0; $i < $l; $i++) {
-			$num = ($num + ($num << 5)) ^ $str[$i]; //$num = $num*33 ^ $str[$i]
+			$num = ($num + ($num << 5)) ^ ord($str[$i]); //i.e. $num = $num*33 ^ $str[$i]
 		}
 		return $num;
 	}
