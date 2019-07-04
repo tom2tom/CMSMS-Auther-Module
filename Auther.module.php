@@ -311,8 +311,8 @@ EOS;
 			);
 		} else {
 			return [
-			 new Auther\CleanoldTask(),
-			 new Auther\ClearcacheTask(),
+			 new Auther\authCleanoldTask(),
+			 new Auther\authClearcacheTask(),
 			];
 		}
 	}
